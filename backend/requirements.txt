@@ -1,0 +1,5 @@
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+# 2.10.x has no Python 3.14-compatible pydantic-core wheel and tries to
+# compile with an older PyO3. Keep this current for Python 3.14 support.
+pydantic>=2.12.0,<3
