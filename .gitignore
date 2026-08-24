@@ -31,3 +31,9 @@ npm-debug.log*
 
 # misc
 *.sqlite3
+
+# local development database
+backend/*.db
+
+# TypeScript build cache
+*.tsbuildinfo

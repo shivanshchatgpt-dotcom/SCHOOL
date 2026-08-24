@@ -1,4 +1,5 @@
 """PySchool — FastAPI application entrypoint."""
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -18,9 +19,20 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="PySchool API", version="0.1.0", lifespan=lifespan)
 
+# MVP-safe CORS: explicit dev origins instead of "*" with credentials.
+# Override with PYSCHOOL_CORS_ORIGINS="https://a.example,https://b.example" in
+# deployment. Wildcard-with-credentials is not a valid browser combination and
+# was an audit finding.
+_default_origins = "http://localhost:5173,http://127.0.0.1:5173"
+_cors_origins = [
+    origin.strip()
+    for origin in os.environ.get("PYSCHOOL_CORS_ORIGINS", _default_origins).split(",")
+    if origin.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

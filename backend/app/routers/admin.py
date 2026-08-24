@@ -1,9 +1,25 @@
-"""Admin (teacher) endpoints: all students, enrollments, submissions, penalty control."""
-from fastapi import APIRouter, HTTPException
+"""Admin (teacher) endpoints: all students, enrollments, submissions, penalty control.
+
+MVP-safe protection: every admin route requires the X-Admin-Token header to
+match the PYSCHOOL_ADMIN_TOKEN environment variable (default "pyschool-admin"
+for local development only). This keeps the teacher API out of student reach
+without a full authentication system.
+"""
+import hmac
+import os
+
+from fastapi import APIRouter, Depends, Header, HTTPException
 
 from ..db import get_conn
 
-router = APIRouter()
+
+def require_admin(x_admin_token: str | None = Header(default=None, alias="X-Admin-Token")) -> None:
+    expected = os.environ.get("PYSCHOOL_ADMIN_TOKEN", "pyschool-admin")
+    if not x_admin_token or not hmac.compare_digest(expected.encode(), x_admin_token.encode()):
+        raise HTTPException(status_code=401, detail="Teacher access requires a valid X-Admin-Token header.")
+
+
+router = APIRouter(dependencies=[Depends(require_admin)])
 
 
 @router.get("/students")

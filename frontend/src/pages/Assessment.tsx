@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { api } from "../api";
+import { saveLearner, saveProfile, savedProfile } from "../lib/learner";
 
 interface Question {
   id: number;
@@ -19,9 +20,13 @@ interface Result {
   total: number;
   level: string;
   feedback: string;
+  starting_milestone: { code: string; title: string };
+  weak_topics: string[];
+  access_token?: string;
 }
 
 const levelStyle: Record<string, string> = {
+  Foundation: "bg-violet-50 text-violet-700 border-violet-200",
   Beginner: "bg-blue-50 text-blue-700 border-blue-200",
   Intermediate: "bg-amber-50 text-amber-700 border-amber-200",
   Advanced: "bg-emerald-50 text-emerald-700 border-emerald-200",
@@ -33,8 +38,9 @@ export default function Assessment() {
   const [path, setPath] = useState<any>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [step, setStep] = useState(0);
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const profile = savedProfile();
+  const [name, setName] = useState(profile.name || "");
+  const [email, setEmail] = useState(profile.email || "");
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -68,6 +74,14 @@ export default function Assessment() {
           selected,
         })),
       });
+      saveProfile(name.trim(), email.trim().toLowerCase());
+      saveLearner({
+        enrollmentId: res.enrollment_id,
+        pathName: path.name,
+        studentName: name.trim(),
+        studentEmail: email.trim().toLowerCase(),
+        token: res.access_token,
+      });
       setResult(res);
     } catch (e) {
       setError(String(e));
@@ -92,6 +106,11 @@ export default function Assessment() {
             You scored <span className="font-bold text-gray-900">{result.score}</span> / {result.total}
           </p>
           <p className="text-gray-600 mt-4 leading-relaxed">{result.feedback}</p>
+          <div className="mt-5 rounded-xl bg-gray-50 border border-gray-200 p-4 text-left text-sm">
+            <p className="font-semibold">Your starting milestone</p>
+            <p className="text-gray-600 mt-1">{result.starting_milestone.code} · {result.starting_milestone.title}</p>
+            {result.weak_topics.length > 0 && <p className="text-gray-500 mt-2">Review focus: {result.weak_topics.join(", ").replace(/-/g, " ")}</p>}
+          </div>
           <button
             onClick={() => navigate(`/dashboard/${result.enrollment_id}`)}
             className="mt-8 bg-black text-white px-6 py-3 rounded-xl font-semibold hover:bg-gray-800"
@@ -114,7 +133,7 @@ export default function Assessment() {
             <label className="block text-sm font-semibold mb-1">Your name</label>
             <input
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => { setName(e.target.value); saveProfile(e.target.value, email); }}
               className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-gray-900"
               placeholder="e.g. Aarav Kumar"
             />
@@ -123,7 +142,7 @@ export default function Assessment() {
             <label className="block text-sm font-semibold mb-1">Email</label>
             <input
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => { setEmail(e.target.value); saveProfile(name, e.target.value); }}
               type="email"
               className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-gray-900"
               placeholder="you@example.com"

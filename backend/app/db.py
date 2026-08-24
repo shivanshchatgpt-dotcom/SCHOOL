@@ -33,7 +33,9 @@ CREATE TABLE IF NOT EXISTS paths (
     description TEXT NOT NULL DEFAULT '',
     libraries TEXT NOT NULL DEFAULT '',
     slug TEXT NOT NULL UNIQUE,
-    difficulty INTEGER NOT NULL DEFAULT 1
+    difficulty INTEGER NOT NULL DEFAULT 1,
+    is_launch_ready INTEGER NOT NULL DEFAULT 0,
+    duration_days INTEGER NOT NULL DEFAULT 180
 );
 
 CREATE TABLE IF NOT EXISTS assessment_questions (
@@ -45,7 +47,8 @@ CREATE TABLE IF NOT EXISTS assessment_questions (
     option_c TEXT NOT NULL,
     option_d TEXT NOT NULL,
     correct TEXT NOT NULL,
-    difficulty INTEGER NOT NULL DEFAULT 1
+    difficulty INTEGER NOT NULL DEFAULT 1,
+    topic TEXT NOT NULL DEFAULT 'python-basics'
 );
 
 CREATE TABLE IF NOT EXISTS lessons (
@@ -59,6 +62,42 @@ CREATE TABLE IF NOT EXISTS lessons (
     answers TEXT NOT NULL DEFAULT '[]',
     homework TEXT NOT NULL DEFAULT '',
     UNIQUE(path_id, day_number)
+);
+
+CREATE TABLE IF NOT EXISTS milestones (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    path_id INTEGER NOT NULL REFERENCES paths(id),
+    code TEXT NOT NULL,
+    title TEXT NOT NULL,
+    domain TEXT NOT NULL,
+    objective TEXT NOT NULL,
+    estimated_minutes INTEGER NOT NULL DEFAULT 60,
+    sort_order INTEGER NOT NULL,
+    mastery_criteria TEXT NOT NULL,
+    remediation_note TEXT NOT NULL DEFAULT '',
+    UNIQUE(path_id, code),
+    UNIQUE(path_id, sort_order)
+);
+
+CREATE TABLE IF NOT EXISTS milestone_prerequisites (
+    milestone_id INTEGER NOT NULL REFERENCES milestones(id),
+    prerequisite_milestone_id INTEGER NOT NULL REFERENCES milestones(id),
+    PRIMARY KEY (milestone_id, prerequisite_milestone_id)
+);
+
+CREATE TABLE IF NOT EXISTS lesson_milestones (
+    lesson_id INTEGER NOT NULL REFERENCES lessons(id),
+    milestone_id INTEGER NOT NULL REFERENCES milestones(id),
+    PRIMARY KEY (lesson_id, milestone_id)
+);
+
+CREATE TABLE IF NOT EXISTS assignments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    lesson_id INTEGER NOT NULL UNIQUE REFERENCES lessons(id),
+    prompt TEXT NOT NULL,
+    required_patterns TEXT NOT NULL DEFAULT '[]',
+    min_lines INTEGER NOT NULL DEFAULT 3,
+    rubric TEXT NOT NULL DEFAULT ''
 );
 
 CREATE TABLE IF NOT EXISTS students (
@@ -78,6 +117,7 @@ CREATE TABLE IF NOT EXISTS enrollments (
     streak INTEGER NOT NULL DEFAULT 0,
     penalty_points INTEGER NOT NULL DEFAULT 0,
     xp INTEGER NOT NULL DEFAULT 0,
+    starting_milestone_id INTEGER REFERENCES milestones(id),
     enrolled_at TEXT NOT NULL DEFAULT (datetime('now')),
     UNIQUE(student_id, path_id)
 );
@@ -90,6 +130,17 @@ CREATE TABLE IF NOT EXISTS lesson_progress (
     submitted_at TEXT,
     passed INTEGER NOT NULL DEFAULT 0,
     UNIQUE(enrollment_id, lesson_id)
+);
+
+CREATE TABLE IF NOT EXISTS mastery_records (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    enrollment_id INTEGER NOT NULL REFERENCES enrollments(id),
+    milestone_id INTEGER NOT NULL REFERENCES milestones(id),
+    quiz_score INTEGER NOT NULL DEFAULT 0,
+    code_passed INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'in_progress',
+    mastered_at TEXT,
+    UNIQUE(enrollment_id, milestone_id)
 );
 
 CREATE TABLE IF NOT EXISTS homework_submissions (
@@ -117,6 +168,28 @@ def init_db() -> None:
     conn = get_conn()
     try:
         conn.executescript(SCHEMA)
+        # Small, forward-compatible migrations for databases created by early MVPs.
+        _add_column_if_missing(conn, "paths", "is_launch_ready INTEGER NOT NULL DEFAULT 0")
+        _add_column_if_missing(conn, "paths", "duration_days INTEGER NOT NULL DEFAULT 180")
+        _add_column_if_missing(conn, "assessment_questions", "topic TEXT NOT NULL DEFAULT 'python-basics'")
+        _add_column_if_missing(conn, "enrollments", "starting_milestone_id INTEGER REFERENCES milestones(id)")
+        _add_column_if_missing(conn, "enrollments", "access_token TEXT")
+        # Backfill random access tokens for enrollments created before the
+        # MVP access-control change, so every row is protected.
+        import secrets
+
+        for row in conn.execute("SELECT id FROM enrollments WHERE access_token IS NULL").fetchall():
+            conn.execute(
+                "UPDATE enrollments SET access_token = ? WHERE id = ?",
+                (secrets.token_urlsafe(24), row["id"]),
+            )
         conn.commit()
     finally:
         conn.close()
+
+
+def _add_column_if_missing(conn: sqlite3.Connection, table: str, definition: str) -> None:
+    column = definition.split()[0]
+    existing = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})")}
+    if column not in existing:
+        conn.execute(f"ALTER TABLE {table} ADD COLUMN {definition}")

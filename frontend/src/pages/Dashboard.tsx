@@ -1,40 +1,222 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { api } from "../api";
+import { forgetLearner, saveLearner, savedLearner } from "../lib/learner";
+
+interface HomeworkChecks {
+  syntax_ok: boolean;
+  lines_written: number;
+  min_lines: number;
+  lines_ok: boolean;
+  patterns: { pattern: string; found: boolean }[];
+}
+
+interface HomeworkResult {
+  passed: boolean;
+  feedback: string;
+  checks?: HomeworkChecks;
+}
 
 export default function Dashboard() {
   const { id } = useParams();
   const enrollmentId = Number(id);
+  const learner = savedLearner();
+  // The token only counts when it belongs to the enrollment in the URL.
+  const token = learner && learner.enrollmentId === enrollmentId ? learner.token : undefined;
+
   const [data, setData] = useState<any>(null);
   const [lesson, setLesson] = useState<any>(null);
   const [code, setCode] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [lessonRead, setLessonRead] = useState(false);
+  const [showRoadmap, setShowRoadmap] = useState(false);
+  const [lastResult, setLastResult] = useState<HomeworkResult | null>(null);
 
-  const load = () => Promise.all([api.dashboard(enrollmentId), api.lesson(enrollmentId)])
-    .then(([d, l]) => { setData(d); setLesson(l); setCode(l.code_example || ""); })
-    .catch((e) => setMessage(String(e)));
-  useEffect(() => { if (enrollmentId) load(); }, [enrollmentId]);
-
-  const complete = async () => { setBusy(true); try { const r = await api.completeLesson(enrollmentId); setMessage(r.message); await load(); } catch (e) { setMessage(String(e)); } finally { setBusy(false); } };
-  const submit = async () => {
-    if (!lesson?.id) { setMessage("Is lesson ka homework abhi auto-generated hai; pehle class complete karke next lesson unlock karein."); return; }
-    setBusy(true); try { const r = await api.submitHomework({ enrollment_id: enrollmentId, lesson_id: lesson.id, code }); setMessage(r.feedback); await load(); } catch (e) { setMessage(String(e)); } finally { setBusy(false); }
+  const load = async () => {
+    try {
+      const dashboard = await api.dashboard(enrollmentId, token);
+      setData(dashboard);
+      saveLearner({
+        enrollmentId,
+        pathName: dashboard.path_name,
+        studentName: dashboard.student_name,
+        studentEmail: dashboard.student_email,
+        token,
+      });
+      try {
+        const currentLesson = await api.lesson(enrollmentId, undefined, token);
+        setLesson(currentLesson);
+        setCode("");
+        setLessonRead(localStorage.getItem(`pyschool:lesson-read:${enrollmentId}:${currentLesson.id}`) === "true");
+      } catch (error) {
+        setLesson(null);
+        setMessage(error instanceof Error ? error.message : "The next module is being prepared.");
+      }
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not load your school.");
+    }
   };
 
-  if (!data || !lesson) return <div className="text-center py-20 text-gray-400">Your school is loading…</div>;
+  useEffect(() => { if (enrollmentId) void load(); }, [enrollmentId]);
+
+  const submit = async () => {
+    if (!lesson?.id) return;
+    setBusy(true);
+    try {
+      const result: HomeworkResult = await api.submitHomework(
+        { enrollment_id: enrollmentId, lesson_id: lesson.id, code },
+        token
+      );
+      setLastResult(result);
+      setMessage(result.feedback);
+      await load();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Submission failed.");
+    } finally { setBusy(false); }
+  };
+
+  const complete = async () => {
+    setBusy(true);
+    try {
+      const result = await api.completeLesson(enrollmentId, token);
+      setMessage(result.message);
+      await load();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not complete this milestone.");
+    } finally { setBusy(false); }
+  };
+
+  const toggleLessonRead = (checked: boolean) => {
+    setLessonRead(checked);
+    if (lesson) localStorage.setItem(`pyschool:lesson-read:${enrollmentId}:${lesson.id}`, String(checked));
+  };
+
+  if (!data) return <div className="text-center py-20 text-gray-400">Your school is loading…</div>;
+  if (!lesson) return <div className="max-w-xl mx-auto py-20 text-center"><h1 className="text-2xl font-black">Foundation complete</h1><p className="text-gray-500 mt-3">{message || "The next module is being prepared."}</p></div>;
+
+  const practicePassed = Boolean(lesson.submission?.passed) || Boolean(lastResult?.passed);
+
+  /* --- Requirements panel: what today's rubric expects, before submitting --- */
+  const minLines: number = lesson.assignment.min_lines ?? 3;
+  const requiredPatterns: string[] = lesson.assignment.required_patterns ?? [];
+  const checks: HomeworkChecks | null =
+    lastResult?.checks ??
+    (lesson.submission
+      ? { syntax_ok: true, lines_written: minLines, min_lines: minLines, lines_ok: true, patterns: requiredPatterns.map((p: string) => ({ pattern: p, found: true })) }
+      : null);
+
   return <div className="space-y-7">
     <section className="bg-gray-950 text-white rounded-3xl p-7 md:p-9">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-5">
-        <div><p className="text-gray-400 text-sm">Welcome back, {data.student_name}</p><h1 className="text-3xl font-black mt-1">{data.path_name}</h1><p className="text-gray-400 mt-2">{data.level} track · Day {data.current_day}</p></div>
-        <div className="flex gap-6 text-sm"><div><b className="text-2xl">{data.xp}</b><br/><span className="text-gray-400">XP</span></div><div><b className="text-2xl">{data.streak}</b><br/><span className="text-gray-400">day streak</span></div><div><b className="text-2xl">{data.penalty_points}</b><br/><span className="text-gray-400">penalties</span></div></div>
+        <div>
+          <p className="text-gray-400 text-sm">Welcome back, {data.student_name}</p>
+          <h1 className="text-3xl font-black mt-1">{data.path_name}</h1>
+          <p className="text-gray-400 mt-2">{data.level} placement · Day {data.current_day} of {data.total_lessons}</p>
+        </div>
+        <div className="flex gap-6 text-sm">
+          <div><b className="text-2xl">{data.xp}</b><br /><span className="text-gray-400">XP</span></div>
+          <div><b className="text-2xl">{data.streak}</b><br /><span className="text-gray-400">day streak</span></div>
+          <div><b className="text-2xl">{data.review_ready}</b><br /><span className="text-gray-400">to review</span></div>
+        </div>
       </div>
-      <div className="mt-7"><div className="flex justify-between text-xs text-gray-400 mb-2"><span>Progress</span><span>{data.progress_pct}%</span></div><div className="h-2 rounded-full bg-gray-800"><div className="h-full rounded-full bg-white" style={{width: `${data.progress_pct}%`}} /></div></div>
+      <div className="mt-5 flex items-center justify-between gap-4 text-sm">
+        <span className="text-gray-400">Week {Math.ceil(data.current_day / 7)} of 26 · {Math.max(0, data.current_day - 1)} days completed</span>
+        <button onClick={() => setShowRoadmap((value) => !value)} className="rounded-lg border border-gray-700 px-3 py-1.5 font-semibold text-white hover:bg-gray-800">
+          {showRoadmap ? "Hide roadmap" : "View 180-day roadmap"}
+        </button>
+      </div>
+      {showRoadmap && <div className="mt-4 flex flex-wrap gap-2">
+        {Array.from({ length: data.total_lessons }, (_, index) => index + 1).map((day) => (
+          <span key={day} className={`rounded-full px-2.5 py-1 text-xs font-bold ${day < data.current_day ? "bg-emerald-500 text-emerald-950" : day === data.current_day ? "bg-white text-gray-950" : "bg-gray-800 text-gray-500"}`}>
+            Day {day}{day < data.current_day ? " ✓" : ""}
+          </span>
+        ))}
+      </div>}
+      <div className="mt-7"><div className="flex justify-between text-xs text-gray-400 mb-2"><span>180-day programme</span><span>{data.progress_pct}%</span></div><div className="h-2 rounded-full bg-gray-800"><div className="h-full rounded-full bg-white" style={{ width: data.progress_pct + "%" }} /></div></div>
     </section>
-    {message && <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm">{message}</div>}
+
+    {message && <div className={`rounded-xl border px-4 py-3 text-sm ${practicePassed ? "border-emerald-200 bg-emerald-50" : "border-gray-200 bg-gray-50"}`}>{message}</div>}
+
     <div className="grid lg:grid-cols-[1.2fr_.8fr] gap-6">
-      <article className="border border-gray-200 rounded-2xl p-6"><p className="text-xs font-bold uppercase tracking-wider text-gray-400">Today’s 1-hour class</p><h2 className="text-2xl font-black mt-2">{lesson.title}</h2><div className="prose-pyschool mt-5 whitespace-pre-wrap text-gray-600">{lesson.theory}</div><pre className="mt-5"><code>{lesson.code_example}</code></pre><button onClick={complete} disabled={busy} className="mt-2 bg-black text-white px-5 py-3 rounded-xl font-semibold disabled:opacity-50">{busy ? "Saving…" : "Mark class complete →"}</button></article>
-      <aside className="border border-gray-200 rounded-2xl p-6 h-fit"><p className="text-xs font-bold uppercase tracking-wider text-gray-400">Homework</p><h2 className="text-xl font-black mt-2">Build something small</h2><p className="text-gray-600 text-sm mt-3 whitespace-pre-wrap">{lesson.homework}</p><textarea value={code} onChange={e => setCode(e.target.value)} className="w-full h-44 mt-5 bg-gray-950 text-gray-100 rounded-xl p-4 font-mono text-sm" placeholder="Paste your Python code here…" /><button onClick={submit} disabled={busy || !code.trim()} className="w-full mt-3 bg-gray-100 border border-gray-300 px-5 py-3 rounded-xl font-semibold disabled:opacity-50">Submit homework</button></aside>
+      <article className="border border-gray-200 rounded-2xl p-6">
+        <p className="text-xs font-bold uppercase tracking-wider text-gray-400">{lesson.milestone.code} · {lesson.milestone.domain}</p>
+        <h2 className="text-2xl font-black mt-2">{lesson.title}</h2>
+        <p className="mt-3 rounded-lg bg-violet-50 px-3 py-2 text-sm text-violet-900"><span className="font-bold">Objective:</span> {lesson.milestone.objective}</p>
+        <LessonContent content={lesson.theory} />
+        <pre className="mt-5"><code>{lesson.code_example}</code></pre>
+        <div className="mt-5 rounded-xl border border-gray-200 p-4 text-sm">
+          <p className="font-semibold">Mastery evidence</p>
+          <p className="text-gray-600 mt-1">{lesson.milestone.mastery_criteria}</p>
+          <p className="text-gray-500 mt-2">After the coding check, explain the idea in your own words and revisit it during review.</p>
+        </div>
+      </article>
+
+      <aside className="border border-gray-200 rounded-2xl p-6 h-fit">
+        <p className="text-xs font-bold uppercase tracking-wider text-gray-400">Day {data.current_day} checklist</p>
+        <h2 className="text-xl font-black mt-2">Finish today’s lesson</h2>
+        <label className="mt-5 flex gap-3 rounded-xl border border-gray-200 p-3 text-sm cursor-pointer">
+          <input type="checkbox" checked={lessonRead} onChange={(event) => toggleLessonRead(event.target.checked)} className="mt-0.5 h-4 w-4" />
+          <span><b>I read the lesson and understood the worked example.</b><br /><span className="text-gray-500">This saves in this browser.</span></span>
+        </label>
+
+        {/* Practice requirements — visible BEFORE any submission */}
+        <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mt-6">Practice requirements</p>
+        <ul className="mt-3 space-y-1.5 text-sm">
+          <li className="flex items-start gap-2">
+            <RequirementMark ok={checks ? checks.syntax_ok : null} pending={!checks} />
+            <span>Valid Python syntax (your code is parsed, never executed)</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <RequirementMark ok={checks ? checks.lines_ok : null} pending={!checks} />
+            <span>At least <b>{minLines} non-empty lines</b>{checks ? ` — you wrote ${checks.lines_written}` : ""}</span>
+          </li>
+          {requiredPatterns.map((pattern) => {
+            const found = checks?.patterns.find((entry) => entry.pattern === pattern);
+            return (
+              <li key={pattern} className="flex items-start gap-2">
+                <RequirementMark ok={found ? found.found : null} pending={!checks} />
+                <span>Must include <code className="rounded bg-gray-100 px-1.5 py-0.5 text-xs font-mono">{pattern.trim()}</code> (spacing like <code className="rounded bg-gray-100 px-1.5 py-0.5 text-xs font-mono">print (…)</code> is accepted)</span>
+              </li>
+            );
+          })}
+        </ul>
+
+        <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mt-6">Today’s practice</p>
+        <p className="text-gray-600 text-sm mt-3 whitespace-pre-wrap">{lesson.assignment.prompt}</p>
+        <div className="rounded-lg bg-gray-50 text-xs text-gray-600 px-3 py-2 mt-4">
+          <span className="font-semibold">Rubric:</span> {lesson.assignment.rubric}
+        </div>
+        <textarea value={code} onChange={(event) => setCode(event.target.value)} className="w-full h-44 mt-5 bg-gray-950 text-gray-100 rounded-xl p-4 font-mono text-sm" placeholder="Write your Python code here…" />
+        <button onClick={submit} disabled={busy || !code.trim() || practicePassed} className="w-full mt-3 bg-gray-100 border border-gray-300 px-5 py-3 rounded-xl font-semibold disabled:opacity-50">
+          {practicePassed ? "Practice passed ✓" : "Check my practice"}
+        </button>
+        <button onClick={complete} disabled={busy || !practicePassed || !lessonRead} className="w-full mt-3 bg-black text-white px-5 py-3 rounded-xl font-semibold disabled:opacity-50">
+          Complete Day {data.current_day} →
+        </button>
+        {practicePassed && lessonRead && <p className="mt-3 text-xs text-emerald-700 font-semibold">Everything is checked. Click “Complete Day {data.current_day}” to unlock Day {data.current_day + 1}.</p>}
+        {(!practicePassed || !lessonRead) && <p className="mt-3 text-xs text-gray-500">Complete both checklist items to unlock the button. The checker only parses submitted source; it never executes it on the server.</p>}
+      </aside>
     </div>
+    <div className="text-right"><button onClick={forgetLearner} className="text-xs text-gray-400 hover:text-gray-800">This is not my account</button></div>
+  </div>;
+}
+
+function RequirementMark({ ok, pending }: { ok: boolean | null; pending?: boolean }) {
+  if (pending || ok === null) return <span className="mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded-full border border-gray-300 text-[10px] text-gray-300">•</span>;
+  return ok
+    ? <span className="mt-0.5 shrink-0 font-bold text-emerald-600">✓</span>
+    : <span className="mt-0.5 shrink-0 font-bold text-red-500">✗</span>;
+}
+
+function LessonContent({ content }: { content: string }) {
+  return <div className="mt-5 text-gray-600">
+    {content.split("\n\n").filter(Boolean).map((section, index) => {
+      const [heading, ...body] = section.split("\n");
+      return <section key={`${heading}-${index}`} className="mb-5">
+        <h3 className="font-bold text-gray-900">{heading.replace(/^#{1,3}\s*/, "")}</h3>
+        {body.map((line, lineIndex) => <p key={lineIndex} className="mt-1 leading-7">{line}</p>)}
+      </section>;
+    })}
   </div>;
 }

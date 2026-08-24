@@ -22,7 +22,7 @@ export default function Home() {
         </h1>
         <p className="mx-auto max-w-2xl mt-6 text-lg text-gray-600 leading-relaxed">
           There are thousands of free Python resources — and that's the problem.
-          PySchool is the only school that asks you{" "}
+          PySchool asks you{" "}
           <span className="font-semibold text-gray-900">what you want to become</span>,
           tests your level, then gives you a daily 1-hour class, homework and
           progress — exactly like a real school.
@@ -36,9 +36,9 @@ export default function Home() {
           </Link>
         </div>
         <div className="mt-10 flex items-center justify-center gap-8 text-sm text-gray-500">
-          <div><span className="font-bold text-gray-900 text-2xl">{pathCount ?? "—"}</span><br />Career paths</div>
+          <div><span className="font-bold text-gray-900 text-2xl">{pathCount ?? "—"}</span><br />Launch tracks</div>
           <div className="w-px h-10 bg-gray-200" />
-          <div><span className="font-bold text-gray-900 text-2xl">{categoryCount ?? "—"}</span><br />Depth categories</div>
+          <div><span className="font-bold text-gray-900 text-2xl">{categoryCount ?? "—"}</span><br />Learning domains</div>
           <div className="w-px h-10 bg-gray-200" />
           <div><span className="font-bold text-gray-900 text-2xl">1hr</span><br />Daily class</div>
         </div>
@@ -49,10 +49,10 @@ export default function Home() {
         <h2 className="text-2xl font-bold text-center mb-8">How PySchool works</h2>
         <div className="grid md:grid-cols-4 gap-4">
           {[
-            { step: "1", title: "Pick a purpose", desc: "100+ paths — from web dev to AI research. You tell us why you're learning Python." },
-            { step: "2", title: "Get tested", desc: "A short adaptive assessment judges whether you're Beginner, Intermediate or Advanced." },
-            { step: "3", title: "Attend class", desc: "A daily 1-hour lesson built for your exact path and level — theory, code, practice." },
-            { step: "4", title: "Submit homework", desc: "Homework every day. Skip it and the school gives you more. Just like real school." },
+            { step: "1", title: "Pick a purpose", desc: "Choose an authored launch track for web development, data science, or AI research." },
+            { step: "2", title: "Get placed", desc: "A placement check finds a transparent starting milestone and weak topics." },
+            { step: "3", title: "Attend class", desc: "Work through a daily 1-hour lesson with a clear objective, code and practice." },
+            { step: "4", title: "Prove progress", desc: "Pass the safe coding rubric, then complete the milestone and return for review." },
           ].map((card) => (
             <div key={card.step} className="border border-gray-200 rounded-2xl p-6 hover:border-gray-400 transition-colors">
               <div className="w-10 h-10 rounded-full bg-gray-100 border border-gray-200 grid place-items-center font-bold mb-4">

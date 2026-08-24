@@ -1,14 +1,15 @@
 """Student dashboard: calendar, progress, streak, level, schedule overview."""
 from datetime import date, timedelta
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
 from ..db import get_conn
+from .lessons import verify_enrollment_token
 
 router = APIRouter()
 
 
-@router.get("/enrollments/{enrollment_id}/dashboard")
+@router.get("/enrollments/{enrollment_id}/dashboard", dependencies=[Depends(verify_enrollment_token)])
 def dashboard(enrollment_id: int):
     conn = get_conn()
     try:
@@ -37,6 +38,16 @@ def dashboard(enrollment_id: int):
             (enrollment_id,),
         ).fetchall()
         attended_days = [r["day"] for r in attendance_rows if r["present"]]
+        review_ready = conn.execute(
+            "SELECT COUNT(*) AS c FROM mastery_records WHERE enrollment_id = ? AND status = 'ready_for_review'",
+            (enrollment_id,),
+        ).fetchone()["c"]
+        starting = None
+        if enroll["starting_milestone_id"]:
+            starting_row = conn.execute(
+                "SELECT code, title FROM milestones WHERE id = ?", (enroll["starting_milestone_id"],)
+            ).fetchone()
+            starting = dict(starting_row) if starting_row else None
 
         today = date.today()
         yesterday = today - timedelta(days=1)
@@ -57,6 +68,8 @@ def dashboard(enrollment_id: int):
             "total_lessons": total_lessons,
             "progress_pct": progress_pct,
             "attended_days": attended_days,
+            "review_ready": review_ready,
+            "starting_milestone": starting,
             "schedule": {
                 "yesterday": {"day": max(1, enroll["current_day"] - 1), "date": yesterday.isoformat()},
                 "today": {"day": enroll["current_day"], "date": today.isoformat(), "is_active": True},

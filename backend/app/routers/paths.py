@@ -7,19 +7,21 @@ router = APIRouter()
 
 
 @router.get("/categories")
-def list_categories():
+def list_categories(include_future: bool = False):
     conn = get_conn()
     try:
-        rows = conn.execute(
-            "SELECT id, name, icon, depth_label, sort_order FROM categories ORDER BY sort_order"
-        ).fetchall()
+        query = "SELECT id, name, icon, depth_label, sort_order FROM categories"
+        if not include_future:
+            query += " WHERE EXISTS (SELECT 1 FROM paths WHERE paths.category_id = categories.id AND paths.is_launch_ready = 1)"
+        query += " ORDER BY sort_order"
+        rows = conn.execute(query).fetchall()
         return [dict(r) for r in rows]
     finally:
         conn.close()
 
 
 @router.get("/paths")
-def list_paths(category_id: int | None = None, q: str | None = None):
+def list_paths(category_id: int | None = None, q: str | None = None, include_future: bool = False):
     conn = get_conn()
     try:
         query = """
@@ -29,14 +31,18 @@ def list_paths(category_id: int | None = None, q: str | None = None):
             JOIN categories c ON c.id = p.category_id
         """
         params: list = []
+        conditions: list[str] = []
+        if not include_future:
+            conditions.append("p.is_launch_ready = 1")
         if category_id is not None:
-            query += " WHERE p.category_id = ?"
+            conditions.append("p.category_id = ?")
             params.append(category_id)
         if q:
-            query += " AND" if category_id is not None else " WHERE"
-            query += " (p.name LIKE ? OR p.libraries LIKE ? OR p.description LIKE ?)"
+            conditions.append("(p.name LIKE ? OR p.libraries LIKE ? OR p.description LIKE ?)")
             like = f"%{q}%"
             params.extend([like, like, like])
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
         query += " ORDER BY p.difficulty, p.name"
         rows = conn.execute(query, params).fetchall()
         result = []

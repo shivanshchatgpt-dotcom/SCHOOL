@@ -13,6 +13,7 @@ interface PathItem {
   category_name: string;
   category_icon: string;
   assessment_count: number;
+  duration_days: number;
 }
 
 interface Category {
@@ -53,7 +54,7 @@ export default function Paths() {
         <div>
           <h1 className="text-3xl font-black tracking-tight">Career Paths</h1>
           <p className="text-gray-500 mt-1">
-            100+ ways to learn Python. Pick the one that matches your goal.
+            Start with one of the three fully authored foundation tracks.
           </p>
         </div>
         <input
@@ -74,7 +75,7 @@ export default function Paths() {
               : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
           }`}
         >
-          All (100)
+          All ({paths.length})
         </button>
         {categories.map((cat) => (
           <button
@@ -103,7 +104,7 @@ export default function Paths() {
             >
               <div className="flex items-start justify-between gap-2">
                 <span className="text-2xl">{path.category_icon}</span>
-                <span className="text-xs text-gray-400">{path.category_name}</span>
+                <span className="text-xs text-gray-400">{path.duration_days}-day foundation</span>
               </div>
               <h3 className="font-bold text-lg mt-3 group-hover:underline">{path.name}</h3>
               <p className="text-sm text-gray-500 mt-1 line-clamp-2">{path.description}</p>
@@ -114,7 +115,7 @@ export default function Paths() {
                 </span>
               </div>
               <div className="mt-3 text-sm font-semibold text-gray-900 inline-flex items-center gap-1 group-hover:gap-2 transition-all">
-                Start with {path.assessment_count}-question test
+                Take the {path.assessment_count}-question placement check →
               </div>
             </Link>
           ))}
@@ -124,6 +125,9 @@ export default function Paths() {
       {!loading && paths.length === 0 && (
         <div className="text-center py-16 text-gray-400">No paths found for "{query}".</div>
       )}
+      <p className="text-center text-sm text-gray-400">
+        A wider future catalog is planned; paths appear here only when their curriculum is published.
+      </p>
     </div>
   );
 }
