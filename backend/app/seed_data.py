@@ -1224,6 +1224,10 @@ def _phase_template_code(phase_title: str, topic: str) -> str | None:
     return template.replace("{topic}", topic)
 
 
+# Fully authored Data Science track content (all 105 track-phase topics).
+from .ds_topic_library import DS_TOPIC_LIBRARY  # noqa: E402
+
+
 def _generic_example_code(topic: str, day: int) -> str:
     """Fallback worked example when no authored entry or template exists."""
     safe = "day_" + str(day)
@@ -1276,7 +1280,9 @@ def extended_curriculum(slug: str):
     day = 15
     for phase_title, domain, phase_goal, topics in COMMON_180_PHASES + TRACK_180_PHASES[slug]:
         for topic in topics:
-            authored = COMMON_TOPIC_LIBRARY.get(topic)
+            authored = COMMON_TOPIC_LIBRARY.get(topic) or (
+                DS_TOPIC_LIBRARY if slug == "data-science" else {}
+            ).get(topic)
             template_code = _phase_template_code(phase_title, topic)
 
             if authored:

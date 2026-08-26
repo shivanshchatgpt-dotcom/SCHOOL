@@ -12,7 +12,7 @@ from .seed_data import (
     PATH_FLAGSHIP_QUESTIONS,
 )
 
-SEED_VERSION = 3  # v3: authored Days 15-180 content + enrollment access tokens
+SEED_VERSION = 4  # v4: fully authored Data Science track (all 105 track-phase topics)
 
 
 def _level_feedback(level: str, path_name: str) -> str:
