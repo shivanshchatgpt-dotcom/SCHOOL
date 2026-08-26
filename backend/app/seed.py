@@ -12,7 +12,7 @@ from .seed_data import (
     PATH_FLAGSHIP_QUESTIONS,
 )
 
-SEED_VERSION = 4  # v4: fully authored Data Science track (all 105 track-phase topics)
+SEED_VERSION = 5  # v5: rewrite foundation Days 1-3 theory using Lutz's Ch 6 framing
 
 
 def _level_feedback(level: str, path_name: str) -> str:
