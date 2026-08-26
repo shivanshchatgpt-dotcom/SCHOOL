@@ -145,6 +145,8 @@ export default function Dashboard() {
         <p className="mt-3 rounded-lg bg-violet-50 px-3 py-2 text-sm text-violet-900"><span className="font-bold">Objective:</span> {lesson.milestone.objective}</p>
         <LessonContent content={lesson.theory} />
         <pre className="mt-5"><code>{lesson.code_example}</code></pre>
+        {Array.isArray(lesson.questions) && lesson.questions.length > 0 &&
+          <ThinkCheck questions={lesson.questions} answers={lesson.answers} />}
         <div className="mt-5 rounded-xl border border-gray-200 p-4 text-sm">
           <p className="font-semibold">Mastery evidence</p>
           <p className="text-gray-600 mt-1">{lesson.milestone.mastery_criteria}</p>
@@ -218,5 +220,26 @@ function LessonContent({ content }: { content: string }) {
         {body.map((line, lineIndex) => <p key={lineIndex} className="mt-1 leading-7">{line}</p>)}
       </section>;
     })}
+  </div>;
+}
+
+function ThinkCheck({ questions, answers }: { questions: string[]; answers: string[] }) {
+  const [revealed, setRevealed] = useState<Record<number, boolean>>({});
+  return <div className="mt-5 rounded-xl border border-violet-200 bg-violet-50/60 p-4">
+    <p className="text-xs font-bold uppercase tracking-wider text-violet-700">Think check — answer first, then reveal</p>
+    <ol className="mt-3 space-y-3 text-sm">
+      {questions.map((question, index) => (
+        <li key={index}>
+          <p className="font-semibold text-gray-900">{index + 1}. {question}</p>
+          {revealed[index]
+            ? <p className="mt-1 rounded-lg bg-white px-3 py-2 text-gray-700 border border-violet-100">{answers?.[index] ?? "Discuss with a peer or revisit the example."}</p>
+            : <button
+                onClick={() => setRevealed((state) => ({ ...state, [index]: true }))}
+                className="mt-1 rounded-lg border border-violet-300 bg-white px-3 py-1 text-xs font-semibold text-violet-700 hover:bg-violet-100">
+                Reveal answer
+              </button>}
+        </li>
+      ))}
+    </ol>
   </div>;
 }
