@@ -37,3 +37,6 @@ backend/*.db
 
 # TypeScript build cache
 *.tsbuildinfo
+
+# Local reference books / PDFs
+*.pdf
