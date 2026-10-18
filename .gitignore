@@ -40,3 +40,17 @@ backend/*.db
 
 # Local reference books / PDFs
 *.pdf
+
+# Verbatim text extracted from the local reference books (derived copies of the
+# PDFs; stays local). The authored corpus in .books/*.py IS committed.
+.books/txt/
+
+# local screen recordings / media
+*.mp4
+
+# tool caches and local agent state
+.archify/
+.bytecoder/
+.qodo/
+.kilo/
+.pytest_cache/

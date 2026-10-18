@@ -5,14 +5,26 @@ import { api } from "../api";
 export default function Home() {
   const [pathCount, setPathCount] = useState<number | null>(null);
   const [categoryCount, setCategoryCount] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    api.paths().then((paths) => setPathCount(paths.length)).catch(() => setPathCount(0));
-    api.categories().then((cats) => setCategoryCount(cats.length)).catch(() => setCategoryCount(0));
+    // Leave the counts unknown on failure rather than reporting zero. Zero is a
+    // claim about the catalogue, and an unreachable API is not that.
+    api.paths()
+      .then((paths) => { setPathCount(paths.length); setError(null); })
+      .catch((err) => setError(`Could not reach the server: ${(err as Error).message}`));
+    api.categories()
+      .then((cats) => setCategoryCount(cats.length))
+      .catch(() => setCategoryCount(null));
   }, []);
 
   return (
     <div className="space-y-12">
+      {error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          {error}. The backend appears to be down — start it on port 8000 and reload.
+        </div>
+      )}
       {/* Hero */}
       <section className="py-16 text-center">
         <h1 className="text-5xl md:text-6xl font-black tracking-tight text-gray-900">

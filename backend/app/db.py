@@ -61,6 +61,10 @@ CREATE TABLE IF NOT EXISTS lessons (
     questions TEXT NOT NULL DEFAULT '[]',
     answers TEXT NOT NULL DEFAULT '[]',
     homework TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'active',
+    status_reason TEXT NOT NULL DEFAULT '',
+    status_note TEXT NOT NULL DEFAULT '',
+    day_type TEXT NOT NULL DEFAULT 'concept',
     UNIQUE(path_id, day_number)
 );
 
@@ -174,6 +178,10 @@ def init_db() -> None:
         _add_column_if_missing(conn, "assessment_questions", "topic TEXT NOT NULL DEFAULT 'python-basics'")
         _add_column_if_missing(conn, "enrollments", "starting_milestone_id INTEGER REFERENCES milestones(id)")
         _add_column_if_missing(conn, "enrollments", "access_token TEXT")
+        _add_column_if_missing(conn, "lessons", "status TEXT NOT NULL DEFAULT 'active'")
+        _add_column_if_missing(conn, "lessons", "status_reason TEXT NOT NULL DEFAULT ''")
+        _add_column_if_missing(conn, "lessons", "status_note TEXT NOT NULL DEFAULT ''")
+        _add_column_if_missing(conn, "lessons", "day_type TEXT NOT NULL DEFAULT 'concept'")
         # Backfill random access tokens for enrollments created before the
         # MVP access-control change, so every row is protected.
         import secrets

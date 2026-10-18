@@ -1,5 +1,5 @@
 """Day progression: gates, completion side-effects, XP/streak."""
-PASSING_CODE = "name = 'riya'\nprint('Hello, ' + name)\nprint('Goal set')"
+PASSING_CODE = "# day 1 practice\nname = 'riya'\nprint('Hello, ' + name)\nprint('Goal set')"
 
 
 def lesson(client, enrollment, expect=200):

@@ -92,7 +92,21 @@ export default function Dashboard() {
     if (lesson) localStorage.setItem(`pyschool:lesson-read:${enrollmentId}:${lesson.id}`, String(checked));
   };
 
-  if (!data) return <div className="text-center py-20 text-gray-400">Your school is loading…</div>;
+  if (!data) return (
+    <div className="max-w-xl mx-auto py-20 text-center">
+      {message ? (
+        <>
+          <h1 className="text-2xl font-black">We could not load your school</h1>
+          <p className="text-gray-500 mt-3">{message}</p>
+          <p className="text-gray-400 mt-2 text-sm">
+            If this says the server is unreachable, the backend is not running on port 8000.
+          </p>
+        </>
+      ) : (
+        <p className="text-gray-400">Your school is loading…</p>
+      )}
+    </div>
+  );
   if (!lesson) return <div className="max-w-xl mx-auto py-20 text-center"><h1 className="text-2xl font-black">Foundation complete</h1><p className="text-gray-500 mt-3">{message || "The next module is being prepared."}</p></div>;
 
   const practicePassed = Boolean(lesson.submission?.passed) || Boolean(lastResult?.passed);
@@ -112,7 +126,14 @@ export default function Dashboard() {
         <div>
           <p className="text-gray-400 text-sm">Welcome back, {data.student_name}</p>
           <h1 className="text-3xl font-black mt-1">{data.path_name}</h1>
-          <p className="text-gray-400 mt-2">{data.level} placement · Day {data.current_day} of {data.total_lessons}</p>
+          <p className="text-gray-400 mt-2">
+            {data.level} placement · Day {data.current_day} of {data.available_lessons} available
+            {data.coming_soon_days > 0 && (
+              <span className="ml-2 text-amber-300/80">
+                ({data.coming_soon_days} more days coming soon)
+              </span>
+            )}
+          </p>
         </div>
         <div className="flex gap-6 text-sm">
           <div><b className="text-2xl">{data.xp}</b><br /><span className="text-gray-400">XP</span></div>
@@ -121,19 +142,45 @@ export default function Dashboard() {
         </div>
       </div>
       <div className="mt-5 flex items-center justify-between gap-4 text-sm">
-        <span className="text-gray-400">Week {Math.ceil(data.current_day / 7)} of 26 · {Math.max(0, data.current_day - 1)} days completed</span>
+        <span className="text-gray-400">
+          Week {Math.ceil(data.current_day / 7)} of {Math.max(1, Math.ceil(data.available_lessons / 7))} · {data.done_lessons} days completed
+        </span>
         <button onClick={() => setShowRoadmap((value) => !value)} className="rounded-lg border border-gray-700 px-3 py-1.5 font-semibold text-white hover:bg-gray-800">
-          {showRoadmap ? "Hide roadmap" : "View 180-day roadmap"}
+          {showRoadmap ? "Hide roadmap" : `View ${data.catalog_days}-day roadmap`}
         </button>
       </div>
-      {showRoadmap && <div className="mt-4 flex flex-wrap gap-2">
-        {Array.from({ length: data.total_lessons }, (_, index) => index + 1).map((day) => (
-          <span key={day} className={`rounded-full px-2.5 py-1 text-xs font-bold ${day < data.current_day ? "bg-emerald-500 text-emerald-950" : day === data.current_day ? "bg-white text-gray-950" : "bg-gray-800 text-gray-500"}`}>
-            Day {day}{day < data.current_day ? " ✓" : ""}
-          </span>
-        ))}
+      {showRoadmap && <div className="mt-4">
+        <div className="flex flex-wrap gap-2">
+          {Array.from({ length: data.catalog_days }, (_, index) => index + 1).map((day) => {
+            const released = day <= data.available_lessons;
+            const done = day < data.current_day;
+            const current = day === data.current_day && released;
+            return (
+              <span
+                key={day}
+                title={released
+                  ? undefined
+                  : "This module is still being written. It is not part of your path yet."}
+                className={
+                  done ? "rounded-full bg-emerald-500 px-2.5 py-1 text-xs font-bold text-emerald-950"
+                  : current ? "rounded-full bg-white px-2.5 py-1 text-xs font-bold text-gray-950"
+                  : released ? "rounded-full bg-gray-800 px-2.5 py-1 text-xs font-bold text-gray-300"
+                  : "rounded-full border border-dashed border-gray-700 px-2.5 py-1 text-xs font-bold text-gray-600"
+                }
+              >
+                {released ? `Day ${day}` : `Day ${day} ·`}
+                {done ? " ✓" : ""}
+                {!released && <span className="ml-1 text-[9px] uppercase tracking-wider">soon</span>}
+              </span>
+            );
+          })}
+        </div>
+        <p className="mt-3 text-xs text-gray-500">
+          {data.available_lessons} of {data.catalog_days} days are written and available. Dashed days are
+          still in development and do not count toward your progress.
+        </p>
       </div>}
-      <div className="mt-7"><div className="flex justify-between text-xs text-gray-400 mb-2"><span>180-day programme</span><span>{data.progress_pct}%</span></div><div className="h-2 rounded-full bg-gray-800"><div className="h-full rounded-full bg-white" style={{ width: data.progress_pct + "%" }} /></div></div>
+      <div className="mt-7"><div className="flex justify-between text-xs text-gray-400 mb-2"><span>Phase {data.phase} · {data.available_lessons} days available</span><span>{data.progress_pct}%</span></div><div className="h-2 rounded-full bg-gray-800"><div className="h-full rounded-full bg-white" style={{ width: data.progress_pct + "%" }} /></div></div>
     </section>
 
     {message && <div className={`rounded-xl border px-4 py-3 text-sm ${practicePassed ? "border-emerald-200 bg-emerald-50" : "border-gray-200 bg-gray-50"}`}>{message}</div>}

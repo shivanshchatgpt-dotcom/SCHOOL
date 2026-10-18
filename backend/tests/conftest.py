@@ -36,6 +36,9 @@ def client(tmp_path, monkeypatch):
     from app import db
 
     monkeypatch.setattr(db, "DB_PATH", tmp_path / "test-pyschool.db")
+    # ponytail: the 97-path catalog fill is a seed-time bulk load, not unit
+    # behaviour; skipping it keeps the suite fast (see test_catalog.py).
+    monkeypatch.setenv("PYSCHOOL_SKIP_CATALOG", "1")
     from app.main import app
     from fastapi.testclient import TestClient
 

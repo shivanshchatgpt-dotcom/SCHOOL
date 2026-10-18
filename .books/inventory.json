@@ -1,0 +1,733 @@
+{
+ "learning-python": {
+  "title": "Learning Python",
+  "author": "Mark Lutz",
+  "edition": "4th",
+  "pages": 1213,
+  "chapters": [
+   {
+    "chapter": 1,
+    "title": "A Python Q&A Session",
+    "page": 3
+   },
+   {
+    "chapter": 2,
+    "title": "How Python Runs Programs",
+    "page": 23
+   },
+   {
+    "chapter": 3,
+    "title": "How You Run Programs",
+    "page": 35
+   },
+   {
+    "chapter": 4,
+    "title": "Introducing Python Object Types",
+    "page": 75
+   },
+   {
+    "chapter": 5,
+    "title": "Numeric Types",
+    "page": 105
+   },
+   {
+    "chapter": 6,
+    "title": "The Dynamic Typing Interlude",
+    "page": 143
+   },
+   {
+    "chapter": 7,
+    "title": "Strings",
+    "page": 155
+   },
+   {
+    "chapter": 8,
+    "title": "Lists and Dictionaries",
+    "page": 197
+   },
+   {
+    "chapter": 9,
+    "title": "Tuples, Files, and Everything Else",
+    "page": 225
+   },
+   {
+    "chapter": 10,
+    "title": "Introducing Python Statements",
+    "page": 261
+   },
+   {
+    "chapter": 11,
+    "title": "Assignments, Expressions, and Prints",
+    "page": 279
+   },
+   {
+    "chapter": 12,
+    "title": "if Tests and Syntax Rules",
+    "page": 311
+   },
+   {
+    "chapter": 13,
+    "title": "while and for Loops",
+    "page": 327
+   },
+   {
+    "chapter": 14,
+    "title": "Iterations and Comprehensions, Part 1",
+    "page": 351
+   },
+   {
+    "chapter": 15,
+    "title": "The Documentation Interlude",
+    "page": 375
+   },
+   {
+    "chapter": 16,
+    "title": "Function Basics",
+    "page": 395
+   },
+   {
+    "chapter": 17,
+    "title": "Scopes",
+    "page": 407
+   },
+   {
+    "chapter": 18,
+    "title": "Arguments",
+    "page": 435
+   },
+   {
+    "chapter": 19,
+    "title": "Advanced Function Topics",
+    "page": 463
+   },
+   {
+    "chapter": 20,
+    "title": "Iterations and Comprehensions, Part 2",
+    "page": 485
+   },
+   {
+    "chapter": 21,
+    "title": "Modules: The Big Picture",
+    "page": 529
+   },
+   {
+    "chapter": 22,
+    "title": "Module Coding Basics",
+    "page": 543
+   },
+   {
+    "chapter": 23,
+    "title": "Module Packages",
+    "page": 561
+   },
+   {
+    "chapter": 24,
+    "title": "Advanced Module Topics",
+    "page": 583
+   },
+   {
+    "chapter": 25,
+    "title": "OOP: The Big Picture",
+    "page": 611
+   },
+   {
+    "chapter": 26,
+    "title": "Class Coding Basics",
+    "page": 625
+   },
+   {
+    "chapter": 27,
+    "title": "A More Realistic Example",
+    "page": 643
+   },
+   {
+    "chapter": 28,
+    "title": "Class Coding Details",
+    "page": 681
+   },
+   {
+    "chapter": 29,
+    "title": "Operator Overloading",
+    "page": 705
+   },
+   {
+    "chapter": 30,
+    "title": "Designing with Classes",
+    "page": 737
+   },
+   {
+    "chapter": 31,
+    "title": "Advanced Class Topics",
+    "page": 773
+   },
+   {
+    "chapter": 32,
+    "title": "Exception Basics",
+    "page": 825
+   },
+   {
+    "chapter": 33,
+    "title": "Exception Coding Details",
+    "page": 835
+   },
+   {
+    "chapter": 34,
+    "title": "Exception Objects",
+    "page": 857
+   },
+   {
+    "chapter": 35,
+    "title": "Designing with Exceptions",
+    "page": 873
+   },
+   {
+    "chapter": 36,
+    "title": "Unicode and Byte Strings",
+    "page": 895
+   },
+   {
+    "chapter": 37,
+    "title": "Managed Attributes",
+    "page": 941
+   },
+   {
+    "chapter": 38,
+    "title": "Decorators",
+    "page": 983
+   },
+   {
+    "chapter": 39,
+    "title": "Metaclasses",
+    "page": 1051
+   }
+  ]
+ },
+ "learning-python-networking": {
+  "title": "Learning Python Networking",
+  "author": "Fauno, Wade, et al.",
+  "edition": "2nd",
+  "pages": 697,
+  "chapters": [
+   {
+    "chapter": 1,
+    "title": "Network Programming with Python",
+    "page": 35
+   },
+   {
+    "chapter": 2,
+    "title": "Programming for the Web with HTTP",
+    "page": 106
+   },
+   {
+    "chapter": 3,
+    "title": "Application Programming Interface in Action",
+    "page": 157
+   },
+   {
+    "chapter": 4,
+    "title": "Web Scraping with BeautifulSoup and Scrapy",
+    "page": 219
+   },
+   {
+    "chapter": 5,
+    "title": "Engaging with Email",
+    "page": 282
+   },
+   {
+    "chapter": 6,
+    "title": "Interacting with Remote Systems",
+    "page": 328
+   },
+   {
+    "chapter": 7,
+    "title": "Working with IP and DNS",
+    "page": 389
+   },
+   {
+    "chapter": 8,
+    "title": "Implementing IPv6 and Address Manipulation",
+    "page": 431
+   },
+   {
+    "chapter": 9,
+    "title": "Performing Network Automation with Python and Ansible",
+    "page": 473
+   },
+   {
+    "chapter": 10,
+    "title": "Programming with Sockets",
+    "page": 507
+   },
+   {
+    "chapter": 11,
+    "title": "Designing Servers and Asynchronous Programming",
+    "page": 564
+   },
+   {
+    "chapter": 12,
+    "title": "Designing Applications on the Web",
+    "page": 628
+   }
+  ]
+ },
+ "python-data-science-handbook": {
+  "title": "Python Data Science Handbook",
+  "author": "Jake VanderPlas",
+  "edition": "2nd",
+  "pages": 789,
+  "chapters": [
+   {
+    "chapter": 1,
+    "title": "Getting Started in IPython and Jupyter",
+    "page": 16
+   },
+   {
+    "chapter": 2,
+    "title": "Enhanced Interactive Features",
+    "page": 29
+   },
+   {
+    "chapter": 3,
+    "title": "Debugging and Profiling",
+    "page": 41
+   },
+   {
+    "chapter": 4,
+    "title": "Understanding Data Types in Python",
+    "page": 59
+   },
+   {
+    "chapter": 5,
+    "title": "The Basics of NumPy Arrays",
+    "page": 70
+   },
+   {
+    "chapter": 6,
+    "title": "Computation on NumPy Arrays: Universal Functions",
+    "page": 81
+   },
+   {
+    "chapter": 7,
+    "title": "Aggregations: min, max, and Everything in Between",
+    "page": 93
+   },
+   {
+    "chapter": 8,
+    "title": "Computation on Arrays: Broadcasting",
+    "page": 100
+   },
+   {
+    "chapter": 9,
+    "title": "Comparisons, Masks, and Boolean Logic",
+    "page": 109
+   },
+   {
+    "chapter": 10,
+    "title": "Fancy Indexing",
+    "page": 120
+   },
+   {
+    "chapter": 11,
+    "title": "Sorting Arrays",
+    "page": 130
+   },
+   {
+    "chapter": 12,
+    "title": "Structured Data: NumPy\u2019s Structured Arrays",
+    "page": 138
+   },
+   {
+    "chapter": 13,
+    "title": "Introducing Pandas Objects",
+    "page": 147
+   },
+   {
+    "chapter": 14,
+    "title": "Data Indexing and Selection",
+    "page": 158
+   },
+   {
+    "chapter": 15,
+    "title": "Operating on Data in Pandas",
+    "page": 168
+   },
+   {
+    "chapter": 16,
+    "title": "Handling Missing Data",
+    "page": 175
+   },
+   {
+    "chapter": 17,
+    "title": "Hierarchical Indexing",
+    "page": 187
+   },
+   {
+    "chapter": 18,
+    "title": "Combining Datasets: concat and append",
+    "page": 204
+   },
+   {
+    "chapter": 19,
+    "title": "Combining Datasets: merge and join",
+    "page": 212
+   },
+   {
+    "chapter": 20,
+    "title": "Aggregation and Grouping",
+    "page": 229
+   },
+   {
+    "chapter": 21,
+    "title": "Pivot Tables",
+    "page": 245
+   },
+   {
+    "chapter": 22,
+    "title": "Vectorized String Operations",
+    "page": 258
+   },
+   {
+    "chapter": 23,
+    "title": "Working with Time Series",
+    "page": 271
+   },
+   {
+    "chapter": 24,
+    "title": "High-Performance Pandas: eval and query",
+    "page": 299
+   },
+   {
+    "chapter": 25,
+    "title": "General Matplotlib Tips",
+    "page": 312
+   },
+   {
+    "chapter": 26,
+    "title": "Simple Line Plots",
+    "page": 321
+   },
+   {
+    "chapter": 27,
+    "title": "Simple Scatter Plots",
+    "page": 335
+   },
+   {
+    "chapter": 28,
+    "title": "Density and Contour Plots",
+    "page": 348
+   },
+   {
+    "chapter": 29,
+    "title": "Customizing Plot Legends",
+    "page": 361
+   },
+   {
+    "chapter": 30,
+    "title": "Customizing Colorbars",
+    "page": 371
+   },
+   {
+    "chapter": 31,
+    "title": "Multiple Subplots",
+    "page": 384
+   },
+   {
+    "chapter": 32,
+    "title": "Text and Annotation",
+    "page": 393
+   },
+   {
+    "chapter": 33,
+    "title": "Customizing Ticks",
+    "page": 404
+   },
+   {
+    "chapter": 34,
+    "title": "Customizing Matplotlib: Configurations and Stylesheets",
+    "page": 415
+   },
+   {
+    "chapter": 35,
+    "title": "Three-Dimensional Plotting in Matplotlib",
+    "page": 428
+   },
+   {
+    "chapter": 36,
+    "title": "Visualization with Seaborn",
+    "page": 439
+   },
+   {
+    "chapter": 37,
+    "title": "What Is Machine Learning?",
+    "page": 464
+   },
+   {
+    "chapter": 38,
+    "title": "Introducing Scikit-Learn",
+    "page": 478
+   },
+   {
+    "chapter": 39,
+    "title": "Hyperparameters and Model Validation",
+    "page": 502
+   },
+   {
+    "chapter": 40,
+    "title": "Feature Engineering",
+    "page": 525
+   },
+   {
+    "chapter": 41,
+    "title": "In Depth: Naive Bayes Classification",
+    "page": 535
+   },
+   {
+    "chapter": 42,
+    "title": "In Depth: Linear Regression",
+    "page": 547
+   },
+   {
+    "chapter": 43,
+    "title": "In Depth: Support Vector Machines",
+    "page": 568
+   },
+   {
+    "chapter": 44,
+    "title": "In Depth: Decision Trees and Random Forests",
+    "page": 590
+   },
+   {
+    "chapter": 45,
+    "title": "In Depth: Principal Component Analysis",
+    "page": 605
+   },
+   {
+    "chapter": 46,
+    "title": "In Depth: Manifold Learning",
+    "page": 624
+   },
+   {
+    "chapter": 47,
+    "title": "In Depth: k-Means Clustering",
+    "page": 648
+   },
+   {
+    "chapter": 48,
+    "title": "In Depth: Gaussian Mixture Models",
+    "page": 669
+   },
+   {
+    "chapter": 49,
+    "title": "In Depth: Kernel Density Estimation",
+    "page": 691
+   },
+   {
+    "chapter": 50,
+    "title": "Application: A Face Detection Pipeline",
+    "page": 708
+   }
+  ]
+ },
+ "python-programming": {
+  "title": "Python Programming",
+  "author": "Hans-Petter Halvorsen",
+  "edition": "2026",
+  "pages": 143,
+  "chapters": [
+   {
+    "chapter": 1,
+    "title": null,
+    "page": 12,
+    "sections": [
+     "The New Age of Programming",
+     "MATLAB"
+    ]
+   },
+   {
+    "chapter": 2,
+    "title": null,
+    "page": 18,
+    "sections": [
+     "Introduction to Python",
+     "Python Packages",
+     "Anaconda",
+     "Python Editors",
+     "Resources",
+     "Installing Python"
+    ]
+   },
+   {
+    "chapter": 3,
+    "title": null,
+    "page": 27,
+    "sections": [
+     "Python IDE",
+     "My first Python program",
+     "Python Shell",
+     "Running Python from the Console",
+     "Scripting Mode"
+    ]
+   },
+   {
+    "chapter": 4,
+    "title": null,
+    "page": 37,
+    "sections": [
+     "Basic Python Program",
+     "Variables",
+     "Built-in Functions",
+     "Python Standard Library",
+     "Using Python Libraries, Packages and Modules",
+     "Plotting in Python"
+    ]
+   },
+   {
+    "chapter": 5,
+    "title": null,
+    "page": 52,
+    "sections": [
+     "If ... Else",
+     "Arrays",
+     "For Loops",
+     "While Loops",
+     "Exercises"
+    ]
+   },
+   {
+    "chapter": 6,
+    "title": null,
+    "page": 61,
+    "sections": [
+     "Introduction",
+     "Functions with multiple return values",
+     "Exercises"
+    ]
+   },
+   {
+    "chapter": 7,
+    "title": null,
+    "page": 67,
+    "sections": [
+     "Introduction",
+     "The init () Function",
+     "Exercises"
+    ]
+   },
+   {
+    "chapter": 8,
+    "title": null,
+    "page": 72,
+    "sections": [
+     "Python Modules",
+     "Exercises"
+    ]
+   },
+   {
+    "chapter": 9,
+    "title": null,
+    "page": 75,
+    "sections": [
+     "Introduction",
+     "Write Data to a File",
+     "Read Data from a File",
+     "Logging Data to File",
+     "Web Resources",
+     "Exercises"
+    ]
+   },
+   {
+    "chapter": 10,
+    "title": null,
+    "page": 80,
+    "sections": [
+     "Introduction to Error Handling",
+     "Exceptions Handling"
+    ]
+   },
+   {
+    "chapter": 12,
+    "title": null,
+    "page": 84,
+    "sections": [
+     "What is PIP?"
+    ]
+   },
+   {
+    "chapter": 13,
+    "title": null,
+    "page": 87,
+    "sections": [
+     "Package and Environment Managers",
+     "Python Virtual Environments"
+    ]
+   },
+   {
+    "chapter": 14,
+    "title": null,
+    "page": 89,
+    "sections": [
+     "Anaconda Navigator",
+     "Anaconda Prompt"
+    ]
+   },
+   {
+    "chapter": 17,
+    "title": null,
+    "page": 97,
+    "sections": [
+     "Configuration"
+    ]
+   },
+   {
+    "chapter": 18,
+    "title": null,
+    "page": 99,
+    "sections": [
+     "Introduction to Visual Studio Code",
+     "Python in Visual Studio Code"
+    ]
+   },
+   {
+    "chapter": 19,
+    "title": null,
+    "page": 101,
+    "sections": [
+     "Introduction to Visual Studio",
+     "Work with Python in Visual Studio"
+    ]
+   },
+   {
+    "chapter": 22,
+    "title": null,
+    "page": 114,
+    "sections": [
+     "JupyterHub",
+     "Microsoft Azure Notebooks"
+    ]
+   },
+   {
+    "chapter": 23,
+    "title": null,
+    "page": 117,
+    "sections": [
+     "Basic Math Functions",
+     "Statistics",
+     "Trigonometric Functions",
+     "Polynomials"
+    ]
+   },
+   {
+    "chapter": 24,
+    "title": null,
+    "page": 132,
+    "sections": [
+     "Python Distributions",
+     "Python Libraries",
+     "Python Editors",
+     "Python Tutorials",
+     "Python in Visual Studio"
+    ]
+   }
+  ]
+ }
+}

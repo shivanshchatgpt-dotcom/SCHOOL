@@ -14,6 +14,11 @@ interface PathItem {
   category_icon: string;
   assessment_count: number;
   duration_days: number;
+  available_days: number;
+  total_days: number;
+  is_coming_soon: boolean;
+  phase?: string;
+  coming_soon_days?: number;
 }
 
 interface Category {
@@ -32,9 +37,15 @@ export default function Paths() {
   const [activeCategory, setActiveCategory] = useState<number | "all">("all");
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    api.categories().then(setCategories).catch(() => {});
+    // A failure to reach the API is not the same as an empty catalogue, and
+    // reporting it as one is how a broken proxy looks like a working product
+    // with no content.
+    api.categories()
+      .then(setCategories)
+      .catch((err) => setError(`Could not load categories: ${(err as Error).message}`));
   }, []);
 
   useEffect(() => {
@@ -43,13 +54,25 @@ export default function Paths() {
     if (activeCategory !== "all") params.category_id = activeCategory;
     if (query.trim()) params.q = query.trim();
     api.paths(params)
-      .then((data) => setPaths(data))
-      .catch(() => setPaths([]))
+      .then((data) => { setPaths(data); setError(null); })
+      .catch((err) => {
+        setPaths([]);
+        setError(`Could not reach the server: ${(err as Error).message}`);
+      })
       .finally(() => setLoading(false));
   }, [activeCategory, query]);
 
   return (
     <div className="space-y-8">
+      {error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          <b>{error}</b>
+          <p className="mt-1 text-red-700">
+            The catalogue cannot be listed while the API is unreachable. Check that the backend is
+            running on port 8000, then reload this page.
+          </p>
+        </div>
+      )}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black tracking-tight">Career Paths</h1>
@@ -104,7 +127,14 @@ export default function Paths() {
             >
               <div className="flex items-start justify-between gap-2">
                 <span className="text-2xl">{path.category_icon}</span>
-                <span className="text-xs text-gray-400">{path.duration_days}-day foundation</span>
+                <span className="text-xs text-gray-400">
+                  {path.available_days} of {path.total_days} days available
+                </span>
+                {path.is_coming_soon && (
+                  <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-300">
+                    Coming soon
+                  </span>
+                )}
               </div>
               <h3 className="font-bold text-lg mt-3 group-hover:underline">{path.name}</h3>
               <p className="text-sm text-gray-500 mt-1 line-clamp-2">{path.description}</p>
@@ -115,7 +145,9 @@ export default function Paths() {
                 </span>
               </div>
               <div className="mt-3 text-sm font-semibold text-gray-900 inline-flex items-center gap-1 group-hover:gap-2 transition-all">
-                Take the {path.assessment_count}-question placement check →
+                {path.available_days > 0
+                  ? `Take the ${path.assessment_count}-question placement check →`
+                  : `In development · ${path.coming_soon_days ?? path.total_days - path.available_days} days still being written`}
               </div>
             </Link>
           ))}

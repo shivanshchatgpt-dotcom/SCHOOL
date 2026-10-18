@@ -1,4 +1,11 @@
-"""Student dashboard: calendar, progress, streak, level, schedule overview."""
+"""Student dashboard: calendar, progress, streak, level, schedule overview.
+
+Progress is measured against released days, not against the catalogue's nominal
+length. A path is still being written, and a learner who is told they are 3% of
+the way through a 180-day path when only 68 days exist is being told something
+false. The response therefore carries both numbers: what is available now, and
+what is still to come, so the UI can show a truthful bar and an honest roadmap.
+"""
 from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -20,7 +27,7 @@ def dashboard(enrollment_id: int):
             raise HTTPException(status_code=404, detail="Enrollment not found")
 
         path = conn.execute(
-            "SELECT p.name, p.libraries, p.slug FROM paths p WHERE id = ?",
+            "SELECT p.name, p.libraries, p.slug, p.duration_days FROM paths p WHERE id = ?",
             (enroll["path_id"],),
         ).fetchone()
         student = conn.execute(
@@ -30,8 +37,19 @@ def dashboard(enrollment_id: int):
         total_lessons = conn.execute(
             "SELECT COUNT(*) AS c FROM lessons WHERE path_id = ?", (enroll["path_id"],)
         ).fetchone()["c"]
-        done_lessons = enroll["current_day"] - 1
-        progress_pct = min(100, round(done_lessons / max(total_lessons, 1) * 100))
+        # Only released days are taught, so only released days count as progress.
+        available_lessons = conn.execute(
+            "SELECT COUNT(*) AS c FROM lessons WHERE path_id = ? AND status = 'active'",
+            (enroll["path_id"],),
+        ).fetchone()["c"]
+        coming_soon_days = conn.execute(
+            "SELECT COUNT(*) AS c FROM lessons WHERE path_id = ? AND status = 'in_progress'",
+            (enroll["path_id"],),
+        ).fetchone()["c"]
+        # Done is capped at what actually exists, otherwise a learner parked on a
+        # day that has not been written yet reads as 100% of nothing.
+        done_lessons = min(max(enroll["current_day"] - 1, 0), available_lessons)
+        progress_pct = min(100, round(done_lessons / max(available_lessons, 1) * 100))
 
         attendance_rows = conn.execute(
             "SELECT day, date, present FROM attendance WHERE enrollment_id = ? ORDER BY day",
@@ -48,6 +66,15 @@ def dashboard(enrollment_id: int):
                 "SELECT code, title FROM milestones WHERE id = ?", (enroll["starting_milestone_id"],)
             ).fetchone()
             starting = dict(starting_row) if starting_row else None
+        # ponytail: domain of the current day doubles as the phase label — no extra paths column.
+        phase_row = conn.execute(
+            """SELECT m.domain FROM lessons l
+               JOIN lesson_milestones lm ON lm.lesson_id = l.id
+               JOIN milestones m ON m.id = lm.milestone_id
+               WHERE l.path_id = ? AND l.day_number = ?""",
+            (enroll["path_id"], enroll["current_day"]),
+        ).fetchone()
+        phase = phase_row["domain"] if phase_row else "Foundation"
 
         today = date.today()
         yesterday = today - timedelta(days=1)
@@ -66,6 +93,11 @@ def dashboard(enrollment_id: int):
             "penalty_points": enroll["penalty_points"],
             "xp": enroll["xp"],
             "total_lessons": total_lessons,
+            "available_lessons": available_lessons,
+            "coming_soon_days": coming_soon_days,
+            "phase": phase,
+            "catalog_days": path["duration_days"] or total_lessons,
+            "done_lessons": done_lessons,
             "progress_pct": progress_pct,
             "attended_days": attended_days,
             "review_ready": review_ready,

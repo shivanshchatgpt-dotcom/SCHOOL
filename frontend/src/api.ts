@@ -13,17 +13,29 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 
   const res = await fetch(BASE + path, { ...rest, headers });
   if (!res.ok) {
-    let detail = "";
+    let detail: unknown = "";
     try {
       const body = await res.json();
       detail = body?.detail ?? "";
     } catch {
       /* non-JSON error body */
     }
-    if (res.status === 401) {
-      throw new Error(detail || "Session expired — please re-enroll from the path page.");
+    // A conflict carries structured detail, because "this day is not written
+    // yet" is more useful to a student than a bare status text. Rendering the
+    // raw object would produce "[object Object]", so the message is picked out.
+    const message =
+      typeof detail === "string"
+        ? detail
+        : detail && typeof detail === "object" && "message" in detail
+          ? String((detail as { message?: unknown }).message)
+          : "";
+    if (res.status === 409) {
+      throw new Error(message || "That day is not available yet — the next one is ready.");
     }
-    throw new Error(detail || `Request failed: ${res.status}`);
+    if (res.status === 401) {
+      throw new Error(message || "Session expired — please re-enroll from the path page.");
+    }
+    throw new Error(message || `Request failed: ${res.status}`);
   }
   return res.json() as Promise<T>;
 }

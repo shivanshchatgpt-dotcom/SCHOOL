@@ -98,6 +98,22 @@ def _lesson_for_day(conn, enrollment_id: int, day: int):
     ).fetchone()
 
 
+# Days are authored over time, so a curriculum day can exist as a placeholder
+# that has not been written to the teaching standard yet. Serving one would hand
+# the student a stub dressed as a lesson, which is worse than refusing: the
+# honest answer is that this day is not available yet.
+def _next_active_day(conn, enrollment_id: int, day: int) -> int | None:
+    row = conn.execute(
+        """
+        SELECT MIN(l.day_number) AS d FROM enrollments e
+        JOIN lessons l ON l.path_id = e.path_id
+        WHERE e.id = ? AND l.status = 'active' AND l.day_number > ?
+        """,
+        (enrollment_id, day),
+    ).fetchone()
+    return row["d"] if row and row["d"] is not None else None
+
+
 @router.get("/enrollments/{enrollment_id}/lesson", dependencies=[Depends(verify_enrollment_token)])
 def get_lesson(enrollment_id: int, day: int | None = None):
     """Return an authored lesson and its transparent coding rubric."""
@@ -112,6 +128,17 @@ def get_lesson(enrollment_id: int, day: int | None = None):
                 status_code=409,
                 detail="This 180-day programme is complete. Your next module will be published separately.",
             )
+        if lesson["status"] != "active":
+            upcoming = _next_active_day(conn, enrollment_id, target_day)
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "message": f"Day {target_day} is being written and is not available yet.",
+                    "day": target_day,
+                    "status": lesson["status"] or "in_progress",
+                    "next_available_day": upcoming,
+                },
+            )
         submission = conn.execute(
             """SELECT passed, feedback FROM homework_submissions
                WHERE enrollment_id = ? AND lesson_id = ? ORDER BY id DESC LIMIT 1""",
@@ -121,7 +148,13 @@ def get_lesson(enrollment_id: int, day: int | None = None):
             "id": lesson["id"], "path_id": lesson["path_id"], "day_number": lesson["day_number"],
             "title": lesson["title"], "theory": lesson["theory"], "code_example": lesson["code_example"],
             "questions": json.loads(lesson["questions"]), "answers": json.loads(lesson["answers"]),
-            "homework": lesson["homework"], "generated": False,
+            "homework": lesson["homework"],
+            # Read the real state rather than reporting a hardcoded false. The
+            # body the generator writes says so, and a day can be a generated
+            # practice day or an authored concept day.
+            "generated": "This is a practice day" in (lesson["theory"] or ""),
+            "day_type": lesson["day_type"] if "day_type" in lesson.keys() else None,
+            "status": lesson["status"] if "status" in lesson.keys() else None,
             "milestone": {
                 "id": lesson["milestone_id"], "code": lesson["milestone_code"], "domain": lesson["domain"],
                 "objective": lesson["objective"], "mastery_criteria": lesson["mastery_criteria"],

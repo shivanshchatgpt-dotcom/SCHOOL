@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 
 from .db import init_db
 from .seed import seed
@@ -43,6 +44,12 @@ app.include_router(assessment.router, prefix="/api", tags=["assessment"])
 app.include_router(lessons.router, prefix="/api", tags=["lessons"])
 app.include_router(dashboard.router, prefix="/api", tags=["dashboard"])
 app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
+
+
+@app.get("/", include_in_schema=False)
+def frontend_redirect():
+    frontend_url = os.environ.get("PYSCHOOL_FRONTEND_URL", "http://127.0.0.1:5173/")
+    return RedirectResponse(url=frontend_url)
 
 
 @app.get("/api/health")

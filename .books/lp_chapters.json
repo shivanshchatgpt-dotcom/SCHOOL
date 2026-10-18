@@ -1,0 +1,137 @@
+[
+ [
+  1,
+  "A Python Q&A Session",
+  19
+ ],
+ [
+  3,
+  "How You Run Programs",
+  68
+ ],
+ [
+  5,
+  "Numeric Types",
+  141
+ ],
+ [
+  6,
+  "The Dynamic Typing Interlude",
+  153
+ ],
+ [
+  7,
+  "Strings",
+  195
+ ],
+ [
+  8,
+  "Lists and Dictionaries",
+  223
+ ],
+ [
+  12,
+  "if Tests and Syntax Rules",
+  324
+ ],
+ [
+  13,
+  "while and for Loops",
+  349
+ ],
+ [
+  16,
+  "Function Basics",
+  405
+ ],
+ [
+  17,
+  "Scopes",
+  432
+ ],
+ [
+  18,
+  "Arguments",
+  461
+ ],
+ [
+  22,
+  "Module Coding Basics",
+  558
+ ],
+ [
+  23,
+  "Module Packages",
+  582
+ ],
+ [
+  24,
+  "Advanced Module Topics",
+  604
+ ],
+ [
+  25,
+  "OOP: The Big Picture",
+  622
+ ],
+ [
+  26,
+  "Class Coding Basics",
+  641
+ ],
+ [
+  28,
+  "Class Coding Details",
+  703
+ ],
+ [
+  29,
+  "Operator Overloading",
+  734
+ ],
+ [
+  30,
+  "Designing with Classes",
+  770
+ ],
+ [
+  31,
+  "Advanced Class Topics",
+  815
+ ],
+ [
+  32,
+  "Exception Basics",
+  833
+ ],
+ [
+  33,
+  "Exception Coding Details",
+  856
+ ],
+ [
+  34,
+  "Exception Objects",
+  870
+ ],
+ [
+  36,
+  "Unicode and Byte Strings",
+  937
+ ],
+ [
+  37,
+  "Managed Attributes",
+  979
+ ],
+ [
+  38,
+  "Decorators",
+  1047
+ ],
+ [
+  39,
+  "Metaclasses",
+  1084
+ ]
+]

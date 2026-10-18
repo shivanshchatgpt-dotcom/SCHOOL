@@ -6,18 +6,14 @@ progress tracking and streaks — like a real school.
 
 ## Architecture at a glance
 
-- **Catalog:** 100 planned learning paths organised into 10 depth categories
-  (Surface → AGI), defined in `backend/app/seed_data.py`.
-- **Launch tracks:** 3 paths are fully implemented — **Web Development**,
-  **Data Science / Analysis**, **Python for AI Research**
-  (`LAUNCH_PATH_SLUGS`). Each carries a complete **180-day curriculum**:
-  14 hand-authored foundation days, topic-driven days 15–179 drawn from an
-  authored shared-topic library plus track-specific phase templates, and a
-  Day-180 capstone reflection.
-- **Future catalog:** the other 97 paths stay visible as future tracks and are
-  deliberately *not* exposed as courses until real curricula exist
-  (`is_launch_ready = 0`). This is a deliberate phased implementation, not a
-  placeholder.
+- **Catalog:** 100 learning paths organised into 10 depth categories
+  (Surface → AGI), defined in `backend/app/seed_data.py`. Every path carries a
+  complete **180-day curriculum** and a 13-question placement test.
+- **Curriculum mix:** Days 1–14 are a hand-authored foundation arc per domain;
+  Days 15–74 reuse the shared authored Python phases; remaining days are
+  deterministic domain lessons built from each path's libraries
+  (`backend/app/curriculum_catalog.py`), same template grade the launch tracks
+  already serve on generated days. Authored lessons are never overwritten.
 - **Placement:** every path has a multiple-choice level test. Score percentage
   maps to Foundation / Beginner / Intermediate / Advanced, which determines the
   starting day (1 / 4 / 7 / 10) and lists weak topics.

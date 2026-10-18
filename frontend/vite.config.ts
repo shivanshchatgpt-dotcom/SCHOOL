@@ -8,7 +8,10 @@ export default defineConfig({
     port: 5173,
     proxy: {
       "/api": {
-        target: "http://127.0.0.1:8001",
+        // The dev backend runs on 8000. This used to say 8001, which nothing was
+        // listening on, so every /api call was refused and the pages rendered as
+        // empty rather than reporting an error.
+        target: "http://127.0.0.1:8000",
         changeOrigin: true,
       },
     },

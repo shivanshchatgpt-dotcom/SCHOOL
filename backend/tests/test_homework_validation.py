@@ -79,7 +79,7 @@ def test_missing_required_pattern_fails(client, enrollment):
 def test_spaced_print_now_passes_the_rubric(client, enrollment):
     """Regression: the original bug — 'print (' failed a literal substring check."""
     lesson = current_lesson(client, enrollment)
-    code = "name = 'riya'\ngoal = 'learn python'\nprint ('Hello, ' + name)"
+    code = "# label sections\nname = 'riya'\ngoal = 'learn python'\nprint ('Hello, ' + name)"
     body = submit(client, enrollment, lesson["id"], code).json()
     assert body["passed"] is True, body["feedback"]
     assert body["checks"]["syntax_ok"] is True
@@ -88,7 +88,7 @@ def test_spaced_print_now_passes_the_rubric(client, enrollment):
 
 def test_valid_submission_passes_and_awards_xp_once(client, enrollment):
     lesson = current_lesson(client, enrollment)
-    code = "name = 'riya'\nprint('Hello, ' + name)\nprint('Goal set')"
+    code = "# day 1 practice\nname = 'riya'\nprint('Hello, ' + name)\nprint('Goal set')"
     first = submit(client, enrollment, lesson["id"], code).json()
     second = submit(client, enrollment, lesson["id"], code).json()
     assert first["passed"] is True and second["passed"] is True
