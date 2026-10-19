@@ -1,0 +1,1109 @@
+"""API Building Capstone, days 165-179.
+
+The final phase of the API Building track. Every day is a concrete build or
+review step against one capstone, ShelfShare, a neighbourhood book-lending
+API. Examples stay stdlib-only and run offline on in-memory fixtures, so the
+whole capstone can be exercised without a socket or a third-party package.
+"""
+
+PHASE = (
+    "API Building Capstone",
+    "Ship ShelfShare: a scoped, tested, documented lending API built one honest step at a time.",
+    {
+        165: dict(
+            topic="Choose a domain and scope",
+            idea=(
+                "The capstone begins the way professional work does: with a written brief, not a keyboard. You "
+                "are building ShelfShare, a neighbourhood book-lending API, and today you decide exactly what "
+                "that means. Scope has two halves. In scope: books, members and loans, with list, create and "
+                "fetch operations and one honest rule per resource. Out of scope: payments, search ranking, "
+                "email delivery, a third-party identity provider and anything resembling a recommendation "
+                "engine. Writing the non-goals down is what keeps a two-week build shippable instead of "
+                "endless. The brief also fixes acceptance criteria before code exists: every endpoint answers "
+                "with a status and a JSON body, invalid input returns a structured 422, and the whole suite "
+                "runs offline against fixtures. A domain you cannot describe in three resources is a domain "
+                "you cannot finish; a scope without declared exclusions is a scope that will quietly grow. "
+                "Sign the brief today by running the survey script green, and let it govern every later "
+                "decision. When a tempting feature appears late in the build, the brief, not mood, answers "
+                "whether it belongs. Record the three resources and their exclusions in one fixture file, "
+                "because the brief is a deliverable other days import rather than a paragraph you recall."
+            ),
+            code=(
+'''CANDIDATES = {
+    "shelfshare": ["books", "members", "loans"],
+    "ridepool": ["trips", "drivers", "vehicles"],
+    "pantry": ["items", "categories", "orders"],
+}
+chosen = "shelfshare"
+resources = CANDIDATES[chosen]
+in_scope = [f"list, create and fetch {r}" for r in resources]
+out_of_scope = ["payments", "search ranking", "email delivery", "external identity provider"]
+print("domain:", chosen)
+print("resources:", resources)
+for line in in_scope:
+    print("  in scope:", line)
+print("  out of scope:", out_of_scope)
+print("acceptance: every endpoint returns status + JSON, bad input returns 422, suite runs offline")
+assert chosen in CANDIDATES and len(resources) == 3
+print("brief signed: three resources, non-goals recorded")
+'''
+            ),
+            variant_b="choose the ridepool domain instead and list its three resources",
+            variant_c="add a fourth resource (reviews) and explain which exclusion it violates",
+            mistakes=[
+                "Starting to code before the scope is written down.",
+                "Listing features in scope but never recording the non-goals.",
+                "Choosing a domain so large that three resources cannot describe it.",
+            ],
+            q1=(
+                "Why write the non-goals down instead of only the features?",
+                "Exclusions are what keep the build finite; without them every tempting feature looks in scope and the capstone never ships.",
+            ),
+            homework=(
+                "Write `choose_scope(candidates, chosen)` that returns the resources in scope and the non-goals "
+                "for one domain. Run it on two candidate domains, print both briefs, and comment which line "
+                "records the exclusions that keep the build finite."
+            ),
+            patterns=["def choose_scope", "return", "print("],
+            mapping=(
+                "The brief becomes the acceptance criteria the day-179 review scores against, so scoping is the "
+                "first deliverable, not a warm-up."
+            ),
+        ),
+        166: dict(
+            topic="Model the resources",
+            idea=(
+                "Resources are tables before they are endpoints. Today you write the three schemas as data, not "
+                "prose: a book has an integer id, a required title, a required author and a copies count that "
+                "must be a non-negative integer; a member has an id, a name and an email that must be unique; a "
+                "loan joins the two with a book_id, a member_id and a status of active or returned. Modelling "
+                "the types and relationships on paper first surfaces the questions that are expensive later: "
+                "which fields are required, which are generated by the server, and which combination must be "
+                "unique. The loan resource also teaches the join: it carries foreign keys instead of copying a "
+                "title or a name, so a renamed book stays consistent everywhere. Note that the server owns ids "
+                "and status; the client never sends them. Write a validator that walks a fixture record against "
+                "each schema and reports missing or mistyped fields, and keep it, because day 169 grows it into "
+                "boundary validation. Getting the model right here means the store, the contract and the tests "
+                "all have a single source of truth to lean on. Print each schema beside a fixture record, so a wrong "
+                "type is visible before it ever reaches a handler."
+            ),
+            code=(
+'''SCHEMA = {
+    "book": {"id": int, "title": str, "author": str, "copies": int},
+    "member": {"id": int, "name": str, "email": str},
+    "loan": {"id": int, "book_id": int, "member_id": int, "status": str},
+}
+fixtures = {
+    "book": {"id": 1, "title": "Dune", "author": "Herbert", "copies": 3},
+    "member": {"id": 1, "name": "Ada", "email": "ada@example.com"},
+    "loan": {"id": 1, "book_id": 1, "member_id": 1, "status": "active"},
+}
+
+def check(resource, record):
+    wrong = [k for k, t in SCHEMA[resource].items()
+             if k not in record or not isinstance(record[k], t)]
+    print(resource, "keys:", sorted(record), "| problems:", wrong or "none")
+    return wrong
+
+for name, record in fixtures.items():
+    assert check(name, record) == []
+print("models hold: ids server-owned, loan carries foreign keys, no copied titles")
+'''
+            ),
+            variant_b="add a nullable returned_on field to the loan schema and check a record with None",
+            variant_c="give a book a reviews list field and explain why an embedded list fights the join",
+            mistakes=[
+                "Storing a book title inside a loan instead of a foreign key.",
+                "Letting the client send the server-owned id or status.",
+                "Leaving the email uniqueness rule out of the model.",
+            ],
+            q1=(
+                "Why does a loan carry a book_id instead of the book title?",
+                "A foreign key stays correct when the book is renamed; a copied title silently goes stale and duplicates the truth.",
+            ),
+            homework=(
+                "Write `check_resource(schema, record)` that returns a list of missing or mistyped fields for "
+                "one resource. Run it on a valid book and a member with a wrong type, print both problems lists, "
+                "and comment which line enforces the type of each field."
+            ),
+            patterns=["def check_resource", "isinstance", "return"],
+            mapping=(
+                "These schemas become the store's tables and the validators' rules; one model keeps routing, "
+                "storage and tests from inventing three different versions of a book."
+            ),
+        ),
+        167: dict(
+            topic="Define the contract",
+            idea=(
+                "A contract is the promise the client codes against, and it must be explicit and versioned. For "
+                "each route you record the method, the path, the request shape, the success status and body, and "
+                "every error the endpoint can return. GET /v1/books promises 200 and a list; POST /v1/books "
+                "promises 201 and the created record, or 400 for malformed JSON, or 422 for a bad field, or 409 "
+                "for a duplicate. GET /v1/books/{id} promises 200 or 404. Writing the contract before the "
+                "handlers forces you to answer the questions clients otherwise discover by trial: what does a "
+                "missing field mean, does create return the whole record, and what exactly does a 422 body "
+                "contain. Publish the whole table as a single fixture so the router, the tests and the generated "
+                "documentation all read the same source. If the contract changes, every consumer changes at "
+                "once, because there is only one place it lives. A contract you cannot print is a contract you "
+                "cannot keep; the goal today is a table where every row has a method, a path, a status and a "
+                "named error shape. Version it with a simple v1 prefix so a future breaking change has "
+                "somewhere to go."
+            ),
+            code=(
+'''ROUTES = [
+    ("GET", "/v1/books", None, 200, ["500"]),
+    ("POST", "/v1/books", "book_create", 201, ["400", "409", "422"]),
+    ("GET", "/v1/books/{id}", None, 200, ["404", "422"]),
+    ("POST", "/v1/loans", "loan_create", 201, ["400", "401", "422"]),
+]
+print(f"{'METHOD':<5} {'PATH':<18} {'REQUEST':<12} {'OK':<4} ERRORS")
+for method, path, request, ok, errors in ROUTES:
+    print(f"{method:<5} {path:<18} {str(request):<12} {ok:<4} {','.join(errors)}")
+pairs = [(r[0], r[1]) for r in ROUTES]
+assert len(pairs) == len(set(pairs)) and all(r[3] in (200, 201) for r in ROUTES)
+print("contract v1 frozen:", len(ROUTES), "routes, every error named")
+'''
+            ),
+            variant_b='add ("DELETE", "/v1/books/{id}", 204) and name its error codes',
+            variant_c='change POST /v1/books to return 200 and explain why 201 is more informative',
+            mistakes=[
+                "Writing handlers first and letting the contract describe whatever they happen to do.",
+                "Naming a success status but leaving the error codes unstated.",
+                "Keeping the contract in prose, so the router and the docs drift apart.",
+            ],
+            q1=(
+                "Why does the contract need to name every error the endpoint can return?",
+                "Clients branch on error codes; an unlisted failure becomes an unhandled case the moment it happens in production.",
+            ),
+            homework=(
+                "Write `contract_row(method, path, request, success, errors)` that returns one contract tuple. "
+                "Run it for a create and a fetch route, print both rows, and comment which line records the "
+                "error codes clients must handle."
+            ),
+            patterns=["def contract_row", "return", "print("],
+            mapping=(
+                "This table is the single source for the router, the tests and the generated docs, so a contract "
+                "change lands everywhere at once."
+            ),
+        ),
+        168: dict(
+            topic="Build the routes",
+            idea=(
+                "Today the contract becomes a router. Routing is a lookup from method and path pattern to a "
+                "handler, and a request is dispatched by finding the first matching row. Static paths such as "
+                "/v1/books are direct keys; dynamic paths such as /v1/books/{id} need a pattern match that "
+                "extracts the id and hands it to the handler as a named argument. Build the table as data and "
+                "the dispatcher as a small loop, then handle the three cases beginners forget: no route "
+                "matches, so return a structured 404; the path matches but the method does not, so return 405 "
+                "and list the allowed methods; and a dynamic id that is not an integer, so return 422 before "
+                "the handler runs. Each handler follows the foundation shape: receive a request, return a "
+                "status and a JSON-serialisable body, and never print. Keeping handlers pure means the same "
+                "functions serve the test suite and the live server. The dispatcher should never raise on a bad "
+                "request; it should always return a status, because an exception escaping the router is a 500 "
+                "a client cannot act on. Prove the table by dispatching a hit, a miss and a wrong method, and "
+                "read each returned status."
+            ),
+            code=(
+'''books = [{"id": 1, "title": "Dune", "author": "Herbert", "copies": 3}]
+
+def list_books(request, **params):
+    return 200, {"items": books, "count": len(books)}
+
+def get_book(request, book_id, **params):
+    for book in books:
+        if book["id"] == int(book_id):
+            return 200, book
+    return 404, {"error": {"code": "not_found"}}
+
+def create_book(request, **params):
+    return 201, {"id": max(b["id"] for b in books) + 1, "title": "Hyperion"}
+
+ROUTES = [
+    ("GET", "/v1/books", list_books),
+    ("POST", "/v1/books", create_book),
+    ("GET", "/v1/books/{id}", get_book),
+]
+
+def allowed(path):
+    return sorted({m for m, p, _h in ROUTES if p == path or p.split("{")[0] == path})
+
+def dispatch(method, path):
+    for route_method, pattern, handler in ROUTES:
+        base = pattern.split("{")[0]
+        if method == route_method and "{" not in pattern and path == pattern:
+            return handler({"method": method, "path": path})
+        if method == route_method and "{" in pattern and path.startswith(base) and path != base:
+            return handler({"method": method, "path": path}, book_id=path[len(base):])
+    if any(p == path or p.split("{")[0] == path for _m, p, _h in ROUTES):
+        return 405, {"error": {"code": "method_not_allowed", "allow": allowed(path)}}
+    return 404, {"error": {"code": "route_not_found"}}
+
+print("GET /v1/books    ->", dispatch("GET", "/v1/books"))
+print("GET /v1/books/1  ->", dispatch("GET", "/v1/books/1"))
+print("DELETE /v1/books ->", dispatch("DELETE", "/v1/books"))
+print("GET /v1/authors  ->", dispatch("GET", "/v1/authors"))
+assert dispatch("GET", "/v1/authors")[0] == 404 and dispatch("DELETE", "/v1/books")[0] == 405
+print("router handles hit, dynamic id, wrong method and miss")
+'''
+            ),
+            variant_b='add ("GET", "/v1/members", list_books) and check the new route dispatches',
+            variant_c='make a non-integer id return 422 before the handler instead of raising',
+            mistakes=[
+                "Letting an unknown route raise, which reaches the client as a 500.",
+                "Returning 404 when only the method was wrong instead of 405.",
+                "Copying validation checks into every handler instead of keeping them at the boundary.",
+            ],
+            q1=(
+                "Why return 405 for a known path with the wrong method?",
+                "The path exists but the verb is unsupported; 405 names the mistake and can advertise the allowed methods, while 404 would falsely claim no such resource.",
+            ),
+            homework=(
+                "Write `dispatch(routes, method, path)` that matches static and {id} patterns and returns 404 "
+                "or 405 for misses. Test it with four requests including an unknown route, print every result, "
+                "and comment which line decides between 404 and 405."
+            ),
+            patterns=["def dispatch", "for ", "return"],
+            mapping=(
+                "Frameworks register these functions as route handlers; the dispatcher here is the same table, "
+                "just without the decorators."
+            ),
+        ),
+        169: dict(
+            topic="Validate the inputs",
+            idea=(
+                "Validation is the boundary where untrusted text becomes trusted values, and it deserves one "
+                "shared function rather than scattered checks. Parsing comes first: malformed JSON is a 400, "
+                "while JSON that parses but violates the schema is a 422 with details naming each offending "
+                "field. Type and presence are separate questions: a missing title and a title of 42 are "
+                "different mistakes and should carry different reasons. Ranges matter too: copies must be a "
+                "non-negative integer, and an empty title is present but useless, so it fails the same check as "
+                "absence. Collect every problem rather than failing on the first, because a client that sends "
+                "three bad fields deserves three reasons in one response, not three round trips. Generated "
+                "fields such as id and status are the server's business; if a client sends them, ignore them "
+                "rather than trusting them. Build one validator per resource that returns a list of "
+                "field-reason pairs, and have the create and update handlers share it. The payoff is a single "
+                "test surface and one error shape everywhere. Validation written once, at the edge, is the "
+                "difference between a contract clients trust and a handler that fails mysteriously. Return the "
+                "problems as data rather than strings, so the response layer formats them into the shared error shape."
+            ),
+            code=(
+'''import json
+
+def validate_book(payload):
+    if not isinstance(payload, dict):
+        return [("body", "must be a JSON object")]
+    problems = []
+    if not payload.get("title"):
+        problems.append(("title", "required non-empty string"))
+    if not payload.get("author"):
+        problems.append(("author", "required non-empty string"))
+    copies = payload.get("copies")
+    if not isinstance(copies, int) or isinstance(copies, bool) or copies < 0:
+        problems.append(("copies", "must be a non-negative integer"))
+    return problems
+
+def create_book(body):
+    try:
+        payload = json.loads(body)
+    except json.JSONDecodeError:
+        return 400, {"error": {"code": "malformed_json"}}
+    problems = validate_book(payload)
+    if problems:
+        details = [{"field": f, "reason": r} for f, r in problems]
+        return 422, {"error": {"code": "validation_failed", "details": details}}
+    return 201, {"id": 2, "title": payload["title"], "copies": payload["copies"]}
+
+print(create_book('{"title": "Dune", "author": "Herbert", "copies": 3}'))
+print(create_book('{"title": "", "copies": -1}'))
+print(create_book('not json'))
+assert create_book('not json')[0] == 400
+print("boundary validation: 201, 422 with details, 400 for malformed")
+'''
+            ),
+            variant_b="send a valid title but a string copies value and read the reason",
+            variant_c="send the server-owned id and status and confirm they are ignored, not trusted",
+            mistakes=[
+                "Returning 400 for a schema violation that should be a 422.",
+                "Failing on the first bad field instead of reporting them all.",
+                "Trusting a client-supplied id or status instead of generating it.",
+            ],
+            q1=(
+                "Why must malformed JSON and schema violations carry different statuses?",
+                "A 400 says the body was unreadable and must be fixed wholesale; a 422 says the body parsed and names the field to correct.",
+            ),
+            homework=(
+                "Write `validate_book(payload)` that returns a list of field-and-reason pairs for missing or "
+                "mistyped fields. Run it on a valid payload and one with a negative copies value, print both "
+                "lists, and comment which line separates presence from type."
+            ),
+            patterns=["def validate_book", "isinstance", "return"],
+            mapping=(
+                "FastAPI and Flask validators do this declaratively; the manual version keeps the same 400 "
+                "versus 422 split clients depend on."
+            ),
+        ),
+        170: dict(
+            topic="Store the data",
+            idea=(
+                "The in-memory list from the foundation becomes a small store with rules. Three things make a "
+                "list into a store: an id generator the server owns, uniqueness constraints that reject "
+                "duplicates with a 409, and a serialisation path that proves the data can survive a restart. "
+                "Keep the store behind functions rather than touching the list directly, so every write goes "
+                "through the same checks and a later swap to SQLite changes one file, not every handler. "
+                "Members are unique by email; two members cannot share one. Creating a book returns the stored "
+                "record with its server-assigned id, which is what the 201 body promised in the contract. A "
+                "conflict such as a duplicate email is not a validation error, because the payload was "
+                "well-formed; it is a 409, and the distinction teaches clients to fix a different thing. For "
+                "durability, serialise the whole store to a JSON string and load it back, then compare the two "
+                "structures to show nothing was lost and types survived the round trip. This is a toy version "
+                "of a database, deliberately so: one write path, owned ids and explicit conflicts are exactly "
+                "what a real database enforces for you later. Serialise with sorted keys so two runs of the same "
+                "store produce byte-identical text, which makes the round trip provable."
+            ),
+            code=(
+'''import json
+
+class Store:
+    def __init__(self):
+        self._rows = {"book": [], "member": []}
+        self._next = {"book": 1, "member": 1}
+
+    def create(self, resource, payload):
+        if resource == "member":
+            for row in self._rows["member"]:
+                if row["email"] == payload.get("email"):
+                    return 409, {"error": {"code": "conflict", "field": "email"}}
+        row = dict(payload)
+        row["id"] = self._next[resource]
+        self._next[resource] += 1
+        self._rows[resource].append(row)
+        return 201, row
+
+    def get(self, resource, row_id):
+        for row in self._rows[resource]:
+            if row["id"] == row_id:
+                return 200, row
+        return 404, {"error": {"code": "not_found"}}
+
+    def to_json(self):
+        return json.dumps(self._rows, sort_keys=True)
+
+    @classmethod
+    def from_json(cls, text):
+        store = cls()
+        store._rows = json.loads(text)
+        for resource, rows in store._rows.items():
+            store._next[resource] = max((r["id"] for r in rows), default=0) + 1
+        return store
+
+store = Store()
+print(store.create("book", {"title": "Dune", "author": "Herbert", "copies": 3}))
+print(store.create("member", {"name": "Ada", "email": "ada@example.com"}))
+print(store.create("member", {"name": "Grace", "email": "ada@example.com"}))
+print(store.get("book", 1))
+restored = Store.from_json(store.to_json())
+assert restored.get("book", 1) == store.get("book", 1)
+print("store owns ids, rejects duplicates with 409, survives a JSON round trip")
+'''
+            ),
+            variant_b="register a second member with a fresh email and confirm 201",
+            variant_c="restore from JSON and create a book, checking the id does not collide",
+            mistakes=[
+                "Handing out ids by counting the list, which reuses ids after a delete.",
+                "Treating a duplicate email as a 422 instead of a 409 conflict.",
+                "Letting handlers append to the list directly, bypassing uniqueness checks.",
+            ],
+            q1=(
+                "Why is a duplicate email a 409 rather than a 422?",
+                "The payload is well-formed; the conflict is with existing state, so the client must change the value relative to the store, not fix a malformed field.",
+            ),
+            homework=(
+                "Write `Store.create(resource, payload)` that assigns a server-owned id and rejects a "
+                "duplicate email with 409. Run it on two members sharing one email, print both results, and "
+                "comment which line enforces uniqueness."
+            ),
+            patterns=["def create", "return", "409"],
+            mapping=(
+                "Swapping this class for SQLite later changes one file: ids, uniqueness and conflicts are the "
+                "same rules a database table enforces."
+            ),
+        ),
+        171: dict(
+            topic="Add authentication",
+            idea=(
+                "Reads can be public; writes should not be. Today you add a bearer token, and the one rule that "
+                "matters is to store a hash of the token, never the token itself, so a leaked store does not "
+                "hand over working credentials. Use a fixed seed token for the fixture, hash it with a standard "
+                "library digest, and compare a presented token against the stored hash in constant time so "
+                "timing cannot leak how much matched. The handler then has two decisions: no token is a 401, "
+                "because the request lacks credentials; a token that is wrong is also 401, and the body should "
+                "say so without revealing which. Do not confuse 401 with 403: a valid token that lacks "
+                "permission for a resource is 403, while a missing or invalid credential is 401, and mixing "
+                "them makes clients retry the wrong way. Keep authentication as a small gate in front of the "
+                "dispatcher rather than a check copied into every handler, so a public route is an explicit "
+                "exception in the table, not a forgotten check. The contract should now name exactly which "
+                "routes are protected. Prove it by calling a write with no token, a bad token and the good "
+                "token, and reading the three statuses."
+            ),
+            code=(
+'''import hashlib
+import hmac
+
+def token_hash(token):
+    return hashlib.sha256(token.encode()).hexdigest()
+
+TOKENS = {token_hash("seed-token-ada"): {"member_id": 1, "role": "member"}}
+PUBLIC = {"GET"}
+
+def authenticate(request):
+    if request["method"] in PUBLIC:
+        return None, None
+    header = request.get("headers", {}).get("Authorization", "")
+    if not header.startswith("Bearer "):
+        return None, (401, {"error": {"code": "missing_token"}})
+    presented = token_hash(header[len("Bearer "):])
+    for stored, member in TOKENS.items():
+        if hmac.compare_digest(stored, presented):
+            return member, None
+    return None, (401, {"error": {"code": "invalid_token"}})
+
+def dispatch(request):
+    member, failure = authenticate(request)
+    if failure:
+        return failure
+    actor = member["member_id"] if member else None
+    return 201, {"created": True, "actor": actor}
+
+print(dispatch({"method": "POST", "headers": {}}))
+print(dispatch({"method": "POST", "headers": {"Authorization": "Bearer wrong"}}))
+print(dispatch({"method": "POST", "headers": {"Authorization": "Bearer seed-token-ada"}}))
+assert dispatch({"method": "POST", "headers": {}})[0] == 401
+print("auth gate: hashed tokens, 401 for missing and wrong, public reads pass")
+'''
+            ),
+            variant_b="mark POST as public and confirm both token cases now succeed",
+            variant_c="add a member whose role lacks a permission and return 403 instead of 401",
+            mistakes=[
+                "Storing the raw token instead of its hash, so a leak grants access.",
+                "Returning 403 for a missing credential where 401 is correct.",
+                "Copying the auth check into each handler instead of gating the dispatcher.",
+            ],
+            q1=(
+                "Why store a hash of the token rather than the token itself?",
+                "A hash still verifies the token but a leaked store exposes no working credentials, which is the whole point of not keeping secrets in plain text.",
+            ),
+            homework=(
+                "Write `authenticate(request, tokens)` that returns the member for a valid bearer token and a "
+                "401 otherwise. Run it with a missing header and a good token, print both outcomes, and comment "
+                "which line compares hashes in constant time."
+            ),
+            patterns=["def authenticate", "compare_digest", "401"],
+            mapping=(
+                "Real services use signed tokens or an identity provider, but the gate, the hash and the 401 "
+                "versus 403 split stay identical."
+            ),
+        ),
+        172: dict(
+            topic="Write the tests",
+            idea=(
+                "A test suite is how the contract stays true after the day you wrote it. Use the standard "
+                "library unittest module and test the endpoints as functions, not the server, so the suite "
+                "needs no socket and finishes in milliseconds. Each test arranges a fixture store, acts by "
+                "dispatching one request, and asserts on the status and the body shape, never on internal "
+                "variable names. Cover three kinds of case for each route: the happy path that proves the "
+                "promise, the boundary that proves the guard, and the failure that proves the error. A create "
+                "with a missing title must return 422 with a details list; a get for a missing id must return "
+                "404; a create with a duplicate email must return 409. Name tests after the behaviour, because "
+                "a failing test called test_case_5 tells you nothing at three in the morning. Keep one test "
+                "that walks the whole flow, creating a book, fetching it, listing books and confirming it "
+                "appears, so a break in the middle is caught even when the unit tests pass. Run the suite from "
+                "the same command a stranger would use, and treat a red run as a stop-the-line event. Run the suite "
+                "after every change rather than before a deadline, so a red test points at the commit that caused it."
+            ),
+            code=(
+'''import io
+import json
+import unittest
+
+def handle(method, path, body=""):
+    if (method, path) == ("GET", "/v1/books"):
+        return 200, {"items": [], "count": 0}
+    if (method, path) == ("POST", "/v1/books"):
+        try:
+            payload = json.loads(body) if body else {}
+        except json.JSONDecodeError:
+            return 400, {"error": {"code": "malformed_json"}}
+        if not payload.get("title"):
+            return 422, {"error": {"code": "validation_failed", "details": [{"field": "title"}]}}
+        return 201, {"id": 1, "title": payload["title"]}
+    return 404, {"error": {"code": "not_found"}}
+
+class BookApiTest(unittest.TestCase):
+    def test_list_returns_200(self):
+        self.assertEqual(handle("GET", "/v1/books")[0], 200)
+
+    def test_create_missing_title_is_422(self):
+        status, body = handle("POST", "/v1/books", "{}")
+        self.assertEqual(status, 422)
+        self.assertIn("details", body["error"])
+
+    def test_unknown_route_is_404(self):
+        self.assertEqual(handle("GET", "/v1/authors")[0], 404)
+
+stream = io.StringIO()
+result = unittest.TextTestRunner(stream=stream, verbosity=2).run(
+    unittest.TestLoader().loadTestsFromTestCase(BookApiTest))
+print(stream.getvalue().strip())
+print("tests run:", result.testsRun, "| failures:", len(result.failures), "| errors:", len(result.errors))
+assert result.wasSuccessful()
+print("contract is pinned by tests")
+'''
+            ),
+            variant_b="add a test asserting a duplicate email returns 409 and run the suite",
+            variant_c="break the 404 handler deliberately and confirm exactly one test turns red",
+            mistakes=[
+                "Testing internal variable names, so a harmless refactor turns the suite red.",
+                "Covering only happy paths, leaving every guard unproven.",
+                "Calling the server over a socket when a direct dispatch would do.",
+            ],
+            q1=(
+                "Why should tests assert on status and body shape rather than internal variables?",
+                "The contract is the promise to clients; testing the promise lets the implementation change freely while still proving the API behaves.",
+            ),
+            homework=(
+                "Write `test_create_requires_title()` that dispatches a create with an empty body and asserts a "
+                "422 with a details list. Run the suite on a passing build and then break the handler once, "
+                "print both runs, and comment which assertion caught the regression."
+            ),
+            patterns=["def test_", "assert", "422"],
+            mapping=(
+                "These tests are the evidence the day-174 smoke run and the day-179 review cite; a green suite "
+                "is the capstone's proof of correctness."
+            ),
+        ),
+        173: dict(
+            topic="Document the API",
+            idea=(
+                "Documentation drifts when it is written by hand, so today you generate it from the contract. "
+                "Every route already carries its method, path, request shape, success status and error codes, "
+                "and a short template turns that table into readable reference with no possibility of "
+                "disagreement. For each endpoint write a one-line purpose, the request it expects, a sample "
+                "successful response, and the errors it can raise, all pulled from the same fixture the router "
+                "reads. Add a short getting-started section: the base path, the need for a bearer token on "
+                "writes, and one worked request that creates a book and reads it back. Show identifiers and "
+                "counts in the exact wire format the API uses, so a reader never has to guess whether copies is "
+                "a string or a number. The measure of good documentation is whether a stranger can make a first "
+                "successful request without reading the source. Generate a Markdown document from the route "
+                "table and print it as part of the day's output. Because it is generated, running it again "
+                "after a contract change produces updated docs for free, and a test can assert that every "
+                "route appears in the document. Keep the generator in the codebase beside the routes, so "
+                "regenerating the reference is one command rather than a chore nobody remembers."
+            ),
+            code=(
+'''ROUTES = [
+    {"method": "GET", "path": "/v1/books", "purpose": "List books", "request": None,
+     "response": "200 with items and count", "errors": ["500"]},
+    {"method": "POST", "path": "/v1/books", "purpose": "Create a book",
+     "request": "title, author, copies", "response": "201 with the stored record",
+     "errors": ["400", "409", "422"]},
+    {"method": "GET", "path": "/v1/books/{id}", "purpose": "Fetch one book", "request": None,
+     "response": "200 with the record", "errors": ["404", "422"]},
+]
+
+def render(routes):
+    lines = ["# ShelfShare API v1", "",
+             "Base path: /v1. Writes need `Authorization: Bearer <token>`.", ""]
+    for route in routes:
+        lines.append(f"## {route['method']} {route['path']}")
+        lines.append(route["purpose"] + ".")
+        lines.append(f"- Request: {route['request'] or 'none'}")
+        lines.append(f"- Success: {route['response']}")
+        lines.append(f"- Errors: {', '.join(route['errors'])}")
+        lines.append("")
+    return "\\n".join(lines)
+
+document = render(ROUTES)
+print(document)
+for route in ROUTES:
+    assert route["path"] in document and route["response"] in document
+print("every route documented from the same table the router reads")
+'''
+            ),
+            variant_b="add the POST /v1/loans route and confirm it appears in a regenerated document",
+            variant_c="remove a purpose and see the assertion of coverage still hold while prose weakens",
+            mistakes=[
+                "Writing docs by hand so they describe an older version of the API.",
+                "Documenting only success responses and omitting the errors.",
+                "Showing a request format that differs from what the validator accepts.",
+            ],
+            q1=(
+                "Why generate the documentation from the contract instead of writing it separately?",
+                "One source cannot argue with itself; a generated document reflects the current routes, so docs cannot drift away from behaviour.",
+            ),
+            homework=(
+                "Write `render_docs(routes)` that turns a route table into Markdown lines. Run it on a "
+                "two-route table and a three-route table, print both documents, and comment which line "
+                "guarantees every route appears."
+            ),
+            patterns=["def render_docs", "for ", "return"],
+            mapping=(
+                "This generated reference is the documentation the day-178 build ships and the day-176 "
+                "presentation shows as evidence."
+            ),
+        ),
+        174: dict(
+            topic="Deploy and smoke-test",
+            idea=(
+                "Deployment is mostly configuration and proof. Move the values that differ between environments "
+                "into a single configuration mapping, so nothing is hard-coded in a handler: the port, the data "
+                "path, and whether authentication is enforced. Add a health endpoint that reports the service "
+                "is up and the store is seeded, because every platform and every load balancer will ask. Then "
+                "run a smoke test: a fixed list of requests, one per route, dispatched in order against the "
+                "freshly built app, each asserting the expected status. A smoke test is not a unit test; it is "
+                "a heartbeat that proves the assembled system starts, wires its routes, and answers across the "
+                "whole surface, which is exactly what fails on a bad deploy. Fail fast: if the store cannot be "
+                "seeded, refuse to start rather than serving half an API. Print the configuration, the health "
+                "response and the smoke results, and make the smoke run the last gate before a build is called "
+                "shippable. The verdict is binary: either every probe passes or the deploy did not happen. Log the "
+                "smoke results beside the build identifier, so a failed deploy is traceable to the exact "
+                "configuration it ran against and the last green run stays available for comparison."
+            ),
+            code=(
+'''CONFIG = {"port": 8080, "data_path": "/var/shelfshare.json", "enforce_auth": True}
+STORE = {"book": [{"id": 1, "title": "Dune"}]}
+
+def health():
+    seeded = len(STORE["book"]) > 0
+    return (200, {"status": "ok", "seeded": seeded}) if seeded else (503, {"status": "starting"})
+
+def dispatch(method, path):
+    if (method, path) == ("GET", "/health"):
+        return health()
+    if (method, path) == ("GET", "/v1/books"):
+        return 200, {"items": STORE["book"], "count": len(STORE["book"])}
+    if (method, path) == ("POST", "/v1/books"):
+        return 201, {"id": 2, "title": "Hyperion"}
+    return 404, {"error": {"code": "not_found"}}
+
+print("config:", CONFIG)
+print("health:", health())
+SMOKE = [("GET", "/health", 200), ("GET", "/v1/books", 200),
+         ("POST", "/v1/books", 201), ("GET", "/v1/authors", 404)]
+failures = 0
+for method, path, expected in SMOKE:
+    status = dispatch(method, path)[0]
+    ok = status == expected
+    failures += 0 if ok else 1
+    print(f"smoke {method:<5} {path:<14} expected {expected} got {status} {'PASS' if ok else 'FAIL'}")
+assert failures == 0
+print("smoke green: assembled service answers every route")
+'''
+            ),
+            variant_b="empty the store, rebuild, and confirm the health probe reports 503",
+            variant_c="remove the health route and watch the first smoke probe fail",
+            mistakes=[
+                "Hard-coding the port and data path inside a handler.",
+                "Skipping the health probe that every platform polls.",
+                "Treating a partial pass as a successful deploy instead of a binary gate.",
+            ],
+            q1=(
+                "Why is the smoke test run after assembly rather than during development?",
+                "It proves the wired system starts and answers across all routes, which unit tests on separate functions cannot show.",
+            ),
+            homework=(
+                "Write `smoke_test(app)` that dispatches one request per route and returns the failed paths. "
+                "Run it against a healthy store and then an empty store, print both failure lists, and comment "
+                "which line makes the deploy gate binary."
+            ),
+            patterns=["def smoke_test", "for ", "return"],
+            mapping=(
+                "This is the release gate the capstone brief anticipates: configure, start, probe, smoke, then "
+                "announce a shippable build."
+            ),
+        ),
+        175: dict(
+            topic="Failure drill",
+            idea=(
+                "A reliable API is judged by how it fails. Today you attack your own service on purpose, with a "
+                "fixed list of hostile requests, and confirm each one returns a structured error instead of a "
+                "traceback. Send malformed JSON and expect a 400. Send a valid body with a negative copies "
+                "value and expect a 422 naming the field. Send a write with no token and expect a 401. Request "
+                "a member that does not exist and expect a 404. Send a duplicate email and expect a 409. "
+                "Finally force an internal bug and confirm the client sees a generic 500 with a stable code "
+                "while the details stay in the log, because a leaked stack trace or query fragment is a "
+                "security defect, not helpfulness. Check the shape, not just the status: every error should "
+                "share the same body structure so one client handler covers them all, and a success status "
+                "carrying an error field is itself a bug. The drill also surfaces the failure you did not "
+                "design for, which is why it is written before the demo and repeated after every change. An "
+                "API that has never been attacked is an API whose failures are hypotheses. Write the drill list "
+                "down before running it, so the coverage is deliberate rather than whatever you happened to test."
+            ),
+            code=(
+'''import json
+
+def error(status, code, details=None):
+    body = {"error": {"code": code}}
+    if details:
+        body["error"]["details"] = details
+    return status, body
+
+def create_book(body, token=None):
+    if not token:
+        return error(401, "missing_token")
+    try:
+        payload = json.loads(body)
+    except json.JSONDecodeError:
+        return error(400, "malformed_json")
+    if not isinstance(payload.get("copies"), int) or payload["copies"] < 0:
+        details = [{"field": "copies", "reason": "must be non-negative"}]
+        return error(422, "validation_failed", details)
+    return 201, {"id": 1}
+
+DRILL = [
+    ("malformed body", create_book("not json", "t")),
+    ("negative copies", create_book('{"copies": -1}', "t")),
+    ("no token", create_book('{"copies": 1}', None)),
+    ("forced internal", error(500, "internal_error")),
+]
+for name, (status, body) in DRILL:
+    print(f"{name:<16} -> {status} {body['error']['code']}")
+    assert set(body) == {"error"} and "code" in body["error"]
+assert all("Traceback" not in str(b) for _n, (_s, b) in DRILL)
+print("every failure is structured, no stack trace leaks")
+'''
+            ),
+            variant_b="send a duplicate email and confirm it returns a 409 in the same error shape",
+            variant_c="force a bug that raises and confirm the client still sees a generic 500, not the trace",
+            mistakes=[
+                "Returning 200 with an error field, which breaks clients that trust status codes.",
+                "Leaking a stack trace or query fragment inside a 500 response.",
+                "Using a different error shape per endpoint, forcing client-side special cases.",
+            ],
+            q1=(
+                "Why must a 500 return a generic code and keep the detail in the log?",
+                "The client cannot act on a stack trace, and exposing internals is a security defect; a stable code plus a logged cause is both useful and safe.",
+            ),
+            homework=(
+                "Write `drill(cases)` that returns every failure whose body is not a structured error. Run it "
+                "on the full drill list and on a case with a leaked traceback, print both, and comment which "
+                "line rejects an unstructured response."
+            ),
+            patterns=["def drill", "for ", "return"],
+            mapping=(
+                "This drill is the honest failure evidence the presentation shows alongside the happy-path "
+                "demo, proving the API is dependable, not just functional."
+            ),
+        ),
+        176: dict(
+            topic="Present the API",
+            idea=(
+                "A demo is a story with evidence, and today you assemble it from artefacts you already have: "
+                "the brief, the contract table, the test results, the generated documentation and the failure "
+                "drill. Structure it in a fixed order so the audience is never lost: the problem, the scope and "
+                "its exclusions, the resources and their relationships, a live request creating and fetching a "
+                "record, then the parts most people skip, namely the errors the API refuses to make, the tests "
+                "that prove it, and the trade-offs you chose knowingly. Show the API working end to end before "
+                "showing any code; stakeholders care that it works, engineers care how. Name what you "
+                "deliberately left out and why, because an unexplained omission looks like an oversight while "
+                "an explained one looks like judgement. End with the next steps the brief already anticipated: "
+                "durable storage, pagination, rate limiting. Assemble the outline into a printable document "
+                "generated from the same fixtures as the code and print it. A presentation built on runnable "
+                "evidence cannot overstate what shipped, and it answers the first question every reviewer "
+                "asks: how do you know it works? Rehearse against a clean store so the first create is "
+                "visible, and keep a fallback script for the day the live request chooses to fail."
+            ),
+            code=(
+'''ARTIFACTS = {
+    "brief": "ShelfShare v1: books, members, loans; no payments or search",
+    "contract": "4 routes, v1, every error named",
+    "tests": "9 tests, all passing offline",
+    "docs": "generated reference for every route",
+    "failures": "5 drills, all structured, no leaks",
+}
+OUTLINE = [
+    ("Problem", "neighbours lend books with no shared record"),
+    ("Scope", ARTIFACTS["brief"]),
+    ("Resources", "book, member, loan with foreign keys"),
+    ("Live demo", "create a book, fetch it, list books"),
+    ("Evidence", ARTIFACTS["tests"] + "; " + ARTIFACTS["failures"]),
+    ("Trade-offs", "in-memory store, no pagination yet, token without expiry"),
+    ("Next steps", "SQLite, cursor pagination, rate limiting"),
+]
+print("# ShelfShare capstone presentation")
+for heading, line in OUTLINE:
+    print(f"- {heading}: {line}")
+print("artifacts attached:", sorted(ARTIFACTS))
+assert any("Next steps" in h for h, _line in OUTLINE)
+print("demo built from runnable evidence, gaps named as next steps")
+'''
+            ),
+            variant_b="reorder the outline to show the live demo first and explain the trade-off",
+            variant_c="drop the failure evidence and note what credibility the demo loses",
+            mistakes=[
+                "Opening with code instead of the working API and its problem.",
+                "Hiding the deliberate omissions, so they read as oversights.",
+                "Claiming features the artefacts cannot back up.",
+            ],
+            q1=(
+                "Why show the working API before showing any code?",
+                "Stakeholders judge whether the problem is solved while engineers judge how; leading with behaviour serves both and keeps attention on the deliverable.",
+            ),
+            homework=(
+                "Write `outline(artifacts)` that builds the presentation sections from named artefacts. Run it "
+                "with a complete artefact set and one missing the failure log, print both outlines, and comment "
+                "which line keeps gaps visible."
+            ),
+            patterns=["def outline", "return", "print("],
+            mapping=(
+                "This presentation is the capstone demo deliverable, drawing every claim from an artefact the "
+                "track already produced."
+            ),
+        ),
+        177: dict(
+            topic="Capstone build: core endpoints",
+            idea=(
+                "Today the pieces become one service. You wire the router, the validator, the store and the "
+                "error constructor together and drive the full lifecycle of the book resource: create, list, "
+                "fetch by id, update and delete, each returning the status the contract promised. The point is "
+                "not any single handler but the seams between them: the router extracts the id, the validator "
+                "cleans the payload, the store assigns the id and enforces uniqueness, and the error "
+                "constructor gives every failure one shape. Reads are public and writes are authenticated, "
+                "which means the auth gate sits in front of the dispatcher and the route table records which "
+                "routes bypass it. Because everything is a plain function over in-memory fixtures, the whole "
+                "flow runs in one process with no socket. Exercise it in one script that performs create, "
+                "fetch, update, list and delete in order, printing each status and body, and assert the final "
+                "state matches the story: the created record exists, the update changed it, and the delete "
+                "removed it. When this runs green you have a working API, not a sketch of one. The remaining "
+                "work is auth polish, documentation and review. Keep the update handler merging only the fields "
+                "the client actually sent, so a partial update never erases a field it did not mention."
+            ),
+            code=(
+'''import json
+
+class Store:
+    def __init__(self):
+        self.rows = {}
+        self.next_id = 1
+    def create(self, payload):
+        row = dict(payload)
+        row["id"] = self.next_id
+        self.next_id += 1
+        self.rows[row["id"]] = row
+        return row
+    def get(self, row_id):
+        return self.rows.get(row_id)
+    def update(self, row_id, payload):
+        if row_id not in self.rows:
+            return None
+        self.rows[row_id].update(payload)
+        return self.rows[row_id]
+    def delete(self, row_id):
+        return self.rows.pop(row_id, None) is not None
+    def list(self):
+        return [self.rows[k] for k in sorted(self.rows)]
+
+HANDLE_STORE = Store()
+
+def handle(method, path, body=""):
+    store = HANDLE_STORE
+    if path == "/v1/books" and method == "GET":
+        rows = store.list()
+        return 200, {"items": rows, "count": len(rows)}
+    if path == "/v1/books" and method == "POST":
+        return 201, store.create(json.loads(body))
+    if path.startswith("/v1/books/"):
+        row_id = int(path.rsplit("/", 1)[1])
+        if method == "GET":
+            row = store.get(row_id)
+            return (200, row) if row else (404, {"error": {"code": "not_found"}})
+        if method == "PUT":
+            row = store.update(row_id, json.loads(body))
+            return (200, row) if row else (404, {"error": {"code": "not_found"}})
+        if method == "DELETE":
+            return (204, {}) if store.delete(row_id) else (404, {"error": {"code": "not_found"}})
+    return 404, {"error": {"code": "route_not_found"}}
+
+print("POST   ->", handle("POST", "/v1/books", '{"title": "Dune", "copies": 3}'))
+print("GET    ->", handle("GET", "/v1/books/1"))
+print("PUT    ->", handle("PUT", "/v1/books/1", '{"copies": 2}'))
+print("LIST   ->", handle("GET", "/v1/books"))
+print("DELETE ->", handle("DELETE", "/v1/books/1"))
+print("GET gone ->", handle("GET", "/v1/books/1"))
+assert handle("GET", "/v1/books/1")[0] == 404
+print("full lifecycle wired: router, store and errors agree")
+'''
+            ),
+            variant_b="update a missing id and confirm the handler returns a structured 404",
+            variant_c="delete the same id twice and confirm the second call returns 404, not a crash",
+            mistakes=[
+                "Mutating the store before validation has passed.",
+                "Returning the internal row object so a caller can change state by accident.",
+                "Letting an unknown path or method escape the dispatcher as a 500.",
+            ],
+            q1=(
+                "Why keep the store entirely behind its own methods instead of exposing the list?",
+                "One interface means ids, uniqueness and validation are enforced on every write, and swapping the store later changes one class rather than every handler.",
+            ),
+            homework=(
+                "Write `handle(store, method, path, body)` covering create, fetch, update, list and delete. Run "
+                "it through the full lifecycle on a fresh store and on a missing id, print both logs, and "
+                "comment which line keeps the store behind one interface."
+            ),
+            patterns=["def handle", "return", "store."],
+            mapping=(
+                "This lifecycle is the core deliverable the day-179 review scores; the wiring here is what the "
+                "later auth and docs steps attach to."
+            ),
+        ),
+        178: dict(
+            topic="Capstone build: auth and docs",
+            idea=(
+                "Two finishing moves turn a working API into a presentable one: a complete authentication story "
+                "and documentation generated from the contract. On auth, replace the single seed token with a "
+                "small set of seeded members each holding a hashed token, distinguish a missing credential "
+                "(401) from a valid member lacking permission for an action (403), and mark every write route "
+                "as protected in the route table so the gate is data, not scattered checks. On documentation, "
+                "render the contract into a reference document that lists each route with its request, response "
+                "and errors, and add a getting-started example showing a token-bearing create followed by a "
+                "public read. The two meet at the route table: the same rows that decide protection generate "
+                "the documentation, so they cannot disagree. Prove the whole thing with a script that logs in a "
+                "seeded member, creates a record with the token, reads it back without one, and prints the "
+                "generated reference alongside the calls that produced it. When a contract generates both the "
+                "gate and the docs, adding an endpoint later means editing one table and regenerating "
+                "everything else. That property, not the feature list, is what makes the capstone maintainable. "
+                "Generate the reference as a build artifact so it ships with the code rather than living in "
+                "someone's notes and drifting within a week."
+            ),
+            code=(
+'''import hashlib
+
+def token_hash(token):
+    return hashlib.sha256(token.encode()).hexdigest()
+
+MEMBERS = {token_hash("token-ada"): {"id": 1, "role": "member"}}
+ROUTES = [
+    {"method": "GET", "path": "/v1/books", "protected": False,
+     "purpose": "List books", "errors": [500]},
+    {"method": "POST", "path": "/v1/books", "protected": True,
+     "purpose": "Create a book", "errors": [400, 401, 422]},
+]
+
+def gate(route, headers):
+    if not route["protected"]:
+        return None
+    header = headers.get("Authorization", "")
+    if not header.startswith("Bearer "):
+        return 401, {"error": {"code": "missing_token"}}
+    if token_hash(header[7:]) not in MEMBERS:
+        return 401, {"error": {"code": "invalid_token"}}
+    return None
+
+def render_docs():
+    lines = ["# ShelfShare API v1"]
+    for route in ROUTES:
+        auth = "token required" if route["protected"] else "public"
+        lines.append(f"- {route['method']} {route['path']}: {route['purpose']} ({auth})")
+    return "\\n".join(lines)
+
+calls = [
+    ("POST", ROUTES[1], {}),
+    ("POST", ROUTES[1], {"Authorization": "Bearer token-ada"}),
+    ("GET", ROUTES[0], {}),
+]
+for method, route, headers in calls:
+    failure = gate(route, headers)
+    print(method, route["path"], "->", failure or (201, {"created": True}))
+print(render_docs())
+assert gate(ROUTES[1], {})[0] == 401 and gate(ROUTES[0], {}) is None
+print("one route table drives both the auth gate and the generated docs")
+'''
+            ),
+            variant_b="mark GET /v1/books protected and confirm the doc line changes with the gate",
+            variant_c="add a member token with a limited role and return 403 for a blocked write",
+            mistakes=[
+                "Checking auth inside each handler instead of reading protection from the route table.",
+                "Hand-writing the docs so they drift from the actual protected routes.",
+                "Confusing 401 for a missing token with 403 for a forbidden action.",
+            ],
+            q1=(
+                "Why have one route table drive both the auth gate and the documentation?",
+                "Shared data cannot disagree; a route marked protected stays protected in the gate and appears as token-required in the docs without a second edit.",
+            ),
+            homework=(
+                "Write `gate(route, headers)` returning 401 for a missing token and None for a public route. "
+                "Run it on a protected route with no header and a public route, print both results, and comment "
+                "which line reads protection from the route table."
+            ),
+            patterns=["def gate", "return", "401"],
+            mapping=(
+                "This step finishes the capstone's auth and documentation deliverables, leaving only the "
+                "day-179 review to score the result against the brief."
+            ),
+        ),
+        179: dict(
+            topic="Capstone review and next steps",
+            idea=(
+                "The last day is honest accounting. You walk the brief's acceptance criteria one by one and "
+                "mark each pass or fail against evidence from the tests and the smoke run: every endpoint "
+                "answers with a status and a JSON body, invalid input returns a structured 422, duplicates "
+                "return a 409, unauthenticated writes return a 401, and the whole suite runs offline. A "
+                "capstone review that only lists successes teaches nothing, so name the weaknesses plainly: "
+                "the store is in-memory and vanishes on restart, there is no pagination on list endpoints, no "
+                "rate limiting, and the token model has no refresh or expiry. Then map each weakness to the "
+                "lesson that already dealt with it or the one to learn next: SQLite for durability, cursor "
+                "pagination, and a read-through of an auth library, so the gaps become a study plan rather "
+                "than a confession. Produce a one-page review generated from the same fixtures, scoring the "
+                "criteria and printing the next steps, and commit it beside the API. The measure of a capstone "
+                "is not that it is flawless but that you can say exactly where it is thin and what you would do "
+                "next. That habit is what turns a course project into engineering practice."
+            ),
+            code=(
+'''CRITERIA = [
+    ("status and JSON on every endpoint", True),
+    ("invalid input returns structured 422", True),
+    ("duplicate email returns 409", True),
+    ("unauthenticated write returns 401", True),
+    ("suite runs offline", True),
+    ("durable storage", False),
+    ("pagination on list endpoints", False),
+    ("token expiry or refresh", False),
+]
+passed = sum(1 for _name, ok in CRITERIA if ok)
+for name, ok in CRITERIA:
+    print(f"{'PASS' if ok else 'GAP '} {name}")
+print(f"criteria met: {passed}/{len(CRITERIA)}")
+NEXT = [
+    ("durable storage", "move the store to SQLite behind the same functions"),
+    ("pagination", "add limit and cursor to list endpoints"),
+    ("tokens", "add expiry and refresh, keep hashing"),
+]
+for gap, step in NEXT:
+    print(f"next: {gap} -> {step}")
+assert passed == 5 and all(step for _gap, step in NEXT)
+print("review scored honestly: shipped criteria listed beside named gaps")
+'''
+            ),
+            variant_b="mark pagination as done and watch the score move to six of eight",
+            variant_c="add a security criterion and decide honestly whether the token model passes",
+            mistakes=[
+                "Listing only successes, so the review teaches nothing.",
+                "Leaving every gap unnamed instead of turning it into a next step.",
+                "Claiming a criterion passes without pointing at the evidence.",
+            ],
+            q1=(
+                "Why must a capstone review name its weaknesses, not just its wins?",
+                "Named gaps become a study plan and show judgement; a review that hides them is untrustworthy and leaves the next step undecided.",
+            ),
+            homework=(
+                "Write `review(criteria)` that scores a checklist and returns the failed names. Run it on the "
+                "shipped list and on a list with a broken criterion, print both reviews, and comment which line "
+                "turns a gap into a next step."
+            ),
+            patterns=["def review", "return", "print("],
+            mapping=(
+                "This review is the final capstone artefact: an honest score against the brief plus the next "
+                "steps that carry the learner into the following track."
+            ),
+        ),
+    },
+)
