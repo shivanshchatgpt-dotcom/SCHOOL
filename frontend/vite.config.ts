@@ -8,10 +8,9 @@ export default defineConfig({
     port: 5173,
     proxy: {
       "/api": {
-        // The dev backend runs on 8000. This used to say 8001, which nothing was
-        // listening on, so every /api call was refused and the pages rendered as
-        // empty rather than reporting an error.
-        target: "http://127.0.0.1:8000",
+        // The dev backend runs on 8001 (see README). This must match the
+        // `--port` uvicorn is started with, or every /api call is refused.
+        target: "http://127.0.0.1:8001",
         changeOrigin: true,
       },
     },

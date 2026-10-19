@@ -25,17 +25,32 @@ export function saveLearner(learner: SavedLearner) {
   window.dispatchEvent(new Event("pyschool:learner-changed"));
 }
 
-export function savedProfile(): { name: string; email: string } {
+export interface SavedProfile {
+  name: string;
+  email: string;
+  /** Self-report answers (key -> chosen value) from the profiling step. */
+  profile: Record<string, string>;
+}
+
+export function savedProfile(): SavedProfile {
   try {
     const profile = JSON.parse(localStorage.getItem(PROFILE_KEY) || "{}") || {};
-    return { name: profile.name || "", email: profile.email || "" };
+    return {
+      name: profile.name || "",
+      email: profile.email || "",
+      profile: profile.profile && typeof profile.profile === "object" ? profile.profile : {},
+    };
   } catch {
-    return { name: "", email: "" };
+    return { name: "", email: "", profile: {} };
   }
 }
 
-export function saveProfile(name: string, email: string) {
-  localStorage.setItem(PROFILE_KEY, JSON.stringify({ name, email }));
+export function saveProfile(name: string, email: string, answers?: Record<string, string>) {
+  const previous = savedProfile();
+  localStorage.setItem(
+    PROFILE_KEY,
+    JSON.stringify({ name, email, profile: answers ?? previous.profile }),
+  );
 }
 
 export function forgetLearner() {

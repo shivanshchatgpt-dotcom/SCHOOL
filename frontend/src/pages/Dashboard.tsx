@@ -112,8 +112,12 @@ export default function Dashboard() {
   const practicePassed = Boolean(lesson.submission?.passed) || Boolean(lastResult?.passed);
 
   /* --- Requirements panel: what today's rubric expects, before submitting --- */
+  const personalization = lesson.personalization ?? null;
   const minLines: number = lesson.assignment.min_lines ?? 3;
-  const requiredPatterns: string[] = lesson.assignment.required_patterns ?? [];
+  const requiredPatterns: string[] = [
+    ...(lesson.assignment.required_patterns ?? []),
+    ...(personalization?.extra_patterns ?? []),
+  ];
   const checks: HomeworkChecks | null =
     lastResult?.checks ??
     (lesson.submission
@@ -190,8 +194,50 @@ export default function Dashboard() {
         <p className="text-xs font-bold uppercase tracking-wider text-gray-400">{lesson.milestone.code} · {lesson.milestone.domain}</p>
         <h2 className="text-2xl font-black mt-2">{lesson.title}</h2>
         <p className="mt-3 rounded-lg bg-violet-50 px-3 py-2 text-sm text-violet-900"><span className="font-bold">Objective:</span> {lesson.milestone.objective}</p>
+        {personalization?.level_note && (
+          <p className="mt-2 text-xs font-semibold uppercase tracking-wider text-gray-400">
+            {personalization.delivery_level} · {personalization.level_note}
+          </p>
+        )}
+        {personalization?.remediation && (
+          <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+            You’ve had a couple of attempts at this one. Today we slow down: add a self-checking
+            <code className="mx-1 rounded bg-white px-1 font-mono text-xs">assert</code>
+            that proves your fix before you move on.
+          </p>
+        )}
+        {personalization?.focus?.length > 0 && (
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
+            <p className="text-xs font-bold uppercase tracking-wider text-gray-400">Focus — revisit these first</p>
+            <ul className="mt-2 space-y-2 text-sm text-gray-700">
+              {personalization.focus.map((entry: any) => (
+                <li key={`${entry.source}-${entry.topic}`}>
+                  <b>{entry.topic.replace(/-/g, " ")}</b>
+                  {entry.source === "assessment"
+                    ? " — you missed this in your placement test."
+                    : ` — you struggled with this on day ${entry.ref_day}.`}
+                  {entry.drill && (
+                    <p className="mt-1 rounded-lg bg-white border border-gray-200 px-3 py-2 text-gray-600">
+                      {entry.ref_title && <span className="font-semibold">Re-drill from “{entry.ref_title}”: </span>}
+                      {entry.drill}
+                    </p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         <LessonContent content={lesson.theory} />
-        <pre className="mt-5"><code>{lesson.code_example}</code></pre>
+        {personalization?.show_example === false ? (
+          <details className="mt-5 rounded-xl border border-gray-200 p-4">
+            <summary className="cursor-pointer text-sm font-semibold text-gray-700">
+              Worked example hidden — try the practice first, then reveal it.
+            </summary>
+            <pre className="mt-3"><code>{lesson.code_example}</code></pre>
+          </details>
+        ) : (
+          <pre className="mt-5"><code>{lesson.code_example}</code></pre>
+        )}
         {Array.isArray(lesson.questions) && lesson.questions.length > 0 &&
           <ThinkCheck questions={lesson.questions} answers={lesson.answers} />}
         <div className="mt-5 rounded-xl border border-gray-200 p-4 text-sm">
@@ -208,6 +254,17 @@ export default function Dashboard() {
           <input type="checkbox" checked={lessonRead} onChange={(event) => toggleLessonRead(event.target.checked)} className="mt-0.5 h-4 w-4" />
           <span><b>I read the lesson and understood the worked example.</b><br /><span className="text-gray-500">This saves in this browser.</span></span>
         </label>
+
+        {personalization?.hints?.length > 0 && (
+          <>
+            <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mt-6">Hints</p>
+            <ul className="mt-3 space-y-1.5 text-sm text-gray-600 list-disc pl-5">
+              {personalization.hints.map((hint: string, i: number) => (
+                <li key={i}>{hint}</li>
+              ))}
+            </ul>
+          </>
+        )}
 
         {/* Practice requirements — visible BEFORE any submission */}
         <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mt-6">Practice requirements</p>
@@ -236,6 +293,11 @@ export default function Dashboard() {
         <div className="rounded-lg bg-gray-50 text-xs text-gray-600 px-3 py-2 mt-4">
           <span className="font-semibold">Rubric:</span> {lesson.assignment.rubric}
         </div>
+        {personalization?.challenge && (
+          <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
+            <span className="font-semibold">Stretch:</span> {personalization.challenge}
+          </div>
+        )}
         <textarea value={code} onChange={(event) => setCode(event.target.value)} className="w-full h-44 mt-5 bg-gray-950 text-gray-100 rounded-xl p-4 font-mono text-sm" placeholder="Write your Python code here…" />
         <button onClick={submit} disabled={busy || !code.trim() || practicePassed} className="w-full mt-3 bg-gray-100 border border-gray-300 px-5 py-3 rounded-xl font-semibold disabled:opacity-50">
           {practicePassed ? "Practice passed ✓" : "Check my practice"}

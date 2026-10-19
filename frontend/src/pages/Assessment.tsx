@@ -14,6 +14,13 @@ interface Question {
   difficulty: number;
 }
 
+interface ProfileQuestion {
+  id: number;
+  key: string;
+  question: string;
+  options: { value: string; label: string }[];
+}
+
 interface Result {
   enrollment_id: number;
   score: number;
@@ -32,13 +39,18 @@ const levelStyle: Record<string, string> = {
   Advanced: "bg-emerald-50 text-emerald-700 border-emerald-200",
 };
 
+type Stage = "profile" | "info" | "quiz";
+
 export default function Assessment() {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const [path, setPath] = useState<any>(null);
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [step, setStep] = useState(0);
   const profile = savedProfile();
+  const [path, setPath] = useState<any>(null);
+  const [profileQs, setProfileQs] = useState<ProfileQuestion[]>([]);
+  const [profileAnswers, setProfileAnswers] = useState<Record<string, string>>(profile.profile);
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [stage, setStage] = useState<Stage>("profile");
+  const [step, setStep] = useState(0);
   const [name, setName] = useState(profile.name || "");
   const [email, setEmail] = useState(profile.email || "");
   const [answers, setAnswers] = useState<Record<number, string>>({});
@@ -48,19 +60,29 @@ export default function Assessment() {
 
   useEffect(() => {
     if (!slug) return;
-    api.pathBySlug(slug)
-      .then((p) => {
+    Promise.all([api.pathBySlug(slug), api.profileQuestions().catch(() => [])])
+      .then(([p, pq]: [any, ProfileQuestion[]]) => {
         setPath(p);
-        return api.questions(p.id);
+        setProfileQs(pq);
+        // No profiling questions configured -> go straight to the details step.
+        if (pq.length === 0) setStage("info");
       })
-      .then(setQuestions)
       .catch((err) => setError(String(err)));
   }, [slug]);
+
+  const loadQuestions = (experience?: string) => {
+    if (!path) return;
+    api
+      .questions(path.id, experience)
+      .then(setQuestions)
+      .catch((err) => setError(String(err)));
+  };
 
   if (error) return <div className="text-red-600 py-20 text-center">{error}</div>;
   if (!path) return <div className="text-center py-20 text-gray-400">Loading…</div>;
 
   const current = questions[step];
+  const profileComplete = profileQs.every((q) => profileAnswers[q.key]);
 
   const submit = async () => {
     setSubmitting(true);
@@ -73,8 +95,9 @@ export default function Assessment() {
           question_id: Number(qid),
           selected,
         })),
+        profile: profileAnswers,
       });
-      saveProfile(name.trim(), email.trim().toLowerCase());
+      saveProfile(name.trim(), email.trim().toLowerCase(), profileAnswers);
       saveLearner({
         enrollmentId: res.enrollment_id,
         pathName: path.name,
@@ -122,8 +145,49 @@ export default function Assessment() {
     );
   }
 
+  /* --- Profiling step --- */
+  if (stage === "profile") {
+    return (
+      <div className="max-w-xl mx-auto py-12">
+        <h1 className="text-2xl font-black">Let's set you up</h1>
+        <p className="text-gray-500 mt-1 mb-8">
+          A few quick questions so we can tune the {path.name} level test to you.
+        </p>
+        <div className="space-y-6">
+          {profileQs.map((q) => (
+            <div key={q.key}>
+              <p className="font-semibold mb-2">{q.question}</p>
+              <div className="space-y-2">
+                {q.options.map((opt, i) => (
+                  <button
+                    key={`${q.key}-${i}`}
+                    onClick={() => setProfileAnswers((prev) => ({ ...prev, [q.key]: opt.value }))}
+                    className={`w-full text-left border rounded-xl px-4 py-2.5 transition-colors ${
+                      profileAnswers[q.key] === opt.value
+                        ? "border-gray-900 bg-gray-50"
+                        : "border-gray-200 hover:border-gray-400"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+        <button
+          disabled={!profileComplete}
+          onClick={() => setStage("info")}
+          className="w-full mt-8 bg-black text-white py-3 rounded-xl font-semibold hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          Continue →
+        </button>
+      </div>
+    );
+  }
+
   /* --- Student info step --- */
-  if (step === 0) {
+  if (stage === "info") {
     return (
       <div className="max-w-md mx-auto py-12">
         <h1 className="text-2xl font-black">Before you start</h1>
@@ -133,7 +197,7 @@ export default function Assessment() {
             <label className="block text-sm font-semibold mb-1">Your name</label>
             <input
               value={name}
-              onChange={(e) => { setName(e.target.value); saveProfile(e.target.value, email); }}
+              onChange={(e) => { setName(e.target.value); saveProfile(e.target.value, email, profileAnswers); }}
               className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-gray-900"
               placeholder="e.g. Aarav Kumar"
             />
@@ -142,7 +206,7 @@ export default function Assessment() {
             <label className="block text-sm font-semibold mb-1">Email</label>
             <input
               value={email}
-              onChange={(e) => { setEmail(e.target.value); saveProfile(name, e.target.value); }}
+              onChange={(e) => { setEmail(e.target.value); saveProfile(name, e.target.value, profileAnswers); }}
               type="email"
               className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-gray-900"
               placeholder="you@example.com"
@@ -150,10 +214,10 @@ export default function Assessment() {
           </div>
           <button
             disabled={!name.trim() || !email.trim() || submitting}
-            onClick={() => setStep(1)}
+            onClick={() => { loadQuestions(profileAnswers.experience); setStage("quiz"); }}
             className="w-full bg-black text-white py-3 rounded-xl font-semibold hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            Start the {questions.length}-question test →
+            Start the level test →
           </button>
         </div>
       </div>
@@ -161,6 +225,8 @@ export default function Assessment() {
   }
 
   /* --- Question steps --- */
+  if (!current) return <div className="text-center py-20 text-gray-400">Loading questions…</div>;
+
   const select = (option: string) => {
     setAnswers((prev) => ({ ...prev, [current.id]: option }));
     if (step < questions.length - 1) {
@@ -176,14 +242,14 @@ export default function Assessment() {
           <h1 className="text-2xl font-black">Level test</h1>
         </div>
         <span className="text-sm font-semibold text-gray-500">
-          {step} / {questions.length}
+          {step + 1} / {questions.length}
         </span>
       </div>
 
       <div className="h-1.5 bg-gray-100 rounded-full mb-8 overflow-hidden">
         <div
           className="h-full bg-gray-900 transition-all"
-          style={{ width: `${(step / questions.length) * 100}%` }}
+          style={{ width: `${((step + 1) / questions.length) * 100}%` }}
         />
       </div>
 
@@ -199,7 +265,9 @@ export default function Assessment() {
             <button
               key={opt.key}
               onClick={() => select(opt.key)}
-              className="w-full text-left border border-gray-200 rounded-xl px-4 py-3 hover:border-gray-900 hover:bg-gray-50 transition-colors flex items-center gap-3"
+              className={`w-full text-left border rounded-xl px-4 py-3 hover:border-gray-900 hover:bg-gray-50 transition-colors flex items-center gap-3 ${
+                answers[current.id] === opt.key ? "border-gray-900 bg-gray-50" : "border-gray-200"
+              }`}
             >
               <span className="w-7 h-7 rounded-full bg-gray-100 border border-gray-200 grid place-items-center text-xs font-bold shrink-0">
                 {opt.key}
@@ -212,9 +280,8 @@ export default function Assessment() {
 
       <div className="flex justify-between mt-6">
         <button
-          onClick={() => setStep((s) => Math.max(0, s - 1))}
-          disabled={step === 1}
-          className="px-4 py-2 text-sm font-semibold text-gray-500 hover:text-gray-900 disabled:opacity-30"
+          onClick={() => (step === 0 ? setStage("info") : setStep((s) => s - 1))}
+          className="px-4 py-2 text-sm font-semibold text-gray-500 hover:text-gray-900"
         >
           ← Back
         </button>

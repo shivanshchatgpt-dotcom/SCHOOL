@@ -1,7 +1,7 @@
 """Catalog curriculum: deterministic 180-day generator + idempotent fill."""
 import ast
 
-from app.curriculum_catalog import catalog_days, extra_questions
+from app.curriculum_catalog import catalog_days, extra_questions, path_placement_questions
 from app.seed_data import PATHS
 
 
@@ -45,11 +45,25 @@ def test_extra_questions_valid_for_all_paths():
             assert correct in "ABCD" and diff in (1, 2)
 
 
+def test_placement_bank_is_per_path_and_valid():
+    """Each path's bank differs from every other path's, and options are sane."""
+    meta = [(p[1], p[2], p[3]) for p in PATHS]
+    banks = [path_placement_questions(meta, i) for i in range(len(meta))]
+    for bank in banks:
+        assert len(bank) == 13
+        for q_text, a, b, c, d, correct, diff in bank:
+            assert len({o.lower() for o in (a, b, c, d)}) == 4, q_text
+            assert correct in "ABCD" and diff in (1, 2, 3, 4)
+    # No two paths share a question text — the whole point of the rewrite.
+    seen = [q[0] for bank in banks for q in bank]
+    assert len(set(seen)) == len(seen)
+
+
 def test_catalog_fill_completes_one_path_idempotently(tmp_path, monkeypatch):
     """Full seed (skipping catalog), then fill a single path to 180 days."""
     monkeypatch.setenv("PYSCHOOL_SKIP_CATALOG", "1")
     from app import db
-    from app.seed import seed, _seed_catalog_curricula, _seed_catalog_questions
+    from app.seed import seed, _seed_catalog_curricula, _seed_assessment_questions
 
     monkeypatch.setattr(db, "DB_PATH", tmp_path / "catalog.db")
     db.init_db()
@@ -74,13 +88,11 @@ def test_catalog_fill_completes_one_path_idempotently(tmp_path, monkeypatch):
         ).fetchone()["c"] == 180
         # Second run adds nothing.
         assert _seed_catalog_curricula(conn, only_slugs=[slug]) == 0
-        # Questions topped up 10 -> 13.
-        assert _seed_catalog_questions(conn) == 3 * 94
-        conn.commit()
+        # Placement bank is per-path and built once (guarded by meta key).
         assert conn.execute(
             "SELECT COUNT(*) AS c FROM assessment_questions WHERE path_id = ?", (path_id,)
         ).fetchone()["c"] == 13
-        assert _seed_catalog_questions(conn) == 0
+        assert _seed_assessment_questions(conn) == 0
         # In-place deepening rewrites owned rows once, then the guard skips.
         from app.seed import _refresh_catalog_content
         conn.execute("DELETE FROM meta WHERE key = 'catalog_depth'")

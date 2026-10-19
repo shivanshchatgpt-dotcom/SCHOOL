@@ -8,7 +8,7 @@ from fastapi.responses import RedirectResponse
 
 from .db import init_db
 from .seed import seed
-from .routers import paths, assessment, lessons, dashboard, admin
+from .routers import paths, assessment, lessons, dashboard, admin, profile
 
 
 @asynccontextmanager
@@ -41,6 +41,7 @@ app.add_middleware(
 
 app.include_router(paths.router, prefix="/api", tags=["paths"])
 app.include_router(assessment.router, prefix="/api", tags=["assessment"])
+app.include_router(profile.router, prefix="/api", tags=["profile"])
 app.include_router(lessons.router, prefix="/api", tags=["lessons"])
 app.include_router(dashboard.router, prefix="/api", tags=["dashboard"])
 app.include_router(admin.router, prefix="/api/admin", tags=["admin"])

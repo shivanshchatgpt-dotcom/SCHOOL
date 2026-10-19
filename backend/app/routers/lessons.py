@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.params import Header
 
 from ..db import get_conn
+from ..personalize import lesson_personalization, record_topic, weak_topics
 from ..schemas import HomeworkSubmit
 
 router = APIRouter()
@@ -119,9 +120,12 @@ def get_lesson(enrollment_id: int, day: int | None = None):
     """Return an authored lesson and its transparent coding rubric."""
     conn = get_conn()
     try:
-        target_day = day or conn.execute(
-            "SELECT current_day FROM enrollments WHERE id = ?", (enrollment_id,)
-        ).fetchone()["current_day"]
+        enrollment = conn.execute(
+            "SELECT id, path_id, level, current_day FROM enrollments WHERE id = ?", (enrollment_id,)
+        ).fetchone()
+        if not enrollment:
+            raise HTTPException(status_code=404, detail="Enrollment not found")
+        target_day = day or enrollment["current_day"]
         lesson = _lesson_for_day(conn, enrollment_id, target_day)
         if not lesson:
             raise HTTPException(
@@ -165,6 +169,9 @@ def get_lesson(enrollment_id: int, day: int | None = None):
                 "required_patterns": json.loads(lesson["required_patterns"]), "min_lines": lesson["min_lines"],
                 "rubric": lesson["rubric"],
             },
+            # Delivery adapted to this learner: scaffolding depth, focus topics
+            # from their concept state, and any adaptive extra requirement.
+            "personalization": lesson_personalization(conn, enrollment, lesson),
             "submission": dict(submission) if submission else None,
         }
     finally:
@@ -211,10 +218,21 @@ def complete_lesson(enrollment_id: int):
             "UPDATE enrollments SET current_day = ?, xp = ?, streak = ? WHERE id = ?",
             (next_day, xp, streak, enrollment_id),
         )
+        # Adaptive next step: the next lesson personalises on this state, and we
+        # say out loud whether a review is the honest next move.
+        review = weak_topics(conn, enrollment_id, limit=3)
         conn.commit()
+        message = (
+            f"{lesson['milestone_code']} practice completed. +10 XP. Your explanation and "
+            "spaced review remain part of full mastery."
+        )
+        if review:
+            topics = ", ".join(item["topic"].replace("-", " ") for item in review)
+            message += f" Next step: revisit {topics} before it costs you later."
         return {
             "current_day": next_day, "xp": xp, "streak": streak,
-            "message": f"{lesson['milestone_code']} practice completed. +10 XP. Your explanation and spaced review remain part of full mastery.",
+            "review_topics": [item["topic"] for item in review],
+            "message": message,
         }
     finally:
         conn.close()
@@ -292,8 +310,12 @@ def submit_homework(payload: HomeworkSubmit, x_enrollment_token: str | None = He
                 "Expand your example instead of padding with blank lines."
             )
 
-        # Check 3: required language constructs (whitespace-tolerant).
+        # Check 3: required language constructs (whitespace-tolerant). A learner
+        # who is struggling gets one adaptive extra requirement — a self-check —
+        # so mastery is re-proved rather than assumed.
+        personalization = lesson_personalization(conn, enrollment, lesson)
         patterns = json.loads(lesson["required_patterns"]) if lesson["required_patterns"] else []
+        patterns = patterns + [p for p in personalization["extra_patterns"] if p not in patterns]
         pattern_results = [
             {"pattern": pattern, "found": pattern_found(pattern, payload.code)}
             for pattern in patterns
@@ -326,6 +348,11 @@ def submit_homework(payload: HomeworkSubmit, x_enrollment_token: str | None = He
         )
         if passed and not already_passed:
             conn.execute("UPDATE enrollments SET xp = xp + 15 WHERE id = ?", (payload.enrollment_id,))
+        # Concept-level state for the next lesson's personalisation.
+        record_topic(
+            conn, payload.enrollment_id, lesson["title"],
+            source="homework", ref_day=enrollment["current_day"], correct=bool(passed),
+        )
         conn.commit()
         return {
             "passed": passed,

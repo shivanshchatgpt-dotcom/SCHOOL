@@ -84,6 +84,50 @@ def test_reassessment_updates_existing_enrollment(client, enrollment):
     assert first["access_token"]          # token always returned
 
 
+def test_profile_questions_are_data_driven(client):
+    pq = client.get("/api/profile/questions").json()
+    assert [q["key"] for q in pq] == ["experience", "background", "goal", "pace"]
+    for q in pq:
+        assert q["options"] and all("value" in o and "label" in o for o in q["options"])
+
+
+def test_questions_are_per_path_and_profile_tuned(client):
+    web = client.get("/api/paths/web-dev").json()
+    other = client.get("/api/paths/cgi-animation").json()
+    web_qs = client.get(f"/api/assessment/{web['id']}/questions").json()
+    other_qs = client.get(f"/api/assessment/{other['id']}/questions").json()
+    assert len(web_qs) == 13
+    # Two different paths never share a placement question.
+    assert {q["question"] for q in web_qs}.isdisjoint({q["question"] for q in other_qs})
+
+    beginner = client.get(f"/api/assessment/{web['id']}/questions?experience=beginner").json()
+    advanced = client.get(f"/api/assessment/{web['id']}/questions?experience=advanced").json()
+    assert len(beginner) == 10 and len(advanced) == 10
+    assert max(q["difficulty"] for q in beginner) <= max(q["difficulty"] for q in advanced)
+
+
+def test_profile_tuned_score_is_out_of_its_own_length(client):
+    from app import db as db_module
+
+    path_row = client.get("/api/paths/web-dev").json()
+    qs = client.get(f"/api/assessment/{path_row['id']}/questions?experience=advanced").json()
+    assert len(qs) == 10
+    conn = db_module.get_conn()
+    try:
+        correct = {
+            row["id"]: row["correct"]
+            for row in conn.execute(
+                "SELECT id, correct FROM assessment_questions WHERE path_id=?", (path_row["id"],)
+            ).fetchall()
+        }
+    finally:
+        conn.close()
+    answers = [{"question_id": q["id"], "selected": correct[q["id"]]} for q in qs]
+    result = submit_answers(client, path_row["id"], "Ace", "ace@example.com", answers).json()
+    assert result["score"] == 10 and result["total"] == 10
+    assert result["level"] == "Advanced"
+
+
 def test_weak_topics_reported_for_wrong_answers(client, enrollment):
     path_id = enrollment["path_id"]
     result = submit_answers(

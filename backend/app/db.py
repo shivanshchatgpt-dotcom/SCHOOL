@@ -165,6 +165,30 @@ CREATE TABLE IF NOT EXISTS attendance (
     present INTEGER NOT NULL DEFAULT 0,
     UNIQUE(enrollment_id, day)
 );
+
+CREATE TABLE IF NOT EXISTS profile_questions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    key TEXT NOT NULL UNIQUE,
+    question TEXT NOT NULL,
+    options TEXT NOT NULL DEFAULT '[]',
+    sort_order INTEGER NOT NULL DEFAULT 0
+);
+
+-- Concept-level learner state: what this student has shown they know and do
+-- not. Written from placement misses and homework evidence, read back to
+-- personalise the next lesson. Deliberately small: one row per weak/strong
+-- topic per learner, not a record of everything they ever touched.
+CREATE TABLE IF NOT EXISTS learner_topics (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    enrollment_id INTEGER NOT NULL REFERENCES enrollments(id),
+    topic TEXT NOT NULL,
+    source TEXT NOT NULL DEFAULT 'homework',
+    ref_day INTEGER,
+    misses INTEGER NOT NULL DEFAULT 0,
+    hits INTEGER NOT NULL DEFAULT 0,
+    last_seen TEXT,
+    UNIQUE(enrollment_id, topic, source)
+);
 """
 
 
@@ -178,6 +202,7 @@ def init_db() -> None:
         _add_column_if_missing(conn, "assessment_questions", "topic TEXT NOT NULL DEFAULT 'python-basics'")
         _add_column_if_missing(conn, "enrollments", "starting_milestone_id INTEGER REFERENCES milestones(id)")
         _add_column_if_missing(conn, "enrollments", "access_token TEXT")
+        _add_column_if_missing(conn, "enrollments", "profile TEXT NOT NULL DEFAULT '{}'")
         _add_column_if_missing(conn, "lessons", "status TEXT NOT NULL DEFAULT 'active'")
         _add_column_if_missing(conn, "lessons", "status_reason TEXT NOT NULL DEFAULT ''")
         _add_column_if_missing(conn, "lessons", "status_note TEXT NOT NULL DEFAULT ''")

@@ -832,3 +832,107 @@ def extra_questions(paths: list[tuple[str, str, str]], idx: int):
     ordered, letter = placed(projs, (idx + 2) % 3)
     out.append((f"Which would you build while learning {name}?", *ordered, letter, 2))
     return out
+
+
+# Concept bucket for each question the placement bank emits, in order. A miss
+# is recorded against the bucket so the learner's weak-topic state names the
+# kind of knowledge that is missing, not just "got question 7 wrong".
+PLACEMENT_TOPICS = (
+    "tooling", "domain-focus", "projects", "careers", "tooling", "domain-focus",
+    "tooling", "advanced-tooling", "tooling", "outcomes", "domain-focus",
+    "advanced-projects", "capstone",
+)
+
+
+def path_placement_questions(paths: list[tuple[str, str, str]], idx: int, total: int = 13):
+    """A path-specific placement bank (13 questions by default).
+
+    Every question is built from this path's own name, description and
+    libraries, so no two paths share a bank — unlike a single hardcoded set
+    handed to all 100 paths. Distractors come from neighbouring paths and the
+    correct slot rotates so the answer key is not all A. Returns
+    [(question, a, b, c, d, correct, difficulty), ...] with difficulty 1-4.
+    """
+    n = len(paths)
+    name, description, libraries = paths[idx]
+    libs = [s.strip() for s in (libraries or "").split(",") if s.strip()] or ["Python"]
+    l0 = libs[0]
+    l1 = libs[1] if len(libs) > 1 else libs[0]
+    llast = libs[-1]
+
+    others = [paths[(idx + j) % n] for j in range(1, n)]
+    peer_names = [p[0] for p in others if p[0] != name]
+    peer_descs = [p[1] for p in others if p[1] and p[1] != description]
+    peer_libs = [(p[2].split(",")[0].strip() or "Python") for p in others]
+
+    def assemble(correct: str, pools: list[list[str]]) -> tuple[str, list[str]]:
+        taken = {correct.lower()}
+        ds: list[str] = []
+        for pool in pools:
+            for cand in pool:
+                if cand and cand.lower() not in taken:
+                    taken.add(cand.lower())
+                    ds.append(cand)
+                    break
+        filler = ["Python", "the standard library", "a web browser", "a spreadsheet"]
+        fi = 0
+        while len(ds) < 3:
+            f = filler[fi % len(filler)]
+            fi += 1
+            if f.lower() not in taken:
+                taken.add(f.lower())
+                ds.append(f)
+        return correct, ds[:3]
+
+    raw = [
+        (f"Which library is the best starting point for {name}?", l0,
+         [[lib] for lib in peer_libs], 1),
+        (f"What is the main focus of {name}?", description,
+         [[d] for d in peer_descs], 1),
+        (f"Which project belongs in a {name} portfolio?",
+         f"A {name} project built with {l0}",
+         [[f"A {pn} project built with {pl}"] for pn, pl in zip(peer_names, peer_libs)], 1),
+        (f"Which role does the {name} roadmap prepare you for?",
+         f"A working {name} specialist",
+         [[f"A working {pn} specialist"] for pn in peer_names], 2),
+        (f"Which two tools form a {name} stack?",
+         f"{l0} and {l1}",
+         [[f"{pa} and {pb}"] for pa, pb in zip(peer_libs, peer_libs[1:] + peer_libs[:1])], 2),
+        (f"Which statement describes the {name} track?", description,
+         [[d] for d in peer_descs], 2),
+        (f"Which tool is used together with {l0} in {name}?", l1,
+         [[lib] for lib in peer_libs], 2),
+        (f"An advanced {name} learner reaches for which tool?", llast,
+         [[lib] for lib in peer_libs], 3),
+        (f"Which of these is NOT part of the {name} toolset?",
+         _foreign(peer_libs, libs),
+         [[lib] for lib in libs], 3),
+        (f"What can you build after finishing the {name} roadmap?",
+         f"Real {name} tools using {l0}",
+         [[f"Real {pn} tools using {pl}"] for pn, pl in zip(peer_names, peer_libs)], 3),
+        (f"Which skill is central to {name}?", description,
+         [[d] for d in peer_descs], 3),
+        (f"Which senior task fits a {name} specialist?",
+         f"Design and ship a production {name} system",
+         [[f"Design and ship a production {pn} system"] for pn in peer_names], 4),
+        (f"Which capstone fits the end of the {name} roadmap?",
+         f"An end-to-end {name} project using {llast}",
+         [[f"An end-to-end {pn} project using {pl}"] for pn, pl in zip(peer_names, peer_libs)], 4),
+    ]
+
+    out = []
+    for i, (qtext, correct, pools, diff) in enumerate(raw[:total]):
+        correct, ds = assemble(correct, pools)
+        pos = (idx + i) % 4
+        ordered = ds[:pos] + [correct] + ds[pos:]
+        out.append((qtext, ordered[0], ordered[1], ordered[2], ordered[3], "ABCD"[pos], diff))
+    return out
+
+
+def _foreign(peer_libs: list[str], own_libs: list[str]) -> str:
+    """A library no path in ``own_libs`` uses, for a 'which is NOT' question."""
+    taken = {lib.lower() for lib in own_libs}
+    for cand in peer_libs:
+        if cand and cand.lower() not in taken:
+            return cand
+    return "Fortran"

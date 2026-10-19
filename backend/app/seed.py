@@ -9,16 +9,16 @@ from .curriculum_automation_day3 import AUTOMATION_DAY_3
 from .curriculum_automation_day4 import AUTOMATION_DAY_4
 from .curriculum_web_dev import WEB_DEV_DAY_1
 from .seed_data import (
-    ASSESSMENT_BASE,
     CATEGORIES,
     CURRICULA,
     extended_curriculum,
     LAUNCH_PATH_SLUGS,
     PATHS,
     PATH_FLAGSHIP_QUESTIONS,
+    PROFILE_QUESTIONS,
 )
 
-SEED_VERSION = 9  # v9: add locally authored Automation / Scripting Day 4
+SEED_VERSION = 10  # v10: per-path placement questions + profiling step
 
 
 def _level_feedback(level: str, path_name: str) -> str:
@@ -64,9 +64,9 @@ def seed() -> None:
             _seed_automation_day_four(conn)
             canonical_added = _seed_canonical_lessons(conn)
             catalog_added = _seed_catalog_curricula(conn)
-            catalog_q = _seed_catalog_questions(conn)
+            question_added = _seed_assessment_questions(conn)
+            _seed_profile_questions(conn)
             _refresh_catalog_content(conn)
-            _relabel_generated_topics(conn)
             conn.execute(
                 "UPDATE paths SET duration_days = 180, is_launch_ready = 1 WHERE slug IN ('agi-research', 'data-science', 'web-dev')"
             )
@@ -77,7 +77,7 @@ def seed() -> None:
             conn.commit()
             print(f"[seed] curriculum checked — {added} 180-day lessons added, "
                   f"{canonical_added} canonical lessons added, {catalog_added} catalog lessons added, "
-                  f"{catalog_q} catalog questions added")
+                  f"{question_added} questions added")
             return
 
         conn.executescript("""
@@ -172,25 +172,10 @@ def seed() -> None:
         canonical_added = _seed_canonical_lessons(conn)
         _seed_catalog_curricula(conn)
 
-        # Assessment questions
-        all_paths = conn.execute("SELECT id, slug FROM paths").fetchall()
-        for row in all_paths:
-            path_id = row["id"]
-            slug = row["slug"]
-            base_qs = ASSESSMENT_BASE
-            extra = PATH_FLAGSHIP_QUESTIONS.get(slug, [])
-            for q_text, a, b, c, d, correct, diff in base_qs + extra:
-                topic = "python-basics" if diff <= 2 else "python-practice"
-                if slug in LAUNCH_PATH_SLUGS and (path_q := PATH_FLAGSHIP_QUESTIONS.get(slug)) and (q_text, a, b, c, d, correct, diff) in path_q:
-                    topic = "track-basics"
-                conn.execute(
-                    "INSERT INTO assessment_questions (path_id, question, option_a, option_b, option_c, option_d, correct, difficulty, topic) "
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    (path_id, q_text, a, b, c, d, correct, diff, topic),
-                )
-        _seed_catalog_questions(conn)
+        # Per-path placement questions + self-report profiling options.
+        _seed_assessment_questions(conn)
+        _seed_profile_questions(conn)
         conn.execute("INSERT OR REPLACE INTO meta (key, value) VALUES ('catalog_depth', '3')")
-        conn.execute("INSERT OR REPLACE INTO meta (key, value) VALUES ('catalog_topics', 'catalog-basics')")
 
         conn.execute(
             "INSERT OR REPLACE INTO meta (key, value) VALUES ('seed_version', ?)",
@@ -539,33 +524,89 @@ def _seed_catalog_curricula(conn, only_slugs: list[str] | None = None) -> int:
     return added
 
 
-def _seed_catalog_questions(conn) -> int:
-    """Give every path without flagship extras three deterministic questions.
+def _seed_assessment_questions(conn) -> int:
+    """Rebuild every path's placement bank from its own name/description/libs.
 
-    Paths with exactly the 10 base questions get 3 more (total 13, like the
-    flagships). Anything else is left alone. Skipped with PYSCHOOL_SKIP_CATALOG.
+    Each path gets 13 questions generated for it (a smaller bank plus the
+    hand-authored flagship questions where they exist). Guarded by the
+    ``assessment_v2`` meta key so re-seeding an existing database is a no-op.
     """
-    if os.environ.get("PYSCHOOL_SKIP_CATALOG"):
-        return 0
-    from .curriculum_catalog import extra_questions
+    try:
+        row = conn.execute("SELECT value FROM meta WHERE key = 'assessment_v2'").fetchone()
+        if row and row["value"] == "4":
+            return 0
+    except Exception:
+        pass
+    from .curriculum_catalog import PLACEMENT_TOPICS, path_placement_questions
 
-    paths = conn.execute("SELECT id, name, description, libraries FROM paths ORDER BY id").fetchall()
+    paths = conn.execute(
+        "SELECT id, slug, name, description, libraries FROM paths ORDER BY id"
+    ).fetchall()
     meta = [(p["name"], p["description"], p["libraries"]) for p in paths]
     added = 0
     for idx, path in enumerate(paths):
-        count = conn.execute(
-            "SELECT COUNT(*) AS c FROM assessment_questions WHERE path_id = ?", (path["id"],)
-        ).fetchone()["c"]
-        if count != 10:
-            continue
-        for q_text, a, b, c, d, correct, diff in extra_questions(meta, idx):
+        conn.execute("DELETE FROM assessment_questions WHERE path_id = ?", (path["id"],))
+        authored = PATH_FLAGSHIP_QUESTIONS.get(path["slug"], [])
+        generated = [
+            (q, PLACEMENT_TOPICS[i % len(PLACEMENT_TOPICS)])
+            for i, q in enumerate(path_placement_questions(meta, idx))
+        ]
+        if authored:
+            # Keep the hardest generated questions so adding authored items does
+            # not just lop off the top end of the difficulty range.
+            generated = sorted(generated, key=lambda qt: qt[0][6])[len(authored):]
+        for (q_text, a, b, c, d, correct, diff), topic in [(q, "track-basics") for q in authored] + generated:
             conn.execute(
                 "INSERT INTO assessment_questions (path_id, question, option_a, option_b, option_c, option_d, correct, difficulty, topic) "
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (path["id"], q_text, a, b, c, d, correct, diff, "catalog-basics"),
+                (path["id"], q_text, a, b, c, d, correct, diff, topic),
             )
             added += 1
+    conn.execute("INSERT OR REPLACE INTO meta (key, value) VALUES ('assessment_v2', '4')")
     return added
+
+
+def _seed_profile_questions(conn) -> int:
+    """Insert the self-report profiling questions once (never overwrite edits)."""
+    added = 0
+    for key, question, options, order in PROFILE_QUESTIONS:
+        cur = conn.execute(
+            "INSERT OR IGNORE INTO profile_questions (key, question, options, sort_order) VALUES (?, ?, ?, ?)",
+            (key, question, json.dumps(options), order),
+        )
+        added += cur.rowcount
+    return added
+
+
+# Self-reported experience -> the difficulty band the level test draws from.
+_PROFILE_DIFFICULTY_BANDS = {
+    "beginner": (1, 2),
+    "intermediate": (2, 3),
+    "advanced": (3, 4),
+}
+
+
+def select_questions_for_profile(rows, profile: dict | None = None, limit: int = 10):
+    """Pick up to ``limit`` questions tuned to the learner's reported level.
+
+    Without a recognised ``experience`` value every question is returned, so
+    the plain endpoint keeps its old contract.
+    """
+    experience = profile.get("experience") if isinstance(profile, dict) else None
+    band = _PROFILE_DIFFICULTY_BANDS.get(str(experience).lower()) if experience else None
+    items = [dict(r) for r in rows]
+    if not band:
+        return items
+    lo, hi = band
+
+    def rank(q):
+        d = q["difficulty"]
+        if lo <= d <= hi:
+            return (0, d)
+        return (1, min(abs(d - lo), abs(d - hi)), d)
+
+    items.sort(key=rank)
+    return items[:limit]
 
 
 def _refresh_catalog_content(conn) -> int:
@@ -649,38 +690,6 @@ def _refresh_catalog_rows(conn, only_slugs: list[str] | None = None) -> int:
             )
             updated += 1
     return updated
-
-
-def _relabel_generated_topics(conn) -> int:
-    """Relabel generator-written triplets 'track-basics' -> 'catalog-basics'.
-
-    Matches rows by recomputed generator text, so hand-written flagship rows
-    (different text, same label) are never touched. Guarded by meta key.
-    """
-    if os.environ.get("PYSCHOOL_SKIP_CATALOG"):
-        return 0
-    try:
-        row = conn.execute("SELECT value FROM meta WHERE key = 'catalog_topics'").fetchone()
-        if row and row["value"] == "catalog-basics":
-            return 0
-    except Exception:
-        pass
-    from .curriculum_catalog import extra_questions
-
-    paths = conn.execute("SELECT id, name, description, libraries FROM paths ORDER BY id").fetchall()
-    meta = [(p["name"], p["description"], p["libraries"]) for p in paths]
-    fixed = 0
-    for idx, path in enumerate(paths):
-        want = {q[0] for q in extra_questions(meta, idx)}
-        for r in conn.execute(
-            "SELECT id, question FROM assessment_questions WHERE path_id = ? AND topic = 'track-basics'",
-            (path["id"],),
-        ).fetchall():
-            if r["question"] in want:
-                conn.execute("UPDATE assessment_questions SET topic = 'catalog-basics' WHERE id = ?", (r["id"],))
-                fixed += 1
-    conn.execute("INSERT OR REPLACE INTO meta (key, value) VALUES ('catalog_topics', 'catalog-basics')")
-    return fixed
 
 
 def get_level(score: int, total: int) -> str:

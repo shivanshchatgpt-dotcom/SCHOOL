@@ -224,57 +224,52 @@ TRACK_180_PHASES = {
 }
 
 
-# Level assessment questions per path — base set for every path.
-ASSESSMENT_BASE = [
+# Self-report profiling questions asked before the level test. The value on
+# each option is what the backend stores; only "experience" tunes the level
+# test today. Options are rows in the DB, not hardcoded UI — edit them there.
+PROFILE_QUESTIONS = [
     (
-        "What is a variable in Python?",
-        "A container that stores data", "A type of loop", "A function name", "An imported module",
-        "A", 1,
+        "experience",
+        "How much Python / coding experience do you have?",
+        [
+            {"value": "beginner", "label": "Complete beginner — I have never coded"},
+            {"value": "beginner", "label": "I have seen a little Python"},
+            {"value": "intermediate", "label": "I can write basic scripts on my own"},
+            {"value": "advanced", "label": "I am confident with Python already"},
+        ],
+        1,
     ),
     (
-        "Which keyword defines a function in Python?",
-        "func", "def", "function", "define",
-        "B", 1,
+        "background",
+        "What best describes you right now?",
+        [
+            {"value": "school", "label": "School student"},
+            {"value": "college", "label": "College student"},
+            {"value": "professional", "label": "Working professional"},
+            {"value": "self_learner", "label": "Self-learner / hobbyist"},
+        ],
+        2,
     ),
     (
-        "What does len() do?",
-        "Runs code twice", "Converts to integer", "Returns the length of a sequence", "Deletes a variable",
-        "C", 1,
+        "goal",
+        "Why are you learning this path?",
+        [
+            {"value": "job", "label": "To get a job or internship"},
+            {"value": "project", "label": "To build a specific project"},
+            {"value": "exam", "label": "For college / coursework"},
+            {"value": "curiosity", "label": "Out of curiosity"},
+        ],
+        3,
     ),
     (
-        "What data structure stores key-value pairs?",
-        "List", "Tuple", "Set", "Dictionary",
-        "D", 1,
-    ),
-    (
-        "What will [x for x in range(5)] produce?",
-        "[0,1,2,3,4]", "[1,2,3,4,5]", "[5]", "Error",
-        "A", 2,
-    ),
-    (
-        "Which is correct exception handling syntax?",
-        "catch:", "try/except", "handle:", "error:",
-        "B", 2,
-    ),
-    (
-        "What is a decorator?",
-        "A function that modifies another function", "A type of loop", "A variable type", "A list method",
-        "A", 3,
-    ),
-    (
-        "What is a generator?",
-        "A function that yields values lazily", "A loop", "A module", "A database",
-        "A", 3,
-    ),
-    (
-        "Which of these is a lambda?",
-        "x = lambda a: a + 1", "x = def(a)", "x = func(a)", "x = function(a)",
-        "A", 3,
-    ),
-    (
-        "What does *args mean in a function signature?",
-        "Positional arguments packed into a tuple", "Keyword args", "No args allowed", "Only numbers",
-        "A", 4,
+        "pace",
+        "How much time can you give each day?",
+        [
+            {"value": "light", "label": "Around 30 minutes"},
+            {"value": "steady", "label": "About 1 hour"},
+            {"value": "intense", "label": "2+ hours — I want to go fast"},
+        ],
+        4,
     ),
 ]
 

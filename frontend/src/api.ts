@@ -50,7 +50,11 @@ export const api = {
     return request<any[]>(`/paths${qs ? `?${qs}` : ""}`);
   },
   pathBySlug: (slug: string) => request<any>(`/paths/${slug}`),
-  questions: (pathId: number) => request<any[]>(`/assessment/${pathId}/questions`),
+  profileQuestions: () => request<any[]>("/profile/questions"),
+  questions: (pathId: number, experience?: string) =>
+    request<any[]>(
+      `/assessment/${pathId}/questions${experience ? `?experience=${encodeURIComponent(experience)}` : ""}`,
+    ),
   submitAssessment: (body: any) =>
     request<any>("/assessment/submit", { method: "POST", body: JSON.stringify(body) }),
   lesson: (enrollmentId: number, day?: number, enrollmentToken?: string) =>

@@ -47,6 +47,7 @@ class AssessmentSubmit(BaseModel):
     student_name: str
     student_email: str
     answers: list[AssessmentAnswer]
+    profile: dict = {}
 
 
 class AssessmentResultOut(BaseModel):

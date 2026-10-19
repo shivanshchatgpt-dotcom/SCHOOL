@@ -1,17 +1,19 @@
 """Assessment endpoints: fetch questions, submit answers, judge level, enroll."""
+import json
 import secrets
 
 from fastapi import APIRouter, HTTPException
 
 from ..db import get_conn
+from ..personalize import record_topic
 from ..schemas import AssessmentSubmit
-from ..seed import get_level
+from ..seed import get_level, select_questions_for_profile
 
 router = APIRouter()
 
 
 @router.get("/assessment/{path_id}/questions")
-def get_questions(path_id: int):
+def get_questions(path_id: int, experience: str | None = None):
     conn = get_conn()
     try:
         rows = conn.execute(
@@ -19,12 +21,14 @@ def get_questions(path_id: int):
             SELECT id, path_id, question, option_a, option_b, option_c, option_d, difficulty
             FROM assessment_questions
             WHERE path_id = ?
-            ORDER BY difficulty
+            ORDER BY difficulty, id
             """,
             (path_id,),
         ).fetchall()
         if not rows:
             raise HTTPException(status_code=404, detail="No assessment questions for this path")
+        if experience:
+            return select_questions_for_profile(rows, {"experience": experience})
         return [dict(r) for r in rows]
     finally:
         conn.close()
@@ -58,15 +62,31 @@ def submit_assessment(payload: AssessmentSubmit):
             )
             student_id = cur.lastrowid
 
-        # Grade answers
-        questions = conn.execute(
-            "SELECT id, correct, topic FROM assessment_questions WHERE path_id = ?", (payload.path_id,)
-        ).fetchall()
-        submitted = {answer.question_id: answer.selected.upper() for answer in payload.answers}
-        score = sum(1 for question in questions if submitted.get(question["id"]) == question["correct"])
-        total = len(questions)
+        # Grade only the questions actually served to this student, so a
+        # profile-tuned (shorter) test is scored out of its own length.
+        by_id = {
+            q["id"]: q
+            for q in conn.execute(
+                "SELECT id, correct, topic FROM assessment_questions WHERE path_id = ?", (payload.path_id,)
+            ).fetchall()
+        }
+        score = 0
+        missed: set[str] = set()
+        answered = 0
+        for answer in payload.answers:
+            question = by_id.get(answer.question_id)
+            if not question:
+                continue
+            answered += 1
+            if answer.selected.upper() == question["correct"]:
+                score += 1
+            else:
+                missed.add(question["topic"])
+        total = answered or len(by_id)
         level = get_level(score, total)
-        missed_topics = sorted({question["topic"] for question in questions if submitted.get(question["id"]) != question["correct"]})
+        missed_topics = sorted(missed)
+
+        profile_json = json.dumps(payload.profile or {})
 
         # Placement is transparent and deterministic. Stronger students can start
         # later, while every milestone still exposes its prerequisite chain.
@@ -85,8 +105,8 @@ def submit_assessment(payload: AssessmentSubmit):
         ).fetchone()
         if existing:
             conn.execute(
-                "UPDATE enrollments SET level = ?, level_score = ?, current_day = ?, starting_milestone_id = ? WHERE id = ?",
-                (level, score, start_order, starting_milestone["id"], existing["id"]),
+                "UPDATE enrollments SET level = ?, level_score = ?, current_day = ?, starting_milestone_id = ?, profile = ? WHERE id = ?",
+                (level, score, start_order, starting_milestone["id"], profile_json, existing["id"]),
             )
             enrollment_id = existing["id"]
             existing_token_row = conn.execute(
@@ -97,14 +117,25 @@ def submit_assessment(payload: AssessmentSubmit):
         else:
             access_token = secrets.token_urlsafe(24)
             cur = conn.execute(
-                "INSERT INTO enrollments (student_id, path_id, level, level_score, current_day, starting_milestone_id, access_token) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (student_id, payload.path_id, level, score, start_order, starting_milestone["id"], access_token),
+                "INSERT INTO enrollments (student_id, path_id, level, level_score, current_day, starting_milestone_id, access_token, profile) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (student_id, payload.path_id, level, score, start_order, starting_milestone["id"], access_token, profile_json),
             )
             enrollment_id = cur.lastrowid
             feedback = (
                 f"Welcome, {name}! Your placement is {level}. Start at {starting_milestone['code']}: "
                 f"{starting_milestone['title']}."
             )
+
+        # Seed the concept-level state from the placement test: each served
+        # question's bucket becomes a hit or a miss for this learner.
+        for answer in payload.answers:
+            question = by_id.get(answer.question_id)
+            if question:
+                record_topic(
+                    conn, enrollment_id, question["topic"],
+                    source="assessment",
+                    correct=answer.selected.upper() == question["correct"],
+                )
 
         conn.commit()
         return {
