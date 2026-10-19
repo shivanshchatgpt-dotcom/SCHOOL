@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>API Building — Roadmap</title>
+<style>
+  :root{
+    --bg:#fafafa; --ink:#18181b; --mut:#71717a; --line:#e4e4e7;
+    --yellow:#fde047; --yellow-bd:#52525b; --yellow-deep:#facc15;
+    --rec:#8b5cf6; --alt:#22c55e; --opt:#a1a1aa;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%;color:var(--ink);
+    font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  /* top nav */
+  .nav{position:sticky;top:0;height:52px;background:#fff;border-bottom:1px solid var(--line);
+    display:flex;align-items:center;gap:12px;padding:0 18px;z-index:50}
+  .nav .brand{font-weight:800;letter-spacing:-.02em}
+  .nav .brand span{color:var(--rec)}
+  .nav .title{color:var(--mut);font-size:14px}
+
+  /* diagram flows with the page; wide trees scroll horizontally */
+  .diagram-wrap{overflow-x:auto;background-color:var(--bg);
+    background-image:radial-gradient(#d4d4d8 1.1px, transparent 1.1px);
+    background-size:22px 22px;padding:26px 30px 70px}
+  .canvas{position:relative;margin:0 auto}
+  svg.wires{position:absolute;top:0;left:0;overflow:visible;pointer-events:none}
+  .wire{fill:none;stroke:#a1a1aa;stroke-width:1.6;stroke-dasharray:5 5}
+
+  .node{position:absolute;background:var(--yellow);border:1.6px solid var(--yellow-bd);
+    border-radius:7px;padding:9px 12px;text-align:center;cursor:pointer;user-select:none;
+    box-shadow:0 2px 0 rgba(0,0,0,.16);transition:box-shadow .1s,transform .1s}
+  .node:hover{box-shadow:0 2px 0 rgba(0,0,0,.16),0 0 0 3px rgba(139,92,246,.25)}
+  .node.main{background:var(--yellow-deep);font-weight:800;font-size:15px}
+  .node .n-t{font-weight:600;font-size:13.5px;line-height:1.25}
+  .node.main .n-t{font-weight:800}
+  .node .n-s{font-size:11px;color:#3f3f46;margin-top:2px;font-weight:500;opacity:.85}
+  .node .rec{position:absolute;top:-7px;left:-7px;width:12px;height:12px;border-radius:50%;
+    background:var(--rec);border:2px solid #fff}
+  .node .chk{position:absolute;top:-8px;right:-8px;width:18px;height:18px;border-radius:50%;
+    background:#fff;border:1.6px solid var(--yellow-bd);display:flex;align-items:center;
+    justify-content:center;font-size:11px;color:#fff;font-weight:800}
+  .node.done .chk{background:var(--alt);border-color:var(--alt);color:#fff}
+  .node.done .chk::after{content:"✓"}
+  .callout{position:absolute;background:#fff;border:1.6px solid var(--yellow-bd);border-radius:8px;
+    padding:11px 16px;text-align:center;font-size:13px;font-weight:600;box-shadow:0 2px 0 rgba(0,0,0,.12)}
+
+  /* legend */
+  .legend{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 16px;
+    max-width:720px;margin:18px auto 0;box-shadow:0 4px 14px rgba(0,0,0,.05);
+    display:flex;flex-wrap:wrap;align-items:center;gap:8px 22px}
+  .legend h4{margin:0;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);width:100%}
+  .legend .row{display:flex;align-items:center;gap:8px;font-size:13px;margin:0;color:#3f3f46}
+  .legend .d{width:11px;height:11px;border-radius:50%}
+  .legend .hint{font-size:11.5px;color:var(--mut);width:100%}
+
+  /* layout + left sidebar */
+  .layout{display:flex;align-items:flex-start}
+  .main{flex:1;min-width:0}
+  .side{width:272px;flex:none;position:sticky;top:52px;height:calc(100vh - 52px);overflow:auto;
+    border-right:1px solid var(--line);background:#fcfcfd;padding:14px 12px 40px}
+  body.no-side .side{display:none}
+  .side .search{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;margin-bottom:8px;outline:none}
+  .side .search:focus{border-color:var(--rec)}
+  .side h5{margin:14px 6px 6px;font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);display:flex;align-items:center;gap:6px}
+  .side a.p-item,.side span.p-item{display:flex;align-items:center;justify-content:space-between;gap:8px;
+    font-size:13px;text-decoration:none;color:#3f3f46;padding:6px 9px;border-radius:7px;cursor:pointer}
+  .side a.p-item:hover{background:#f4f4f5}
+  .side .p-item.active{background:#fef9c3;color:#713f12;font-weight:600;border:1px solid #fde047}
+  .side .p-item.soon{color:#b6b6bd;cursor:default}
+  .side .p-item em{font-style:normal;font-size:9.5px;border:1px solid var(--line);border-radius:999px;padding:1px 6px;color:var(--mut);background:#fff}
+  .side .p-item.active em{border-color:#fde047;background:#fffbeb;color:#92400e}
+  .nav .spacer{flex:1}
+  .nav .btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 11px;font-size:13px;cursor:pointer}
+  .nav .btn:hover{background:#f4f4f5}
+  /* when embedded in the PySchool app iframe, the app provides the chrome */
+  body.embedded .nav{display:none}
+  body.embedded .side{top:0;height:100vh}
+  body.embedded .panel{top:0;height:100%}
+
+  /* panel */
+  .panel{position:fixed;top:52px;right:0;height:calc(100% - 52px);width:min(420px,92vw);background:#fff;
+    border-left:1px solid var(--line);box-shadow:-14px 0 40px rgba(0,0,0,.1);z-index:40;
+    transform:translateX(103%);transition:transform .2s ease;display:flex;flex-direction:column}
+  .panel.open{transform:none}
+  .panel .head{padding:16px 20px 14px;border-bottom:1px solid #f1f1f3;display:flex;justify-content:space-between;gap:12px}
+  .panel h2{margin:0 0 6px;font-size:19px;line-height:1.25}
+  .panel .sub{color:var(--mut);font-size:12.5px;margin-bottom:9px}
+  .panel .close{background:none;border:1px solid var(--line);color:var(--mut);border-radius:8px;width:30px;height:30px;cursor:pointer;flex:none}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{font-size:11px;font-weight:600;border-radius:999px;padding:3px 9px;border:1px solid transparent}
+  .chip.cat{background:#eef2ff;color:#3730a3;border-color:#c7d2fe}
+  .chip.level{background:#ecfdf5;color:#065f46;border-color:#a7f3d0}
+  .chip.time{background:#fffbeb;color:#92400e;border-color:#fde68a}
+  .panel .body{padding:16px 20px 40px;overflow:auto}
+  .sec{margin-bottom:18px}
+  .sec h3{margin:0 0 8px;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--rec)}
+  .why{font-size:13.5px;color:#374151;line-height:1.55;margin:0}
+  ul.li{margin:0;padding-left:18px} ul.li li{font-size:13px;color:#374151;margin:3px 0}
+  ul.li.pr li::marker{color:var(--mut)}
+  .can{background:#faf5ff;border:1px solid #e9d5ff;color:#5b21b6;border-radius:9px;padding:11px 13px;font-size:13px}
+  .tags{display:flex;flex-wrap:wrap;gap:6px}
+  .tag{background:#f4f4f5;border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:12px;color:#3f3f46}
+  .res{display:flex;flex-direction:column;gap:6px}
+  .res a{display:flex;align-items:center;gap:8px;font-size:13px;color:#2563eb;text-decoration:none;
+    border:1px solid #e5e7eb;border-radius:8px;padding:8px 11px;background:#fafafa}
+  .res a:hover{background:#f0f6ff;border-color:#bfdbfe}
+  .res a span{color:var(--mut);margin-left:auto;font-size:11px}
+</style>
+</head>
+<body>
+<div class="nav">
+  <div class="brand">Py<span>School</span></div>
+  <div class="title">/ API Building</div>
+  <div class="spacer"></div>
+  <button class="btn" id="sideToggle">☰ All paths</button>
+</div>
+
+<div class="layout">
+<nav class="side" id="side"></nav>
+<div class="main">
+
+<div class="legend">
+  <h4>API Building</h4>
+  <div class="row"><span class="d" style="background:var(--rec)"></span>Recommended</div>
+  <div class="row"><span class="d" style="background:var(--alt)"></span>Alternative option</div>
+  <div class="row"><span class="d" style="background:var(--opt)"></span>Order not strict</div>
+  <div class="hint">Click a topic for details · click the ✓ to mark it done · Ctrl +/− to zoom the whole page</div>
+</div>
+
+<div class="diagram-wrap">
+  <div class="canvas" id="canvas">
+    <svg class="wires" id="wires"></svg>
+  </div>
+</div>
+
+</div>
+</div>
+
+<aside class="panel" id="panel" aria-hidden="true">
+  <div class="head">
+    <div><h2 id="p-title">Select a topic</h2><div class="sub" id="p-sub"></div><div class="chips" id="p-chips"></div></div>
+    <button class="close" id="p-close">✕</button>
+  </div>
+  <div class="body" id="p-body"></div>
+</aside>
+
+<script>
+/* embedded inside the PySchool app? then let the app own the top bar */
+if(window.self!==window.top) document.body.classList.add("embedded");
+/* ------------- content ------------- */
+const SECTIONS = [
+  {main:"Web & HTTP Foundations", rec:true, left:[], right:["HTTP Deep Dive","REST Principles"],
+   callout:"At this point you understand exactly what an API request and response are."},
+  {main:"Your First API", rec:true, left:["Routing & Parameters"], right:["Request & Response Models","Status Codes & Errors"],
+   callout:"At this point you can serve a working API with real endpoints."},
+  {main:"Data & Persistence", left:["Schemas & Validation"], right:["Databases & ORM","Migrations"],
+   callout:"At this point your API stores and validates real data."},
+  {main:"Auth & Security", left:["Authentication (JWT/OAuth)"], right:["Authorisation & Permissions","API Security (OWASP)"],
+   callout:"At this point your API is safe to expose to the internet."},
+  {main:"Design & Documentation", left:["Versioning"], right:["OpenAPI & Docs","Pagination & Filtering"],
+   callout:"At this point other developers can use your API without asking you questions."},
+  {main:"Reliability & Performance", left:["Testing APIs"], right:["Caching & Rate Limiting","Async & Background Jobs"],
+   callout:"At this point your API is fast, tested and hard to knock over."},
+  {main:"Deployment & Operations", left:["Containerisation"], right:["Deployment & Scaling","Monitoring & Observability"],
+   callout:"At this point your API runs in production and tells you when it breaks."}
+];
+const DETAIL = {
+  "Web & HTTP Foundations":{sub:"Start here · weeks 1–2",cat:"HTTP",level:"Beginner",time:"~2 weeks",
+    why:"An API is a contract over HTTP. Knowing methods, status codes, headers and the REST style is what makes your endpoints predictable instead of ad hoc.",
+    learn:["The request/response cycle","HTTP methods, status codes and headers","JSON as the data format","What makes an API 'RESTful'"],
+    tools:["Postman / curl","DevTools"],
+    practice:["Call a public API and read its response headers and codes"],
+    resources:[{t:"MDN: HTTP overview",u:"https://developer.mozilla.org/en-US/docs/Web/HTTP/Overview"},{t:"MDN: REST",u:"https://developer.mozilla.org/en-US/docs/Glossary/REST"}],
+    can:"Reason precisely about API requests and responses."},
+  "HTTP Deep Dive":{cat:"HTTP",level:"Beginner",time:"~1 week",prereq:["None — start here"],
+    why:"Every confusing API bug is usually a header, status code or content-type in disguise.",
+    learn:["Methods and idempotency","Status code families","Content negotiation and headers"],
+    tools:["curl","DevTools"],
+    practice:["Reproduce the same request with curl and with code"],
+    resources:[{t:"MDN: HTTP methods",u:"https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods"}],
+    can:"Debug API traffic at the HTTP level."},
+  "REST Principles":{cat:"HTTP",level:"Beginner",time:"~1 week",prereq:["HTTP Deep Dive"],
+    why:"Resource-oriented design keeps APIs consistent and guessable, which is what makes them pleasant to consume.",
+    learn:["Resources and URIs","Statelessness","Idempotent operations"],
+    tools:["Postman"],
+    practice:["Design resource URLs for a blog API"],
+    resources:[{t:"MDN: REST",u:"https://developer.mozilla.org/en-US/docs/Glossary/REST"}],
+    can:"Design predictable, RESTful endpoints."},
+
+  "Your First API":{sub:"Weeks 2–6",cat:"Build",level:"Beginner",time:"~4 weeks",prereq:["Web & HTTP Foundations"],
+    why:"This is the core skill: define routes, accept input, return structured responses. FastAPI makes the basics fast and gives you validation and docs almost for free.",
+    learn:["Setting up FastAPI / Flask","Path and query parameters","Request bodies and response models","Error handling and status codes","Running a dev server"],
+    tools:["FastAPI","Uvicorn"],
+    practice:["Build a CRUD API for a to-do list","Return proper 201/400/404 codes"],
+    resources:[{t:"FastAPI tutorial",u:"https://fastapi.tiangolo.com/tutorial/"},{t:"Flask quickstart",u:"https://flask.palletsprojects.com/en/stable/quickstart/"}],
+    can:"Build and run a working API with real endpoints."},
+  "Routing & Parameters":{cat:"Build",level:"Beginner",time:"~1 week",prereq:["REST Principles"],
+    why:"Routes and parameters are how clients ask for what they want; getting them clean is most of good API design.",
+    learn:["Path vs query parameters","Nested resources","Dependency injection basics"],
+    tools:["FastAPI"],
+    practice:["Add filtering and nested routes to an existing API"],
+    resources:[{t:"FastAPI: path parameters",u:"https://fastapi.tiangolo.com/tutorial/path-params/"}],
+    can:"Expose flexible, well-shaped endpoints."},
+  "Request & Response Models":{cat:"Build",level:"Beginner",time:"~1 week",prereq:["Routing & Parameters"],
+    why:"Typed models make your API self-documenting and stop malformed data before it reaches your logic.",
+    learn:["Pydantic models","Request body validation","Response shaping and serialisation"],
+    tools:["Pydantic","FastAPI"],
+    practice:["Model an order request and its response with validation"],
+    resources:[{t:"Pydantic documentation",u:"https://docs.pydantic.dev/"}],
+    can:"Validate input and shape output cleanly."},
+  "Status Codes & Errors":{cat:"Build",level:"Beginner",time:"~1 week",prereq:["HTTP Deep Dive"],
+    why:"Correct status codes and consistent error bodies are what let clients handle failures gracefully.",
+    learn:["Choosing the right status code","Consistent error payloads","Handling exceptions"],
+    tools:["FastAPI"],
+    practice:["Standardise error responses across an API"],
+    resources:[{t:"MDN: status codes",u:"https://developer.mozilla.org/en-US/docs/Web/HTTP/Status"}],
+    can:"Return responses clients can actually handle."},
+
+  "Data & Persistence":{sub:"Weeks 5–9",cat:"Data",level:"Intermediate",time:"~4 weeks",prereq:["Your First API"],
+    why:"An API without storage is a toy. Databases, ORMs and migrations are how APIs keep data safe and evolve without breaking.",
+    learn:["Relational data modelling","ORMs and query building","Schema migrations","Transactions and consistency"],
+    tools:["SQLAlchemy","Alembic","PostgreSQL"],
+    practice:["Persist your CRUD API to Postgres with migrations"],
+    resources:[{t:"SQLAlchemy documentation",u:"https://docs.sqlalchemy.org/"},{t:"Alembic tutorial",u:"https://alembic.sqlalchemy.org/en/latest/tutorial.html"}],
+    can:"Store and evolve real data behind your API."},
+  "Schemas & Validation":{cat:"Data",level:"Intermediate",time:"~1 week",prereq:["Request & Response Models"],
+    why:"A clear schema is the contract between your API and its database and clients.",
+    learn:["Separating input and output schemas","Nested validation","Custom validators"],
+    tools:["Pydantic"],
+    practice:["Add nested validation to a complex resource"],
+    resources:[{t:"FastAPI: response models",u:"https://fastapi.tiangolo.com/tutorial/response-model/"}],
+    can:"Keep data shapes strict and predictable."},
+  "Databases & ORM":{cat:"Data",level:"Intermediate",time:"~2 weeks",prereq:["Schemas & Validation"],
+    why:"ORMs map your objects to tables and handle queries safely, including protection from SQL injection.",
+    learn:["Models and relationships","Queries and joins","Sessions and connection pooling"],
+    tools:["SQLAlchemy","PostgreSQL"],
+    practice:["Model one-to-many and many-to-many relationships"],
+    resources:[{t:"SQLAlchemy ORM",u:"https://docs.sqlalchemy.org/en/20/orm/"}],
+    can:"Read and write data safely through an ORM."},
+  "Migrations":{cat:"Data",level:"Intermediate",time:"~1 week",prereq:["Databases & ORM"],
+    why:"Schemas change constantly in real projects; migrations apply those changes without losing data.",
+    learn:["Auto-generating migrations","Applying and rolling back","Data migrations"],
+    tools:["Alembic"],
+    practice:["Add a column via a migration with no downtime"],
+    resources:[{t:"Alembic tutorial",u:"https://alembic.sqlalchemy.org/en/latest/tutorial.html"}],
+    can:"Evolve a database schema safely."},
+
+  "Auth & Security":{sub:"Weeks 8–12",cat:"Security",level:"Advanced",time:"~4 weeks",prereq:["Data & Persistence"],
+    why:"Any public API is attacked. Authentication, authorisation and the OWASP API risks are what keep user data safe — and the easiest place to make a serious mistake.",
+    learn:["Hashing passwords and sessions","JWT and OAuth flows","Roles and permissions","OWASP API Top 10"],
+    tools:["python-jose / passlib"],
+    practice:["Add JWT auth and role checks to your API","Fix a broken object-level authorisation bug"],
+    resources:[{t:"OWASP API Security Top 10",u:"https://owasp.org/API-Security/"}],
+    can:"Expose an API safely to the internet."},
+  "Authentication (JWT/OAuth)":{cat:"Security",level:"Advanced",time:"~2 weeks",prereq:["Status Codes & Errors"],
+    why:"Knowing who is calling is the precondition for every other security decision.",
+    learn:["Password hashing","JWT structure and expiry","OAuth2 flows"],
+    tools:["passlib","python-jose"],
+    practice:["Implement login issuing a JWT and protecting a route"],
+    resources:[{t:"FastAPI: security",u:"https://fastapi.tiangolo.com/tutorial/security/"},{t:"JWT introduction",u:"https://jwt.io/introduction"}],
+    can:"Authenticate users and issue tokens."},
+  "Authorisation & Permissions":{cat:"Security",level:"Advanced",time:"~1 week",prereq:["Authentication (JWT/OAuth)"],
+    why:"Authentication says who you are; authorisation says what you may do — and forgetting it causes the most common API breach.",
+    learn:["Role and scope-based access","Object-level permissions","Deny-by-default design"],
+    tools:["FastAPI dependencies"],
+    practice:["Enforce that users can only access their own records"],
+    resources:[{t:"OWASP: broken object level authorisation",u:"https://owasp.org/API-Security/editions/2023/en/0xa1-broken-object-level-authorization/"}],
+    can:"Control who can do what, object by object."},
+  "API Security (OWASP)":{cat:"Security",level:"Advanced",time:"~1 week",prereq:["Authorisation & Permissions"],
+    why:"A checklist of the most common API failures — and how to avoid each one.",
+    learn:["Injection and unsafe input","Rate abuse and resource exhaustion","CORS, HTTPS and secure headers"],
+    tools:["OWASP ZAP"],
+    practice:["Run the OWASP API checklist against your own API"],
+    resources:[{t:"OWASP API Security Project",u:"https://owasp.org/www-project-api-security/"}],
+    can:"Harden an API against common attacks."},
+
+  "Design & Documentation":{sub:"Weeks 11–15",cat:"Design",level:"Intermediate",time:"~3 weeks",prereq:["Data & Persistence"],
+    why:"Great APIs are designed for their consumers: versioned, documented, paginated and consistent. This is what makes an API usable without support.",
+    learn:["API versioning strategies","OpenAPI/Swagger documentation","Pagination, filtering and sorting","Consistent naming and errors"],
+    tools:["OpenAPI","FastAPI"],
+    practice:["Publish OpenAPI docs for your API and version it"],
+    resources:[{t:"OpenAPI specification",u:"https://swagger.io/specification/"}],
+    can:"Design APIs other developers enjoy using."},
+  "Versioning":{cat:"Design",level:"Intermediate",time:"~1 week",prereq:["Routing & Parameters"],
+    why:"Clients depend on your API; versioning lets you improve it without breaking them.",
+    learn:["URL vs header versioning","Deprecation policy","Backward-compatible changes"],
+    tools:["FastAPI"],
+    practice:["Add a v2 endpoint alongside v1"],
+    resources:[{t:"MDN: API versioning",u:"https://developer.mozilla.org/en-US/docs/Glossary/API"}],
+    can:"Evolve an API without breaking clients."},
+  "OpenAPI & Docs":{cat:"Design",level:"Intermediate",time:"~1 week",prereq:["Request & Response Models"],
+    why:"Automatically generated, accurate documentation massively increases API adoption.",
+    learn:["OpenAPI schema","Interactive docs UI","Documenting auth and errors"],
+    tools:["FastAPI / Swagger UI"],
+    practice:["Enrich your docs with examples and error responses"],
+    resources:[{t:"Swagger / OpenAPI",u:"https://swagger.io/docs/specification/about/"}],
+    can:"Ship docs clients can rely on."},
+  "Pagination & Filtering":{cat:"Design",level:"Intermediate",time:"~1 week",prereq:["Routing & Parameters"],
+    why:"Any list endpoint will eventually return too much data; pagination and filtering are how you keep it usable.",
+    learn:["Limit/offset vs cursor pagination","Filtering and sorting","Total counts and links"],
+    tools:["FastAPI"],
+    practice:["Convert a list endpoint to cursor pagination"],
+    resources:[{t:"FastAPI: query parameters",u:"https://fastapi.tiangolo.com/tutorial/query-params/"}],
+    can:"Serve large collections efficiently."},
+
+  "Reliability & Performance":{sub:"Weeks 14–18",cat:"Reliability",level:"Advanced",time:"~3 weeks",prereq:["Design & Documentation"],
+    why:"An API that is slow or falls over under load is not production-ready. Tests, caching, rate limits and async work are how you keep it standing.",
+    learn:["Testing endpoints","Caching and strategy","Rate limiting","Async and background tasks"],
+    tools:["pytest","Redis","SlowAPI"],
+    practice:["Add tests + caching + rate limiting to your API"],
+    resources:[{t:"FastAPI: testing",u:"https://fastapi.tiangolo.com/tutorial/testing/"}],
+    can:"Make an API fast, tested and resilient."},
+  "Testing APIs":{cat:"Reliability",level:"Advanced",time:"~1 week",prereq:["Data & Persistence"],
+    why:"Automated tests are how you refactor an API without fear and catch regressions before users do.",
+    learn:["Testing client and fixtures","Testing auth and errors","Database test isolation"],
+    tools:["pytest","httpx"],
+    practice:["Write tests covering happy path and every error code"],
+    resources:[{t:"FastAPI: testing",u:"https://fastapi.tiangolo.com/tutorial/testing/"}],
+    can:"Prove your API behaves as intended."},
+  "Caching & Rate Limiting":{cat:"Reliability",level:"Advanced",time:"~1 week",prereq:["Pagination & Filtering"],
+    why:"Caching saves work and rate limiting protects both your API and your users from abuse.",
+    learn:["Cache headers and Redis","Cache invalidation","Rate limiting per client"],
+    tools:["Redis","SlowAPI"],
+    practice:["Cache an expensive endpoint and add a per-user rate limit"],
+    resources:[{t:"Redis documentation",u:"https://redis.io/docs/latest/"}],
+    can:"Keep an API fast and abuse-resistant."},
+  "Async & Background Jobs":{cat:"Reliability",level:"Advanced",time:"~1 week",prereq:["Databases & ORM"],
+    why:"Long tasks should not block a response. Async handlers and background queues are how real APIs stay responsive.",
+    learn:["async / await in the framework","Background tasks","Task queues (Celery/RQ)"],
+    tools:["asyncio","Celery"],
+    practice:["Move a slow task (email/report) to a background worker"],
+    resources:[{t:"Python: asyncio",u:"https://docs.python.org/3/library/asyncio.html"},{t:"Celery documentation",u:"https://docs.celeryq.dev/en/stable/"}],
+    can:"Handle slow work without blocking requests."},
+
+  "Deployment & Operations":{sub:"Weeks 17–20",cat:"Ops",level:"Advanced",time:"~3 weeks",prereq:["Reliability & Performance"],
+    why:"An API only matters when it is running for real users. Deploying, scaling and monitoring it are the last mile of the job.",
+    learn:["Containerising the app","Deploying behind a proxy","Scaling and load balancing","Logging, metrics and tracing"],
+    tools:["Docker","Nginx","Prometheus / Grafana"],
+    practice:["Deploy your API in a container and add health checks + metrics"],
+    resources:[{t:"Docker: get started",u:"https://docs.docker.com/get-started/"},{t:"OpenTelemetry docs",u:"https://opentelemetry.io/docs/"}],
+    can:"Run an API in production and keep it healthy."},
+  "Containerisation":{cat:"Ops",level:"Advanced",time:"~1 week",prereq:["Data & Persistence"],
+    why:"Containers make your API run identically everywhere, which removes an entire class of deployment bugs.",
+    learn:["Writing a Dockerfile","Compose for API + DB","Environment configuration"],
+    tools:["Docker","docker compose"],
+    practice:["Containerise your API and its database together"],
+    resources:[{t:"Docker: get started",u:"https://docs.docker.com/get-started/"}],
+    can:"Package an API to run anywhere."},
+  "Deployment & Scaling":{cat:"Ops",level:"Advanced",time:"~1 week",prereq:["Containerisation"],
+    why:"Getting an API online, and keeping it up as traffic grows, is core operational skill.",
+    learn:["Reverse proxies and gunicorn/uvicorn","Zero-downtime deploys","Horizontal scaling"],
+    tools:["Nginx","Gunicorn","Kubernetes"],
+    practice:["Deploy behind a proxy and scale to two instances"],
+    resources:[{t:"FastAPI: deployment",u:"https://fastapi.tiangolo.com/deployment/"}],
+    can:"Deploy and scale an API."},
+  "Monitoring & Observability":{cat:"Ops",level:"Advanced",time:"~1 week",prereq:["Deployment & Scaling"],
+    why:"You cannot fix what you cannot see. Logs, metrics and traces are how you notice and diagnose production problems.",
+    learn:["Structured logging","Metrics and dashboards","Health checks and alerting"],
+    tools:["Prometheus","Grafana"],
+    practice:["Add metrics and an alert for error-rate spikes"],
+    resources:[{t:"Prometheus: getting started",u:"https://prometheus.io/docs/introduction/overview/"}],
+    can:"Observe and operate an API in production."}
+};
+
+
+
+/* all learning paths (from catalog), grouped by depth */
+const PATH_CATS = [
+  {icon:"\ud83c\udf0a",label:"Surface",items:[["Web Development","web-dev"],["Data Science / Analysis","data-science"],["Automation / Scripting","automation"],["Machine Learning","machine-learning"],["Web Scraping","web-scraping"],["Game Development","game-dev"],["GUI Applications","gui-apps"],["API Building","api-building"],["Chatbots","chatbots"],["Excel Automation","excel-automation"]]},
+  {icon:"\ud83c\udf0a",label:"Below Surface",items:[["Deep Learning","deep-learning"],["Computer Vision","computer-vision"],["NLP (Natural Language Processing)","nlp"],["Data Visualization","data-viz"],["Cloud Computing","cloud-computing"],["DevOps Scripting","devops-scripting"],["Testing / QA Automation","testing-qa"],["Database Operations","database-ops"],["ETL Pipelines","etl-pipelines"],["Recommendation Systems","recommendation-systems"]]},
+  {icon:"\ud83c\udf0a",label:"Mid-Level",items:[["Reinforcement Learning","reinforcement-learning"],["Generative AI / LLM Fine-tuning","genai-finetuning"],["Time Series Forecasting","time-series"],["Computer Graphics / Animation","cgi-animation"],["Cybersecurity / Pentesting","cybersecurity"],["Network Programming","network-programming"],["Cryptography Implementation","cryptography"],["Blockchain Scripting","blockchain"],["IoT Programming","iot"],["Robotics","robotics"],["Drone Programming","drones"],["Audio Processing","audio-processing"],["Video Processing","video-processing"],["Image Generation","image-generation"],["Speech Recognition / Synthesis","speech"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a",label:"Scientific",items:[["Bioinformatics","bioinformatics"],["Computational Chemistry","comp-chemistry"],["Physics Simulations","physics-sims"],["Astronomy Data","astronomy"],["Geospatial / GIS","gis"],["Climate Modeling","climate-modeling"],["Quantum Computing","quantum-computing"],["Numerical Methods","numerical-methods"],["Finite Element Analysis","fea"],["Fluid Dynamics Simulation","fluid-dynamics"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a",label:"Finance",items:[["Algorithmic Trading","algo-trading"],["Quantitative Finance","quant-finance"],["Risk Modeling","risk-modeling"],["Fraud Detection Systems","fraud-detection"],["Credit Scoring Models","credit-scoring"],["Portfolio Optimization","portfolio-optimization"],["Crypto Trading Bots","crypto-bots"],["Financial Data Pipelines","financial-pipelines"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a",label:"Infra",items:[["Distributed Systems","distributed-systems"],["Microservices Architecture","microservices"],["Container Orchestration","container-orchestration"],["Message Queues","message-queues"],["Load Testing","load-testing"],["Monitoring / Observability","monitoring"],["CI/CD Pipeline Scripting","cicd"],["Package / Library Development","package-dev"],["Compiler / Interpreter Building","compiler-building"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a",label:"AI Frontier",items:[["Multi-Agent Systems","multi-agent"],["AI Agents with Tool-Use","ai-agents"],["RAG Systems","rag"],["Vector Databases","vector-db"],["Fine-tuning LLMs","llm-finetuning"],["Model Quantization / Optimization","quantization"],["MLOps","mlops"],["Federated Learning","federated-learning"],["Explainable AI","xai"],["Synthetic Data Generation","synthetic-data"],["AI Safety / Alignment","ai-safety"],["Prompt Engineering Frameworks","prompt-eng"],["Voice Cloning / Synthesis","voice-cloning"],["Emotion Detection","emotion-detection"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a\ud83c\udf0a",label:"Research",items:[["Genomics / DNA Analysis","genomics"],["Drug Discovery","drug-discovery"],["Neuroscience Data Analysis","neuroscience"],["Medical Imaging","medical-imaging"],["Epidemiology Modeling","epidemiology"],["Materials Science Simulation","materials-science"],["Weather Prediction Models","weather-prediction"],["Autonomous Vehicle Perception","autonomous-driving"],["SLAM / Localization","slam"],["Satellite Image Analysis","satellite-imagery"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a\ud83c\udf0a",label:"Abyss",items:[["Python C-Extensions","c-extensions"],["Build Your Own ML Framework","own-ml-framework"],["GPU Programming","gpu-programming"],["Parallel / Distributed Computing","parallel-computing"],["OS Scripting / Tooling","os-tooling"],["Malware Analysis / Reverse Engineering","malware-analysis"],["Digital Forensics Tooling","forensics"],["Embedded Systems Firmware","embedded-firmware"],["Simulation Engines","simulation-engines"],["Build Your Own Database Engine","own-db-engine"],["Build Your Own Web Framework","own-web-framework"],["Search Engine Building","search-engine"],["Programming Language / DSL","own-language"]]},
+  {icon:"\ud83e\udd16",label:"Frontier",items:[["Python for AI Research","agi-research"]]},
+];
+
+/* ------------- layout ------------- */
+const MAIN_W=196, MAIN_H=52, CH_W=182, CH_H=42, COL=290, YGAP=54, SECGAP=78;
+const nodes=[]; // {title, x,y,w,h,kind,detail}
+let y=0;
+const sectionYs=[];
+SECTIONS.forEach(sec=>{
+  const k=Math.max(sec.left.length, sec.right.length, 1);
+  const spread=(k-1)*YGAP;
+  const secH=Math.max(MAIN_H, spread);
+  const cy=y+secH/2;
+  nodes.push({title:sec.main,x:-MAIN_W/2,y:cy-MAIN_H/2,w:MAIN_W,h:MAIN_H,kind:"main",rec:!!sec.rec});
+  const place=(list,side,dx)=>{ list.forEach((t,i)=>{
+    const cxX = side==="right" ? dx : -dx-CH_W;
+    const cyy = cy - spread/2 + (i*YGAP) + (k-1-list.length)*0; // stack from top-ish
+    const yy = cy - ((list.length-1)*YGAP)/2 + i*YGAP;
+    nodes.push({title:t,x:cxX,y:yy-CH_H/2,w:CH_W,h:CH_H,kind:"child",side});
+  });};
+  place(sec.right,"right",COL);
+  place(sec.left,"left",COL);
+  y += secH + SECGAP;
+  sectionYs.push({main:sec.main, end:y-SECGAP, callout:sec.callout});
+});
+
+/* bounds */
+let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+nodes.forEach(n=>{minX=Math.min(minX,n.x);maxX=Math.max(maxX,n.x+n.w);minY=Math.min(minY,n.y);maxY=Math.max(maxY,n.y+n.h);});
+const PAD=60, W=(maxX-minX)+PAD*2, H=(maxY-minY)+PAD*2;
+const OX=-minX+PAD, OY=-minY+PAD;
+
+const canvas=document.getElementById("canvas");
+canvas.style.width=W+"px"; canvas.style.height=H+"px";
+const svg=document.getElementById("wires");
+svg.setAttribute("width",W); svg.setAttribute("height",H);
+
+function elbow(x1,y1,x2,y2){
+  const mx=(x1+x2)/2;
+  return `M ${x1} ${y1} H ${mx} V ${y2} H ${x2}`;
+}
+
+/* draw nodes + wires */
+const byTitle={};
+nodes.forEach(n=>{ byTitle[n.title]=n; });
+nodes.forEach(n=>{
+  const d=document.createElement("div");
+  d.className="node "+(n.kind==="main"?"main":"child");
+  d.style.left=(n.x+OX)+"px"; d.style.top=(n.y+OY)+"px";
+  d.style.width=n.w+"px";
+  d.innerHTML='<div class="n-t">'+n.title+'</div>'+(DETAIL[n.title]&&DETAIL[n.title].sub?'<div class="n-s">'+DETAIL[n.title].sub+'</div>':'');
+  if(n.rec) d.insertAdjacentHTML("afterbegin",'<span class="rec"></span>');
+  d.insertAdjacentHTML("beforeend",'<span class="chk"></span>');
+  canvas.appendChild(d);
+  n._el=d;
+  // wire from main to children
+});
+SECTIONS.forEach(sec=>{
+  const m=byTitle[sec.main];
+  [...sec.right].forEach(t=>{const c=byTitle[t]; if(c) addWire(m.x+m.w,m.y+m.h/2,c.x,c.y+c.h/2);});
+  [...sec.left].forEach(t=>{const c=byTitle[t]; if(c) addWire(m.x,m.y+m.h/2,c.x+c.w,c.y+c.h/2);});
+});
+// vertical spine connectors between main nodes
+for(let i=0;i<SECTIONS.length-1;i++){
+  const a=byTitle[SECTIONS[i].main], b=byTitle[SECTIONS[i+1].main];
+  addWire(a.x+a.w/2,a.y+a.h,b.x+b.w/2,b.y);
+}
+function addWire(x1,y1,x2,y2){
+  const p=document.createElementNS("http://www.w3.org/2000/svg","path");
+  p.setAttribute("d",elbow(x1+OX,y1+OY,x2+OX,y2+OY));
+  p.setAttribute("class","wire");
+  svg.appendChild(p);
+}
+// callouts
+sectionYs.forEach(s=>{ if(!s.callout) return; const sec=SECTIONS.find(x=>x.main===s.main); const k=Math.max(sec.left.length,sec.right.length,1);
+  const co=document.createElement("div"); co.className="callout"; co.textContent=s.callout;
+  const cw=380; co.style.width=cw+"px";
+  const cnode=byTitle[s.main];
+  co.style.left=(-cw/2+OX)+"px"; co.style.top=(s.end+OY+6)+"px";
+  canvas.appendChild(co);
+});
+
+/* click + check + panel */
+document.querySelectorAll(".node").forEach(el=>{
+  const title=el.querySelector(".n-t").textContent;
+  el.addEventListener("click",(e)=>{
+    if(e.target.classList.contains("chk")){ el.classList.toggle("done"); return; }
+    openPanel(title);
+    document.querySelectorAll(".node").forEach(o=>o.style.outline="");
+    el.style.outline="3px solid rgba(139,92,246,.5)";
+  });
+  if(localStorage.getItem("rm:"+title)==="1") el.classList.add("done");
+  el.addEventListener("click",e=>{ if(e.target.classList.contains("chk")){ localStorage.setItem("rm:"+title, el.classList.contains("done")?"1":"0"); }});
+});
+
+function openPanel(title){
+  const d=DETAIL[title]||{};
+  document.getElementById("p-title").textContent=title;
+  document.getElementById("p-sub").textContent=d.sub||"Topic";
+  const chips=document.getElementById("p-chips"); chips.innerHTML="";
+  [["cat",d.cat],["level",d.level],["time",d.time]].forEach(([k,v])=>{
+    if(!v) return; const c=document.createElement("span"); c.className="chip "+k; c.textContent=v; chips.appendChild(c);
+  });
+  const b=document.getElementById("p-body"); b.innerHTML="";
+  const sec=(h,node)=>{const s=document.createElement("div");s.className="sec";const t=document.createElement("h3");t.textContent=h;s.appendChild(t);s.appendChild(node);b.appendChild(s);};
+  const list=(arr,cls)=>{const ul=document.createElement("ul");ul.className="li "+(cls||"");arr.forEach(x=>{const li=document.createElement("li");li.textContent=x;ul.appendChild(li);});return ul;};
+  const pEl=document.createElement("p");
+  if(d.why){pEl.className="why";pEl.textContent=d.why;sec("Overview",pEl.cloneNode(true));}
+  if(d.prereq) sec("Prerequisites",list(d.prereq,"pr"));
+  if(d.learn) sec("What you'll learn",list(d.learn));
+  if(d.tools){const t=document.createElement("div");t.className="tags";d.tools.forEach(x=>{const sp=document.createElement("span");sp.className="tag";sp.textContent=x;t.appendChild(sp);});sec("Tools & technologies",t);}
+  if(d.practice) sec("Hands-on practice",list(d.practice));
+  if(d.resources){const r=document.createElement("div");r.className="res";d.resources.forEach(x=>{
+    const a=document.createElement("a");a.href=x.u;a.target="_blank";a.rel="noopener";
+    a.innerHTML=x.t+'<span>↗</span>';r.appendChild(a);});sec("Resources",r);}
+  if(d.can){const c=document.createElement("div");c.className="can";c.textContent=d.can;sec("What you can do afterwards",c);}
+  const p=document.getElementById("panel");p.classList.add("open");p.setAttribute("aria-hidden","false");
+}
+document.getElementById("p-close").addEventListener("click",()=>{
+  const p=document.getElementById("panel");p.classList.remove("open");p.setAttribute("aria-hidden","true");});
+
+/* ------------- left sidebar: all learning paths ------------- */
+const CURRENT_SLUG="api-building";
+const BUILT=new Set(["agi-research", "ai-agents", "ai-safety", "algo-trading", "api-building", "astronomy", "audio-processing", "automation", "autonomous-driving", "bioinformatics", "blockchain", "c-extensions", "cgi-animation", "chatbots", "cicd", "climate-modeling", "cloud-computing", "comp-chemistry", "compiler-building", "computer-vision", "container-orchestration", "credit-scoring", "crypto-bots", "cryptography", "cybersecurity", "data-science", "data-viz", "database-ops", "deep-learning", "devops-scripting", "distributed-systems", "drones", "drug-discovery", "embedded-firmware", "emotion-detection", "epidemiology", "etl-pipelines", "excel-automation", "fea", "federated-learning", "financial-pipelines", "fluid-dynamics", "forensics", "fraud-detection", "game-dev", "genai-finetuning", "genomics", "gis", "gpu-programming", "gui-apps", "image-generation", "iot", "llm-finetuning", "load-testing", "machine-learning", "malware-analysis", "materials-science", "medical-imaging", "message-queues", "microservices", "mlops", "monitoring", "multi-agent", "network-programming", "neuroscience", "nlp", "numerical-methods", "os-tooling", "own-db-engine", "own-language", "own-ml-framework", "own-web-framework", "package-dev", "parallel-computing", "physics-sims", "portfolio-optimization", "prompt-eng", "quant-finance", "quantization", "quantum-computing", "rag", "recommendation-systems", "reinforcement-learning", "risk-modeling", "robotics", "satellite-imagery", "search-engine", "simulation-engines", "slam", "speech", "synthetic-data", "testing-qa", "time-series", "vector-db", "video-processing", "voice-cloning", "weather-prediction", "web-dev", "web-scraping", "xai"]);
+const side=document.getElementById("side");
+const sidebarItems=[];
+{
+  const inp=document.createElement("input"); inp.className="search"; inp.placeholder="Search 100 paths…";
+  side.appendChild(inp);
+  PATH_CATS.forEach(cat=>{
+    const hd=document.createElement("h5"); hd.innerHTML=cat.icon+" "+cat.label; side.appendChild(hd);
+    cat.items.forEach(([name,slug])=>{
+      const isCur=slug===CURRENT_SLUG, built=BUILT.has(slug), navigable=built&&!isCur;
+      const el=document.createElement(navigable?"a":"span");
+      el.className="p-item"+(isCur?" active":built?"":" soon");
+      if(navigable) el.href="./"+slug+"-roadmap.html";
+      const nm=document.createElement("span"); nm.textContent=name;
+      const bd=document.createElement("em"); bd.textContent=isCur?"now":built?"open":"soon";
+      el.appendChild(nm); el.appendChild(bd);
+      el.dataset.q=(name+" "+slug).toLowerCase();
+      el.dataset.cat=cat.label;
+      side.appendChild(el); sidebarItems.push(el);
+    });
+  });
+  inp.addEventListener("input",()=>{
+    const q=inp.value.trim().toLowerCase();
+    sidebarItems.forEach(el=>{ el.style.display = !q || el.dataset.q.includes(q) ? "" : "none"; });
+    side.querySelectorAll("h5").forEach(hd=>{
+      let any=false, n=hd.nextElementSibling;
+      while(n && n.tagName!=="H5"){ if(n.style.display!=="none") any=true; n=n.nextElementSibling; }
+      hd.style.display=any?"":"none";
+    });
+  });
+}
+document.getElementById("sideToggle").addEventListener("click",()=>document.body.classList.toggle("no-side"));
+</script>
+</body>
+</html>

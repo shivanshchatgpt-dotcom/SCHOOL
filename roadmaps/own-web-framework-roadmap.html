@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Build Your Own Web Framework — Roadmap</title>
+<style>
+  :root{
+    --bg:#fafafa; --ink:#18181b; --mut:#71717a; --line:#e4e4e7;
+    --yellow:#fde047; --yellow-bd:#52525b; --yellow-deep:#facc15;
+    --rec:#8b5cf6; --alt:#22c55e; --opt:#a1a1aa;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%;color:var(--ink);
+    font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  /* top nav */
+  .nav{position:sticky;top:0;height:52px;background:#fff;border-bottom:1px solid var(--line);
+    display:flex;align-items:center;gap:12px;padding:0 18px;z-index:50}
+  .nav .brand{font-weight:800;letter-spacing:-.02em}
+  .nav .brand span{color:var(--rec)}
+  .nav .title{color:var(--mut);font-size:14px}
+
+  /* diagram flows with the page; wide trees scroll horizontally */
+  .diagram-wrap{overflow-x:auto;background-color:var(--bg);
+    background-image:radial-gradient(#d4d4d8 1.1px, transparent 1.1px);
+    background-size:22px 22px;padding:26px 30px 70px}
+  .canvas{position:relative;margin:0 auto}
+  svg.wires{position:absolute;top:0;left:0;overflow:visible;pointer-events:none}
+  .wire{fill:none;stroke:#a1a1aa;stroke-width:1.6;stroke-dasharray:5 5}
+
+  .node{position:absolute;background:var(--yellow);border:1.6px solid var(--yellow-bd);
+    border-radius:7px;padding:9px 12px;text-align:center;cursor:pointer;user-select:none;
+    box-shadow:0 2px 0 rgba(0,0,0,.16);transition:box-shadow .1s,transform .1s}
+  .node:hover{box-shadow:0 2px 0 rgba(0,0,0,.16),0 0 0 3px rgba(139,92,246,.25)}
+  .node.main{background:var(--yellow-deep);font-weight:800;font-size:15px}
+  .node .n-t{font-weight:600;font-size:13.5px;line-height:1.25}
+  .node.main .n-t{font-weight:800}
+  .node .n-s{font-size:11px;color:#3f3f46;margin-top:2px;font-weight:500;opacity:.85}
+  .node .rec{position:absolute;top:-7px;left:-7px;width:12px;height:12px;border-radius:50%;
+    background:var(--rec);border:2px solid #fff}
+  .node .chk{position:absolute;top:-8px;right:-8px;width:18px;height:18px;border-radius:50%;
+    background:#fff;border:1.6px solid var(--yellow-bd);display:flex;align-items:center;
+    justify-content:center;font-size:11px;color:#fff;font-weight:800}
+  .node.done .chk{background:var(--alt);border-color:var(--alt);color:#fff}
+  .node.done .chk::after{content:"✓"}
+  .callout{position:absolute;background:#fff;border:1.6px solid var(--yellow-bd);border-radius:8px;
+    padding:11px 16px;text-align:center;font-size:13px;font-weight:600;box-shadow:0 2px 0 rgba(0,0,0,.12)}
+
+  /* legend */
+  .legend{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 16px;
+    max-width:720px;margin:18px auto 0;box-shadow:0 4px 14px rgba(0,0,0,.05);
+    display:flex;flex-wrap:wrap;align-items:center;gap:8px 22px}
+  .legend h4{margin:0;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);width:100%}
+  .legend .row{display:flex;align-items:center;gap:8px;font-size:13px;margin:0;color:#3f3f46}
+  .legend .d{width:11px;height:11px;border-radius:50%}
+  .legend .hint{font-size:11.5px;color:var(--mut);width:100%}
+
+  /* layout + left sidebar */
+  .layout{display:flex;align-items:flex-start}
+  .main{flex:1;min-width:0}
+  .side{width:272px;flex:none;position:sticky;top:52px;height:calc(100vh - 52px);overflow:auto;
+    border-right:1px solid var(--line);background:#fcfcfd;padding:14px 12px 40px}
+  body.no-side .side{display:none}
+  .side .search{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;margin-bottom:8px;outline:none}
+  .side .search:focus{border-color:var(--rec)}
+  .side h5{margin:14px 6px 6px;font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);display:flex;align-items:center;gap:6px}
+  .side a.p-item,.side span.p-item{display:flex;align-items:center;justify-content:space-between;gap:8px;
+    font-size:13px;text-decoration:none;color:#3f3f46;padding:6px 9px;border-radius:7px;cursor:pointer}
+  .side a.p-item:hover{background:#f4f4f5}
+  .side .p-item.active{background:#fef9c3;color:#713f12;font-weight:600;border:1px solid #fde047}
+  .side .p-item.soon{color:#b6b6bd;cursor:default}
+  .side .p-item em{font-style:normal;font-size:9.5px;border:1px solid var(--line);border-radius:999px;padding:1px 6px;color:var(--mut);background:#fff}
+  .side .p-item.active em{border-color:#fde047;background:#fffbeb;color:#92400e}
+  .nav .spacer{flex:1}
+  .nav .btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 11px;font-size:13px;cursor:pointer}
+  .nav .btn:hover{background:#f4f4f5}
+  /* when embedded in the PySchool app iframe, the app provides the chrome */
+  body.embedded .nav{display:none}
+  body.embedded .side{top:0;height:100vh}
+  body.embedded .panel{top:0;height:100%}
+
+  /* panel */
+  .panel{position:fixed;top:52px;right:0;height:calc(100% - 52px);width:min(420px,92vw);background:#fff;
+    border-left:1px solid var(--line);box-shadow:-14px 0 40px rgba(0,0,0,.1);z-index:40;
+    transform:translateX(103%);transition:transform .2s ease;display:flex;flex-direction:column}
+  .panel.open{transform:none}
+  .panel .head{padding:16px 20px 14px;border-bottom:1px solid #f1f1f3;display:flex;justify-content:space-between;gap:12px}
+  .panel h2{margin:0 0 6px;font-size:19px;line-height:1.25}
+  .panel .sub{color:var(--mut);font-size:12.5px;margin-bottom:9px}
+  .panel .close{background:none;border:1px solid var(--line);color:var(--mut);border-radius:8px;width:30px;height:30px;cursor:pointer;flex:none}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{font-size:11px;font-weight:600;border-radius:999px;padding:3px 9px;border:1px solid transparent}
+  .chip.cat{background:#eef2ff;color:#3730a3;border-color:#c7d2fe}
+  .chip.level{background:#ecfdf5;color:#065f46;border-color:#a7f3d0}
+  .chip.time{background:#fffbeb;color:#92400e;border-color:#fde68a}
+  .panel .body{padding:16px 20px 40px;overflow:auto}
+  .sec{margin-bottom:18px}
+  .sec h3{margin:0 0 8px;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--rec)}
+  .why{font-size:13.5px;color:#374151;line-height:1.55;margin:0}
+  ul.li{margin:0;padding-left:18px} ul.li li{font-size:13px;color:#374151;margin:3px 0}
+  ul.li.pr li::marker{color:var(--mut)}
+  .can{background:#faf5ff;border:1px solid #e9d5ff;color:#5b21b6;border-radius:9px;padding:11px 13px;font-size:13px}
+  .tags{display:flex;flex-wrap:wrap;gap:6px}
+  .tag{background:#f4f4f5;border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:12px;color:#3f3f46}
+  .res{display:flex;flex-direction:column;gap:6px}
+  .res a{display:flex;align-items:center;gap:8px;font-size:13px;color:#2563eb;text-decoration:none;
+    border:1px solid #e5e7eb;border-radius:8px;padding:8px 11px;background:#fafafa}
+  .res a:hover{background:#f0f6ff;border-color:#bfdbfe}
+  .res a span{color:var(--mut);margin-left:auto;font-size:11px}
+</style>
+</head>
+<body>
+<div class="nav">
+  <div class="brand">Py<span>School</span></div>
+  <div class="title">/ Build Your Own Web Framework</div>
+  <div class="spacer"></div>
+  <button class="btn" id="sideToggle">☰ All paths</button>
+</div>
+
+<div class="layout">
+<nav class="side" id="side"></nav>
+<div class="main">
+
+<div class="legend">
+  <h4>Build Your Own Web Framework</h4>
+  <div class="row"><span class="d" style="background:var(--rec)"></span>Recommended</div>
+  <div class="row"><span class="d" style="background:var(--alt)"></span>Alternative option</div>
+  <div class="row"><span class="d" style="background:var(--opt)"></span>Order not strict</div>
+  <div class="hint">Click a topic for details · click the ✓ to mark it done · Ctrl +/− to zoom the whole page</div>
+</div>
+
+<div class="diagram-wrap">
+  <div class="canvas" id="canvas">
+    <svg class="wires" id="wires"></svg>
+  </div>
+</div>
+
+</div>
+</div>
+
+<aside class="panel" id="panel" aria-hidden="true">
+  <div class="head">
+    <div><h2 id="p-title">Select a topic</h2><div class="sub" id="p-sub"></div><div class="chips" id="p-chips"></div></div>
+    <button class="close" id="p-close">✕</button>
+  </div>
+  <div class="body" id="p-body"></div>
+</aside>
+
+<script>
+/* embedded inside the PySchool app? then let the app own the top bar */
+if(window.self!==window.top) document.body.classList.add("embedded");
+/* ------------- content ------------- */
+const SECTIONS = [
+  {main:"Framework Foundations", rec:true, left:[], right:["Web Frameworks","HTTP Basics"],
+   callout:"At this point you understand web frameworks."},
+  {main:"Routing & Requests", rec:true, left:["Routing"], right:["Request Handling","Middleware"],
+   callout:"At this point you can route and handle requests."},
+  {main:"Templating & Responses", left:["Templating"], right:["Response Handling","Serialization"],
+   callout:"At this point you can render and respond."},
+  {main:"Data & Auth", left:["Database Layer"], right:["Authentication","Sessions"],
+   callout:"At this point you can persist and authenticate."},
+  {main:"Framework Ergonomics", left:["Dependency Injection"], right:["Error Handling","CLI & Tooling"],
+   callout:"At this point you can make a pleasant framework."},
+  {main:"Performance & Testing", left:["Performance"], right:["Testing","Security"],
+   callout:"At this point you can make it fast and safe."},
+  {main:"Practice & Careers", left:["Framework Projects"], right:["Deployment","Career Paths"],
+   callout:"At this point you can ship a web framework."}
+];
+const DETAIL = {
+  "Framework Foundations":{sub:"Start here · weeks 1–3",cat:"Foundations",level:"Expert",time:"~3 weeks",
+    why:"Building a web framework teaches how HTTP servers and apps fit together.",
+    learn:["Web frameworks","HTTP basics","Architecture"],
+    tools:["Python","Go"],
+    practice:["Design a framework architecture"],
+    resources:[{t:"MDN HTTP",u:"https://developer.mozilla.org/docs/Web/HTTP"}],
+    can:"Understand web frameworks."},
+  "Web Frameworks":{cat:"Foundations",level:"Advanced",time:"~1–2 weeks",prereq:["None — start here"],
+    why:"Frameworks structure routing, requests and responses for web apps.",
+    learn:["Framework role","WSGI and ASGI","Patterns"],
+    tools:["Python"],
+    practice:["Compare frameworks"],
+    resources:[{t:"MDN HTTP",u:"https://developer.mozilla.org/docs/Web/HTTP"}],
+    can:"Understand framework roles."},
+  "HTTP Basics":{cat:"Foundations",level:"Advanced",time:"~1 week",prereq:["Web Frameworks"],
+    why:"Requests, responses, methods and headers are the protocol you serve.",
+    learn:["Requests and responses","Methods and status","Headers and cookies"],
+    tools:["Python"],
+    practice:["Parse an HTTP request"],
+    resources:[{t:"MDN HTTP",u:"https://developer.mozilla.org/docs/Web/HTTP"}],
+    can:"Understand HTTP."},
+
+  "Routing & Requests":{sub:"Weeks 3–6",cat:"Routing",level:"Expert",time:"~3 weeks",prereq:["Framework Foundations"],
+    why:"Routing, request parsing and middleware are the request pipeline.",
+    learn:["Routing","Request handling","Middleware"],
+    tools:["Python"],
+    practice:["Build a request pipeline"],
+    resources:[{t:"MDN HTTP",u:"https://developer.mozilla.org/docs/Web/HTTP"}],
+    can:"Route requests."},
+  "Routing":{cat:"Routing",level:"Expert",time:"~1–2 weeks",prereq:["HTTP Basics"],
+    why:"Matching paths and methods to handlers is the framework core.",
+    learn:["Path matching","Parameters","Method dispatch"],
+    tools:["Python"],
+    practice:["Implement a router"],
+    resources:[{t:"MDN HTTP",u:"https://developer.mozilla.org/docs/Web/HTTP"}],
+    can:"Implement routing."},
+  "Request Handling":{cat:"Routing",level:"Expert",time:"~1 week",prereq:["Routing"],
+    why:"Parsing bodies, query strings and files feeds handlers.",
+    learn:["Body parsing","Query strings","File uploads"],
+    tools:["Python"],
+    practice:["Parse request data"],
+    resources:[{t:"MDN HTTP",u:"https://developer.mozilla.org/docs/Web/HTTP"}],
+    can:"Handle requests."},
+  "Middleware":{cat:"Routing",level:"Expert",time:"~1 week",prereq:["Routing"],
+    why:"Middleware chains handle cross-cutting concerns.",
+    learn:["Middleware chain","Composition","Cross-cutting"],
+    tools:["Python"],
+    practice:["Implement middleware"],
+    resources:[{t:"MDN HTTP",u:"https://developer.mozilla.org/docs/Web/HTTP"}],
+    can:"Use middleware."},
+
+  "Templating & Responses":{sub:"Weeks 5–9",cat:"Templating",level:"Expert",time:"~4 weeks",prereq:["Routing & Requests"],
+    why:"Rendering HTML and shaping responses complete the request cycle.",
+    learn:["Templating","Response handling","Serialization"],
+    tools:["Jinja2"],
+    practice:["Render a template"],
+    resources:[{t:"Jinja docs",u:"https://jinja.palletsprojects.com/"}],
+    can:"Render and respond."},
+  "Templating":{cat:"Templating",level:"Expert",time:"~1–2 weeks",prereq:["Middleware"],
+    why:"A template engine turns data into HTML safely.",
+    learn:["Template syntax","Escaping","Inheritance"],
+    tools:["Jinja2"],
+    practice:["Implement a template engine"],
+    resources:[{t:"Jinja docs",u:"https://jinja.palletsprojects.com/"}],
+    can:"Build templating."},
+  "Response Handling":{cat:"Templating",level:"Expert",time:"~1 week",prereq:["Templating"],
+    why:"Status codes, headers and streaming shape responses.",
+    learn:["Status codes","Headers","Streaming"],
+    tools:["Python"],
+    practice:["Build responses"],
+    resources:[{t:"MDN HTTP",u:"https://developer.mozilla.org/docs/Web/HTTP"}],
+    can:"Handle responses."},
+  "Serialization":{cat:"Templating",level:"Expert",time:"~1 week",prereq:["Templating"],
+    why:"JSON and content negotiation serve APIs alongside HTML.",
+    learn:["JSON serialization","Content negotiation","APIs"],
+    tools:["Python"],
+    practice:["Serialize a response"],
+    resources:[{t:"MDN HTTP",u:"https://developer.mozilla.org/docs/Web/HTTP"}],
+    can:"Serialize data."},
+
+  "Data & Auth":{sub:"Weeks 8–12",cat:"Data",level:"Expert",time:"~4 weeks",prereq:["Templating & Responses"],
+    why:"Persistence, authentication and sessions make real applications.",
+    learn:["Database layer","Authentication","Sessions"],
+    tools:["SQLAlchemy"],
+    practice:["Add auth to an app"],
+    resources:[{t:"OWASP",u:"https://owasp.org/"}],
+    can:"Persist and authenticate."},
+  "Database Layer":{cat:"Data",level:"Expert",time:"~1–2 weeks",prereq:["Serialization"],
+    why:"Models and ORMs connect the framework to a database.",
+    learn:["Models","ORM basics","Migrations"],
+    tools:["SQLAlchemy"],
+    practice:["Build a data layer"],
+    resources:[{t:"SQLAlchemy",u:"https://www.sqlalchemy.org/"}],
+    can:"Build a data layer."},
+  "Authentication":{cat:"Data",level:"Expert",time:"~1 week",prereq:["Database Layer"],
+    why:"Password hashing and tokens verify identity.",
+    learn:["Password hashing","Tokens","OAuth basics"],
+    tools:["Python"],
+    practice:["Implement authentication"],
+    resources:[{t:"OWASP",u:"https://owasp.org/"}],
+    can:"Implement authentication."},
+  "Sessions":{cat:"Data",level:"Expert",time:"~1 week",prereq:["Database Layer"],
+    why:"Session storage maintains state across requests.",
+    learn:["Session storage","Cookies","CSRF"],
+    tools:["Python"],
+    practice:["Implement sessions"],
+    resources:[{t:"OWASP",u:"https://owasp.org/"}],
+    can:"Manage sessions."},
+
+  "Framework Ergonomics":{sub:"Weeks 11–15",cat:"Ergonomics",level:"Expert",time:"~4 weeks",prereq:["Data & Auth"],
+    why:"DI, error handling and tooling make a framework pleasant to use.",
+    learn:["Dependency injection","Error handling","CLI and tooling"],
+    tools:["Python"],
+    practice:["Improve developer experience"],
+    resources:[{t:"FastAPI",u:"https://fastapi.tiangolo.com/"}],
+    can:"Design ergonomic frameworks."},
+  "Dependency Injection":{cat:"Ergonomics",level:"Expert",time:"~1–2 weeks",prereq:["Sessions"],
+    why:"DI decouples components and eases testing.",
+    learn:["DI patterns","Wiring","Testing"],
+    tools:["Python"],
+    practice:["Implement dependency injection"],
+    resources:[{t:"FastAPI",u:"https://fastapi.tiangolo.com/"}],
+    can:"Use dependency injection."},
+  "Error Handling":{cat:"Ergonomics",level:"Expert",time:"~1 week",prereq:["Dependency Injection"],
+    why:"Centralized error handling gives consistent responses.",
+    learn:["Exception handling","Error pages","Logging"],
+    tools:["Python"],
+    practice:["Add error handling"],
+    resources:[{t:"FastAPI",u:"https://fastapi.tiangolo.com/"}],
+    can:"Handle errors."},
+  "CLI & Tooling":{cat:"Ergonomics",level:"Expert",time:"~1 week",prereq:["Dependency Injection"],
+    why:"Scaffolding and dev servers improve workflow.",
+    learn:["CLI commands","Scaffolding","Dev server"],
+    tools:["Click"],
+    practice:["Build a CLI"],
+    resources:[{t:"Click docs",u:"https://click.palletsprojects.com/"}],
+    can:"Build tooling."},
+
+  "Performance & Testing":{sub:"Weeks 14–18",cat:"Performance",level:"Expert",time:"~4 weeks",prereq:["Framework Ergonomics"],
+    why:"Performance, tests and security make a framework production-ready.",
+    learn:["Performance","Testing","Security"],
+    tools:["pytest"],
+    practice:["Test and benchmark the framework"],
+    resources:[{t:"pytest docs",u:"https://docs.pytest.org/"}],
+    can:"Harden the framework."},
+  "Performance":{cat:"Performance",level:"Expert",time:"~1–2 weeks",prereq:["CLI & Tooling"],
+    why:"Async IO, connection pooling and caching improve throughput.",
+    learn:["Async IO","Pooling","Caching"],
+    tools:["Python"],
+    practice:["Optimize throughput"],
+    resources:[{t:"FastAPI",u:"https://fastapi.tiangolo.com/"}],
+    can:"Optimize performance."},
+  "Testing":{cat:"Performance",level:"Expert",time:"~1 week",prereq:["Performance"],
+    why:"Test clients and fixtures verify framework behaviour.",
+    learn:["Test clients","Fixtures","Coverage"],
+    tools:["pytest"],
+    practice:["Write framework tests"],
+    resources:[{t:"pytest docs",u:"https://docs.pytest.org/"}],
+    can:"Test frameworks."},
+  "Security":{cat:"Performance",level:"Expert",time:"~1 week",prereq:["Performance"],
+    why:"CSRF, XSS and input validation are framework responsibilities.",
+    learn:["CSRF and XSS","Input validation","Security headers"],
+    tools:["OWASP"],
+    practice:["Secure the framework"],
+    resources:[{t:"OWASP",u:"https://owasp.org/"}],
+    can:"Secure frameworks."},
+
+  "Practice & Careers":{sub:"Months 8+",cat:"Practice",level:"Expert",time:"ongoing",prereq:["Performance & Testing"],
+    why:"Framework-building skills apply to backend and platform engineering.",
+    learn:["Framework projects","Deployment","Career paths"],
+    tools:["Python"],
+    practice:["Build a framework project"],
+    resources:[{t:"FastAPI",u:"https://fastapi.tiangolo.com/"}],
+    can:"Work on web frameworks."},
+  "Framework Projects":{cat:"Practice",level:"Expert",time:"~2 weeks",prereq:["Security"],
+    why:"A working framework with an example app proves practical skill.",
+    learn:["Project design","Framework building","Documentation"],
+    tools:["Python"],
+    practice:["Ship a framework project"],
+    resources:[{t:"FastAPI",u:"https://fastapi.tiangolo.com/"}],
+    can:"Deliver framework projects."},
+  "Deployment":{cat:"Practice",level:"Expert",time:"~1–2 weeks",prereq:["Framework Projects"],
+    why:"Packaging and deploying apps on the framework completes the story.",
+    learn:["Packaging","ASGI and WSGI servers","Deployment"],
+    tools:["Gunicorn"],
+    practice:["Deploy an app"],
+    resources:[{t:"Gunicorn",u:"https://gunicorn.org/"}],
+    can:"Deploy apps."},
+  "Career Paths":{cat:"Practice",level:"Expert",time:"ongoing",prereq:["Deployment"],
+    why:"Backend and platform roles value deep framework understanding.",
+    learn:["Role types","Skills valued","Interview preparation"],
+    tools:["—"],
+    practice:["Prepare for a backend role"],
+    resources:[{t:"FastAPI",u:"https://fastapi.tiangolo.com/"}],
+    can:"Build a backend career."}
+};
+
+
+
+/* all learning paths (from catalog), grouped by depth */
+const PATH_CATS = [
+  {icon:"\ud83c\udf0a",label:"Surface",items:[["Web Development","web-dev"],["Data Science / Analysis","data-science"],["Automation / Scripting","automation"],["Machine Learning","machine-learning"],["Web Scraping","web-scraping"],["Game Development","game-dev"],["GUI Applications","gui-apps"],["API Building","api-building"],["Chatbots","chatbots"],["Excel Automation","excel-automation"]]},
+  {icon:"\ud83c\udf0a",label:"Below Surface",items:[["Deep Learning","deep-learning"],["Computer Vision","computer-vision"],["NLP (Natural Language Processing)","nlp"],["Data Visualization","data-viz"],["Cloud Computing","cloud-computing"],["DevOps Scripting","devops-scripting"],["Testing / QA Automation","testing-qa"],["Database Operations","database-ops"],["ETL Pipelines","etl-pipelines"],["Recommendation Systems","recommendation-systems"]]},
+  {icon:"\ud83c\udf0a",label:"Mid-Level",items:[["Reinforcement Learning","reinforcement-learning"],["Generative AI / LLM Fine-tuning","genai-finetuning"],["Time Series Forecasting","time-series"],["Computer Graphics / Animation","cgi-animation"],["Cybersecurity / Pentesting","cybersecurity"],["Network Programming","network-programming"],["Cryptography Implementation","cryptography"],["Blockchain Scripting","blockchain"],["IoT Programming","iot"],["Robotics","robotics"],["Drone Programming","drones"],["Audio Processing","audio-processing"],["Video Processing","video-processing"],["Image Generation","image-generation"],["Speech Recognition / Synthesis","speech"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a",label:"Scientific",items:[["Bioinformatics","bioinformatics"],["Computational Chemistry","comp-chemistry"],["Physics Simulations","physics-sims"],["Astronomy Data","astronomy"],["Geospatial / GIS","gis"],["Climate Modeling","climate-modeling"],["Quantum Computing","quantum-computing"],["Numerical Methods","numerical-methods"],["Finite Element Analysis","fea"],["Fluid Dynamics Simulation","fluid-dynamics"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a",label:"Finance",items:[["Algorithmic Trading","algo-trading"],["Quantitative Finance","quant-finance"],["Risk Modeling","risk-modeling"],["Fraud Detection Systems","fraud-detection"],["Credit Scoring Models","credit-scoring"],["Portfolio Optimization","portfolio-optimization"],["Crypto Trading Bots","crypto-bots"],["Financial Data Pipelines","financial-pipelines"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a",label:"Infra",items:[["Distributed Systems","distributed-systems"],["Microservices Architecture","microservices"],["Container Orchestration","container-orchestration"],["Message Queues","message-queues"],["Load Testing","load-testing"],["Monitoring / Observability","monitoring"],["CI/CD Pipeline Scripting","cicd"],["Package / Library Development","package-dev"],["Compiler / Interpreter Building","compiler-building"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a",label:"AI Frontier",items:[["Multi-Agent Systems","multi-agent"],["AI Agents with Tool-Use","ai-agents"],["RAG Systems","rag"],["Vector Databases","vector-db"],["Fine-tuning LLMs","llm-finetuning"],["Model Quantization / Optimization","quantization"],["MLOps","mlops"],["Federated Learning","federated-learning"],["Explainable AI","xai"],["Synthetic Data Generation","synthetic-data"],["AI Safety / Alignment","ai-safety"],["Prompt Engineering Frameworks","prompt-eng"],["Voice Cloning / Synthesis","voice-cloning"],["Emotion Detection","emotion-detection"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a\ud83c\udf0a",label:"Research",items:[["Genomics / DNA Analysis","genomics"],["Drug Discovery","drug-discovery"],["Neuroscience Data Analysis","neuroscience"],["Medical Imaging","medical-imaging"],["Epidemiology Modeling","epidemiology"],["Materials Science Simulation","materials-science"],["Weather Prediction Models","weather-prediction"],["Autonomous Vehicle Perception","autonomous-driving"],["SLAM / Localization","slam"],["Satellite Image Analysis","satellite-imagery"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a\ud83c\udf0a",label:"Abyss",items:[["Python C-Extensions","c-extensions"],["Build Your Own ML Framework","own-ml-framework"],["GPU Programming","gpu-programming"],["Parallel / Distributed Computing","parallel-computing"],["OS Scripting / Tooling","os-tooling"],["Malware Analysis / Reverse Engineering","malware-analysis"],["Digital Forensics Tooling","forensics"],["Embedded Systems Firmware","embedded-firmware"],["Simulation Engines","simulation-engines"],["Build Your Own Database Engine","own-db-engine"],["Build Your Own Web Framework","own-web-framework"],["Search Engine Building","search-engine"],["Programming Language / DSL","own-language"]]},
+  {icon:"\ud83e\udd16",label:"Frontier",items:[["Python for AI Research","agi-research"]]},
+];
+
+/* ------------- layout ------------- */
+const MAIN_W=196, MAIN_H=52, CH_W=182, CH_H=42, COL=290, YGAP=54, SECGAP=78;
+const nodes=[]; // {title, x,y,w,h,kind,detail}
+let y=0;
+const sectionYs=[];
+SECTIONS.forEach(sec=>{
+  const k=Math.max(sec.left.length, sec.right.length, 1);
+  const spread=(k-1)*YGAP;
+  const secH=Math.max(MAIN_H, spread);
+  const cy=y+secH/2;
+  nodes.push({title:sec.main,x:-MAIN_W/2,y:cy-MAIN_H/2,w:MAIN_W,h:MAIN_H,kind:"main",rec:!!sec.rec});
+  const place=(list,side,dx)=>{ list.forEach((t,i)=>{
+    const cxX = side==="right" ? dx : -dx-CH_W;
+    const cyy = cy - spread/2 + (i*YGAP) + (k-1-list.length)*0; // stack from top-ish
+    const yy = cy - ((list.length-1)*YGAP)/2 + i*YGAP;
+    nodes.push({title:t,x:cxX,y:yy-CH_H/2,w:CH_W,h:CH_H,kind:"child",side});
+  });};
+  place(sec.right,"right",COL);
+  place(sec.left,"left",COL);
+  y += secH + SECGAP;
+  sectionYs.push({main:sec.main, end:y-SECGAP, callout:sec.callout});
+});
+
+/* bounds */
+let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+nodes.forEach(n=>{minX=Math.min(minX,n.x);maxX=Math.max(maxX,n.x+n.w);minY=Math.min(minY,n.y);maxY=Math.max(maxY,n.y+n.h);});
+const PAD=60, W=(maxX-minX)+PAD*2, H=(maxY-minY)+PAD*2;
+const OX=-minX+PAD, OY=-minY+PAD;
+
+const canvas=document.getElementById("canvas");
+canvas.style.width=W+"px"; canvas.style.height=H+"px";
+const svg=document.getElementById("wires");
+svg.setAttribute("width",W); svg.setAttribute("height",H);
+
+function elbow(x1,y1,x2,y2){
+  const mx=(x1+x2)/2;
+  return `M ${x1} ${y1} H ${mx} V ${y2} H ${x2}`;
+}
+
+/* draw nodes + wires */
+const byTitle={};
+nodes.forEach(n=>{ byTitle[n.title]=n; });
+nodes.forEach(n=>{
+  const d=document.createElement("div");
+  d.className="node "+(n.kind==="main"?"main":"child");
+  d.style.left=(n.x+OX)+"px"; d.style.top=(n.y+OY)+"px";
+  d.style.width=n.w+"px";
+  d.innerHTML='<div class="n-t">'+n.title+'</div>'+(DETAIL[n.title]&&DETAIL[n.title].sub?'<div class="n-s">'+DETAIL[n.title].sub+'</div>':'');
+  if(n.rec) d.insertAdjacentHTML("afterbegin",'<span class="rec"></span>');
+  d.insertAdjacentHTML("beforeend",'<span class="chk"></span>');
+  canvas.appendChild(d);
+  n._el=d;
+  // wire from main to children
+});
+SECTIONS.forEach(sec=>{
+  const m=byTitle[sec.main];
+  [...sec.right].forEach(t=>{const c=byTitle[t]; if(c) addWire(m.x+m.w,m.y+m.h/2,c.x,c.y+c.h/2);});
+  [...sec.left].forEach(t=>{const c=byTitle[t]; if(c) addWire(m.x,m.y+m.h/2,c.x+c.w,c.y+c.h/2);});
+});
+// vertical spine connectors between main nodes
+for(let i=0;i<SECTIONS.length-1;i++){
+  const a=byTitle[SECTIONS[i].main], b=byTitle[SECTIONS[i+1].main];
+  addWire(a.x+a.w/2,a.y+a.h,b.x+b.w/2,b.y);
+}
+function addWire(x1,y1,x2,y2){
+  const p=document.createElementNS("http://www.w3.org/2000/svg","path");
+  p.setAttribute("d",elbow(x1+OX,y1+OY,x2+OX,y2+OY));
+  p.setAttribute("class","wire");
+  svg.appendChild(p);
+}
+// callouts
+sectionYs.forEach(s=>{ if(!s.callout) return; const sec=SECTIONS.find(x=>x.main===s.main); const k=Math.max(sec.left.length,sec.right.length,1);
+  const co=document.createElement("div"); co.className="callout"; co.textContent=s.callout;
+  const cw=380; co.style.width=cw+"px";
+  const cnode=byTitle[s.main];
+  co.style.left=(-cw/2+OX)+"px"; co.style.top=(s.end+OY+6)+"px";
+  canvas.appendChild(co);
+});
+
+/* click + check + panel */
+document.querySelectorAll(".node").forEach(el=>{
+  const title=el.querySelector(".n-t").textContent;
+  el.addEventListener("click",(e)=>{
+    if(e.target.classList.contains("chk")){ el.classList.toggle("done"); return; }
+    openPanel(title);
+    document.querySelectorAll(".node").forEach(o=>o.style.outline="");
+    el.style.outline="3px solid rgba(139,92,246,.5)";
+  });
+  if(localStorage.getItem("rm:"+title)==="1") el.classList.add("done");
+  el.addEventListener("click",e=>{ if(e.target.classList.contains("chk")){ localStorage.setItem("rm:"+title, el.classList.contains("done")?"1":"0"); }});
+});
+
+function openPanel(title){
+  const d=DETAIL[title]||{};
+  document.getElementById("p-title").textContent=title;
+  document.getElementById("p-sub").textContent=d.sub||"Topic";
+  const chips=document.getElementById("p-chips"); chips.innerHTML="";
+  [["cat",d.cat],["level",d.level],["time",d.time]].forEach(([k,v])=>{
+    if(!v) return; const c=document.createElement("span"); c.className="chip "+k; c.textContent=v; chips.appendChild(c);
+  });
+  const b=document.getElementById("p-body"); b.innerHTML="";
+  const sec=(h,node)=>{const s=document.createElement("div");s.className="sec";const t=document.createElement("h3");t.textContent=h;s.appendChild(t);s.appendChild(node);b.appendChild(s);};
+  const list=(arr,cls)=>{const ul=document.createElement("ul");ul.className="li "+(cls||"");arr.forEach(x=>{const li=document.createElement("li");li.textContent=x;ul.appendChild(li);});return ul;};
+  const pEl=document.createElement("p");
+  if(d.why){pEl.className="why";pEl.textContent=d.why;sec("Overview",pEl.cloneNode(true));}
+  if(d.prereq) sec("Prerequisites",list(d.prereq,"pr"));
+  if(d.learn) sec("What you'll learn",list(d.learn));
+  if(d.tools){const t=document.createElement("div");t.className="tags";d.tools.forEach(x=>{const sp=document.createElement("span");sp.className="tag";sp.textContent=x;t.appendChild(sp);});sec("Tools & technologies",t);}
+  if(d.practice) sec("Hands-on practice",list(d.practice));
+  if(d.resources){const r=document.createElement("div");r.className="res";d.resources.forEach(x=>{
+    const a=document.createElement("a");a.href=x.u;a.target="_blank";a.rel="noopener";
+    a.innerHTML=x.t+'<span>↗</span>';r.appendChild(a);});sec("Resources",r);}
+  if(d.can){const c=document.createElement("div");c.className="can";c.textContent=d.can;sec("What you can do afterwards",c);}
+  const p=document.getElementById("panel");p.classList.add("open");p.setAttribute("aria-hidden","false");
+}
+document.getElementById("p-close").addEventListener("click",()=>{
+  const p=document.getElementById("panel");p.classList.remove("open");p.setAttribute("aria-hidden","true");});
+
+/* ------------- left sidebar: all learning paths ------------- */
+const CURRENT_SLUG="own-web-framework";
+const BUILT=new Set(["agi-research", "ai-agents", "ai-safety", "algo-trading", "api-building", "astronomy", "audio-processing", "automation", "autonomous-driving", "bioinformatics", "blockchain", "c-extensions", "cgi-animation", "chatbots", "cicd", "climate-modeling", "cloud-computing", "comp-chemistry", "compiler-building", "computer-vision", "container-orchestration", "credit-scoring", "crypto-bots", "cryptography", "cybersecurity", "data-science", "data-viz", "database-ops", "deep-learning", "devops-scripting", "distributed-systems", "drones", "drug-discovery", "embedded-firmware", "emotion-detection", "epidemiology", "etl-pipelines", "excel-automation", "fea", "federated-learning", "financial-pipelines", "fluid-dynamics", "forensics", "fraud-detection", "game-dev", "genai-finetuning", "genomics", "gis", "gpu-programming", "gui-apps", "image-generation", "iot", "llm-finetuning", "load-testing", "machine-learning", "malware-analysis", "materials-science", "medical-imaging", "message-queues", "microservices", "mlops", "monitoring", "multi-agent", "network-programming", "neuroscience", "nlp", "numerical-methods", "os-tooling", "own-db-engine", "own-language", "own-ml-framework", "own-web-framework", "package-dev", "parallel-computing", "physics-sims", "portfolio-optimization", "prompt-eng", "quant-finance", "quantization", "quantum-computing", "rag", "recommendation-systems", "reinforcement-learning", "risk-modeling", "robotics", "satellite-imagery", "search-engine", "simulation-engines", "slam", "speech", "synthetic-data", "testing-qa", "time-series", "vector-db", "video-processing", "voice-cloning", "weather-prediction", "web-dev", "web-scraping", "xai"]);
+const side=document.getElementById("side");
+const sidebarItems=[];
+{
+  const inp=document.createElement("input"); inp.className="search"; inp.placeholder="Search 100 paths…";
+  side.appendChild(inp);
+  PATH_CATS.forEach(cat=>{
+    const hd=document.createElement("h5"); hd.innerHTML=cat.icon+" "+cat.label; side.appendChild(hd);
+    cat.items.forEach(([name,slug])=>{
+      const isCur=slug===CURRENT_SLUG, built=BUILT.has(slug), navigable=built&&!isCur;
+      const el=document.createElement(navigable?"a":"span");
+      el.className="p-item"+(isCur?" active":built?"":" soon");
+      if(navigable) el.href="./"+slug+"-roadmap.html";
+      const nm=document.createElement("span"); nm.textContent=name;
+      const bd=document.createElement("em"); bd.textContent=isCur?"now":built?"open":"soon";
+      el.appendChild(nm); el.appendChild(bd);
+      el.dataset.q=(name+" "+slug).toLowerCase();
+      el.dataset.cat=cat.label;
+      side.appendChild(el); sidebarItems.push(el);
+    });
+  });
+  inp.addEventListener("input",()=>{
+    const q=inp.value.trim().toLowerCase();
+    sidebarItems.forEach(el=>{ el.style.display = !q || el.dataset.q.includes(q) ? "" : "none"; });
+    side.querySelectorAll("h5").forEach(hd=>{
+      let any=false, n=hd.nextElementSibling;
+      while(n && n.tagName!=="H5"){ if(n.style.display!=="none") any=true; n=n.nextElementSibling; }
+      hd.style.display=any?"":"none";
+    });
+  });
+}
+document.getElementById("sideToggle").addEventListener("click",()=>document.body.classList.toggle("no-side"));
+</script>
+</body>
+</html>

@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Chatbots — Roadmap</title>
+<style>
+  :root{
+    --bg:#fafafa; --ink:#18181b; --mut:#71717a; --line:#e4e4e7;
+    --yellow:#fde047; --yellow-bd:#52525b; --yellow-deep:#facc15;
+    --rec:#8b5cf6; --alt:#22c55e; --opt:#a1a1aa;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%;color:var(--ink);
+    font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  /* top nav */
+  .nav{position:sticky;top:0;height:52px;background:#fff;border-bottom:1px solid var(--line);
+    display:flex;align-items:center;gap:12px;padding:0 18px;z-index:50}
+  .nav .brand{font-weight:800;letter-spacing:-.02em}
+  .nav .brand span{color:var(--rec)}
+  .nav .title{color:var(--mut);font-size:14px}
+
+  /* diagram flows with the page; wide trees scroll horizontally */
+  .diagram-wrap{overflow-x:auto;background-color:var(--bg);
+    background-image:radial-gradient(#d4d4d8 1.1px, transparent 1.1px);
+    background-size:22px 22px;padding:26px 30px 70px}
+  .canvas{position:relative;margin:0 auto}
+  svg.wires{position:absolute;top:0;left:0;overflow:visible;pointer-events:none}
+  .wire{fill:none;stroke:#a1a1aa;stroke-width:1.6;stroke-dasharray:5 5}
+
+  .node{position:absolute;background:var(--yellow);border:1.6px solid var(--yellow-bd);
+    border-radius:7px;padding:9px 12px;text-align:center;cursor:pointer;user-select:none;
+    box-shadow:0 2px 0 rgba(0,0,0,.16);transition:box-shadow .1s,transform .1s}
+  .node:hover{box-shadow:0 2px 0 rgba(0,0,0,.16),0 0 0 3px rgba(139,92,246,.25)}
+  .node.main{background:var(--yellow-deep);font-weight:800;font-size:15px}
+  .node .n-t{font-weight:600;font-size:13.5px;line-height:1.25}
+  .node.main .n-t{font-weight:800}
+  .node .n-s{font-size:11px;color:#3f3f46;margin-top:2px;font-weight:500;opacity:.85}
+  .node .rec{position:absolute;top:-7px;left:-7px;width:12px;height:12px;border-radius:50%;
+    background:var(--rec);border:2px solid #fff}
+  .node .chk{position:absolute;top:-8px;right:-8px;width:18px;height:18px;border-radius:50%;
+    background:#fff;border:1.6px solid var(--yellow-bd);display:flex;align-items:center;
+    justify-content:center;font-size:11px;color:#fff;font-weight:800}
+  .node.done .chk{background:var(--alt);border-color:var(--alt);color:#fff}
+  .node.done .chk::after{content:"✓"}
+  .callout{position:absolute;background:#fff;border:1.6px solid var(--yellow-bd);border-radius:8px;
+    padding:11px 16px;text-align:center;font-size:13px;font-weight:600;box-shadow:0 2px 0 rgba(0,0,0,.12)}
+
+  /* legend */
+  .legend{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 16px;
+    max-width:720px;margin:18px auto 0;box-shadow:0 4px 14px rgba(0,0,0,.05);
+    display:flex;flex-wrap:wrap;align-items:center;gap:8px 22px}
+  .legend h4{margin:0;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);width:100%}
+  .legend .row{display:flex;align-items:center;gap:8px;font-size:13px;margin:0;color:#3f3f46}
+  .legend .d{width:11px;height:11px;border-radius:50%}
+  .legend .hint{font-size:11.5px;color:var(--mut);width:100%}
+
+  /* layout + left sidebar */
+  .layout{display:flex;align-items:flex-start}
+  .main{flex:1;min-width:0}
+  .side{width:272px;flex:none;position:sticky;top:52px;height:calc(100vh - 52px);overflow:auto;
+    border-right:1px solid var(--line);background:#fcfcfd;padding:14px 12px 40px}
+  body.no-side .side{display:none}
+  .side .search{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;margin-bottom:8px;outline:none}
+  .side .search:focus{border-color:var(--rec)}
+  .side h5{margin:14px 6px 6px;font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);display:flex;align-items:center;gap:6px}
+  .side a.p-item,.side span.p-item{display:flex;align-items:center;justify-content:space-between;gap:8px;
+    font-size:13px;text-decoration:none;color:#3f3f46;padding:6px 9px;border-radius:7px;cursor:pointer}
+  .side a.p-item:hover{background:#f4f4f5}
+  .side .p-item.active{background:#fef9c3;color:#713f12;font-weight:600;border:1px solid #fde047}
+  .side .p-item.soon{color:#b6b6bd;cursor:default}
+  .side .p-item em{font-style:normal;font-size:9.5px;border:1px solid var(--line);border-radius:999px;padding:1px 6px;color:var(--mut);background:#fff}
+  .side .p-item.active em{border-color:#fde047;background:#fffbeb;color:#92400e}
+  .nav .spacer{flex:1}
+  .nav .btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 11px;font-size:13px;cursor:pointer}
+  .nav .btn:hover{background:#f4f4f5}
+  /* when embedded in the PySchool app iframe, the app provides the chrome */
+  body.embedded .nav{display:none}
+  body.embedded .side{top:0;height:100vh}
+  body.embedded .panel{top:0;height:100%}
+
+  /* panel */
+  .panel{position:fixed;top:52px;right:0;height:calc(100% - 52px);width:min(420px,92vw);background:#fff;
+    border-left:1px solid var(--line);box-shadow:-14px 0 40px rgba(0,0,0,.1);z-index:40;
+    transform:translateX(103%);transition:transform .2s ease;display:flex;flex-direction:column}
+  .panel.open{transform:none}
+  .panel .head{padding:16px 20px 14px;border-bottom:1px solid #f1f1f3;display:flex;justify-content:space-between;gap:12px}
+  .panel h2{margin:0 0 6px;font-size:19px;line-height:1.25}
+  .panel .sub{color:var(--mut);font-size:12.5px;margin-bottom:9px}
+  .panel .close{background:none;border:1px solid var(--line);color:var(--mut);border-radius:8px;width:30px;height:30px;cursor:pointer;flex:none}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{font-size:11px;font-weight:600;border-radius:999px;padding:3px 9px;border:1px solid transparent}
+  .chip.cat{background:#eef2ff;color:#3730a3;border-color:#c7d2fe}
+  .chip.level{background:#ecfdf5;color:#065f46;border-color:#a7f3d0}
+  .chip.time{background:#fffbeb;color:#92400e;border-color:#fde68a}
+  .panel .body{padding:16px 20px 40px;overflow:auto}
+  .sec{margin-bottom:18px}
+  .sec h3{margin:0 0 8px;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--rec)}
+  .why{font-size:13.5px;color:#374151;line-height:1.55;margin:0}
+  ul.li{margin:0;padding-left:18px} ul.li li{font-size:13px;color:#374151;margin:3px 0}
+  ul.li.pr li::marker{color:var(--mut)}
+  .can{background:#faf5ff;border:1px solid #e9d5ff;color:#5b21b6;border-radius:9px;padding:11px 13px;font-size:13px}
+  .tags{display:flex;flex-wrap:wrap;gap:6px}
+  .tag{background:#f4f4f5;border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:12px;color:#3f3f46}
+  .res{display:flex;flex-direction:column;gap:6px}
+  .res a{display:flex;align-items:center;gap:8px;font-size:13px;color:#2563eb;text-decoration:none;
+    border:1px solid #e5e7eb;border-radius:8px;padding:8px 11px;background:#fafafa}
+  .res a:hover{background:#f0f6ff;border-color:#bfdbfe}
+  .res a span{color:var(--mut);margin-left:auto;font-size:11px}
+</style>
+</head>
+<body>
+<div class="nav">
+  <div class="brand">Py<span>School</span></div>
+  <div class="title">/ Chatbots</div>
+  <div class="spacer"></div>
+  <button class="btn" id="sideToggle">☰ All paths</button>
+</div>
+
+<div class="layout">
+<nav class="side" id="side"></nav>
+<div class="main">
+
+<div class="legend">
+  <h4>Chatbots</h4>
+  <div class="row"><span class="d" style="background:var(--rec)"></span>Recommended</div>
+  <div class="row"><span class="d" style="background:var(--alt)"></span>Alternative option</div>
+  <div class="row"><span class="d" style="background:var(--opt)"></span>Order not strict</div>
+  <div class="hint">Click a topic for details · click the ✓ to mark it done · Ctrl +/− to zoom the whole page</div>
+</div>
+
+<div class="diagram-wrap">
+  <div class="canvas" id="canvas">
+    <svg class="wires" id="wires"></svg>
+  </div>
+</div>
+
+</div>
+</div>
+
+<aside class="panel" id="panel" aria-hidden="true">
+  <div class="head">
+    <div><h2 id="p-title">Select a topic</h2><div class="sub" id="p-sub"></div><div class="chips" id="p-chips"></div></div>
+    <button class="close" id="p-close">✕</button>
+  </div>
+  <div class="body" id="p-body"></div>
+</aside>
+
+<script>
+/* embedded inside the PySchool app? then let the app own the top bar */
+if(window.self!==window.top) document.body.classList.add("embedded");
+/* ------------- content ------------- */
+const SECTIONS = [
+  {main:"Conversation & Bot Foundations", rec:true, left:[], right:["Intent & Entities","Conversation Design"],
+   callout:"At this point you understand what makes a bot useful, not just chatty."},
+  {main:"Python & Messaging APIs", rec:true, left:["Async & Webhooks"], right:["Bot Frameworks","Messaging Platforms"],
+   callout:"At this point your bot lives inside a real chat app."},
+  {main:"Rule-Based & NLU Bots", left:["Rule & Flow Engines"], right:["Intent Classification","Entity Extraction"],
+   callout:"At this point your bot understands requests without needing an LLM."},
+  {main:"LLM-Powered Bots", rec:true, left:["Prompt Engineering"], right:["LLM APIs","RAG for Chatbots"],
+   callout:"At this point your bot can answer open-ended questions from your own data."},
+  {main:"Memory & Context", left:["Session & State"], right:["Memory & Summarisation","Context Window Management"],
+   callout:"At this point your bot remembers what matters in a conversation."},
+  {main:"Safety, Evaluation & Guardrails", left:["Prompt Injection Defence"], right:["Testing Conversations","Content Safety"],
+   callout:"At this point your bot is safe, on-topic and measurable."},
+  {main:"Deployment & Operations", left:["Analytics & Logging"], right:["Deployment & Scaling","Human Handoff"],
+   callout:"At this point your bot runs in production and hands off to humans gracefully."}
+];
+const DETAIL = {
+  "Conversation & Bot Foundations":{sub:"Start here · weeks 1–2",cat:"Foundations",level:"Beginner",time:"~2 weeks",
+    why:"A good bot is a designed product, not a script of if-statements. Understanding intents, flows and user expectations is what separates a helpful assistant from an infuriating one.",
+    learn:["Types of bots: rule, NLU, LLM","Intents, entities and slots","The happy path and fallbacks","When to hand off to a human"],
+    tools:["Text editor","Wireframing"],
+    practice:["Design the full conversation flow for a support bot on paper"],
+    resources:[{t:"Rasa: introduction",u:"https://rasa.com/docs/rasa/introduction/"}],
+    can:"Design a conversation flow that actually helps users."},
+  "Intent & Entities":{cat:"Foundations",level:"Beginner",time:"~1 week",prereq:["None — start here"],
+    why:"Most bot logic reduces to working out what the user wants (intent) and the details they gave (entities).",
+    learn:["Intent definition","Entities and slots","Confidence and ambiguity"],
+    tools:["Rasa NLU"],
+    practice:["Label a set of sample messages with intents and entities"],
+    resources:[{t:"Rasa: NLU training data",u:"https://rasa.com/docs/rasa/nlu-training-data"}],
+    can:"Model what users mean, not just what they type."},
+  "Conversation Design":{cat:"Foundations",level:"Beginner",time:"~1 week",prereq:["Intent & Entities"],
+    why:"Bots fail on wording and dead ends far more than on technology; good conversation design fixes both.",
+    learn:["Clear prompts and confirmations","Handling errors gracefully","Recovery and escalation"],
+    tools:["—"],
+    practice:["Rewrite a frustrating bot flow to recover from mistakes"],
+    resources:[{t:"Google: conversation design",u:"https://developers.google.com/assistant/conversation-design/welcome"}],
+    can:"Write conversations that feel natural."},
+
+  "Python & Messaging APIs":{sub:"Weeks 2–5",cat:"Messaging",level:"Beginner",time:"~3 weeks",prereq:["Conversation & Bot Foundations"],
+    why:"A bot has to live where users are. Connecting to Telegram, Discord or Slack teaches webhooks, async handling and the shape of real messaging APIs.",
+    learn:["Bot tokens and setup","Receiving updates (webhook vs polling)","Sending messages, buttons and media","Handling rate limits"],
+    tools:["python-telegram-bot","discord.py","Slack Bolt"],
+    practice:["Build a bot that greets users and echoes commands"],
+    resources:[{t:"Telegram Bot API",u:"https://core.telegram.org/bots/api"},{t:"python-telegram-bot docs",u:"https://docs.python-telegram-bot.org/"}],
+    can:"Run a bot inside a real messaging platform."},
+  "Async & Webhooks":{cat:"Messaging",level:"Intermediate",time:"~1 week",prereq:["None — start here"],
+    why:"Messaging platforms deliver events to your server; understanding async and webhooks is how the bot stays responsive.",
+    learn:["Webhook endpoints with FastAPI","asyncio and concurrency","Verifying requests"],
+    tools:["FastAPI","asyncio"],
+    practice:["Expose a webhook that responds to incoming messages"],
+    resources:[{t:"Python: asyncio",u:"https://docs.python.org/3/library/asyncio.html"}],
+    can:"Receive and process chat events reliably."},
+  "Bot Frameworks":{cat:"Messaging",level:"Beginner",time:"~1 week",prereq:["Async & Webhooks"],
+    why:"Frameworks handle the boilerplate of updates, state and buttons so you can focus on behaviour.",
+    learn:["Handlers and dispatchers","Conversation state","Inline buttons and menus"],
+    tools:["python-telegram-bot","Rasa"],
+    practice:["Add a multi-step form flow with button choices"],
+    resources:[{t:"python-telegram-bot: tutorial",u:"https://docs.python-telegram-bot.org/en/stable/tutorial/index.html"}],
+    can:"Build richer bot interactions quickly."},
+  "Messaging Platforms":{cat:"Messaging",level:"Beginner",time:"~1 week",prereq:["Bot Frameworks"],
+    why:"Each platform has its own API, limits and idioms; knowing them makes your bot feel native everywhere.",
+    learn:["Telegram, Discord and Slack differences","Platform limits and formatting","Rich messages and attachments"],
+    tools:["discord.py","Slack Bolt"],
+    practice:["Port a bot from Telegram to Discord"],
+    resources:[{t:"discord.py documentation",u:"https://discordpy.readthedocs.io/"},{t:"Slack Bolt for Python",u:"https://slack.dev/bolt-python/"}],
+    can:"Ship bots on multiple platforms."},
+
+  "Rule-Based & NLU Bots":{sub:"Weeks 4–8",cat:"NLU",level:"Intermediate",time:"~3 weeks",prereq:["Python & Messaging APIs"],
+    why:"Rule and NLU bots are deterministic, cheap and auditable — often the right choice for well-defined tasks like bookings and FAQs.",
+    learn:["Flow engines and state machines","Training an intent classifier","Extracting entities","Confidence thresholds and fallback"],
+    tools:["Rasa","spaCy"],
+    practice:["Build a slot-filling booking bot","Add a fallback for low-confidence intents"],
+    resources:[{t:"Rasa: forms/slots",u:"https://rasa.com/docs/rasa/forms"},{t:"spaCy course",u:"https://course.spacy.io/"}],
+    can:"Build a reliable task bot without an LLM."},
+  "Rule & Flow Engines":{cat:"NLU",level:"Intermediate",time:"~1 week",prereq:["Conversation Design"],
+    why:"Explicit flows make behaviour predictable and testable, which matters for consequential tasks.",
+    learn:["State machines for dialogue","Conditional flows","Fallback and retry"],
+    tools:["Rasa"],
+    practice:["Model a flows-only booking bot as a state machine"],
+    resources:[{t:"Rasa: dialogue management",u:"https://rasa.com/docs/rasa/dialogue-management/"}],
+    can:"Build predictable, auditable conversations."},
+  "Intent Classification":{cat:"NLU",level:"Intermediate",time:"~2 weeks",prereq:["Intent & Entities"],
+    why:"Classifying what the user wants is the heart of NLU bots — and of hybrid systems.",
+    learn:["Text classification basics","Training and evaluating intents","Handling unknown intents"],
+    tools:["Rasa NLU","scikit-learn"],
+    practice:["Train and evaluate an intent classifier on your own data"],
+    resources:[{t:"Rasa: NLU",u:"https://rasa.com/docs/rasa/nlu-training-data"}],
+    can:"Reliably detect what a user is asking for."},
+  "Entity Extraction":{cat:"NLU",level:"Intermediate",time:"~1 week",prereq:["Intent Classification"],
+    why:"Extracting dates, names and numbers is what lets the bot act rather than just respond.",
+    learn:["Named entity recognition","Custom entities and synonyms","Slot filling"],
+    tools:["spaCy","Rasa"],
+    practice:["Extract dates and locations from a request and fill slots"],
+    resources:[{t:"spaCy: NER",u:"https://spacy.io/usage/linguistic-features#named-entities"}],
+    can:"Pull structured details from free text."},
+
+  "LLM-Powered Bots":{sub:"Weeks 7–12",cat:"LLM",level:"Advanced",time:"~4 weeks",prereq:["Rule-Based & NLU Bots"],
+    why:"LLMs let a bot answer open-ended questions and handle wording you never anticipated. This is where modern chatbots get their flexibility — and their new risks.",
+    learn:["Calling an LLM from your bot","Prompt engineering for dialogue","Retrieval-augmented generation","Structured tool calling"],
+    tools:["OpenAI API","LangChain"],
+    practice:["Add an LLM fallback for questions your rules cannot handle","Answer FAQs from your own documents with RAG"],
+    resources:[{t:"Prompt Engineering Guide",u:"https://www.promptingguide.ai/"}],
+    can:"Build a bot that answers open-ended questions from your data."},
+  "Prompt Engineering":{cat:"LLM",level:"Intermediate",time:"~1 week",prereq:["Conversation Design"],
+    why:"The same model can be brilliant or useless depending on the prompt — for a bot, the system prompt is the personality and rules.",
+    learn:["System vs user prompts","Few-shot examples","Structuring output (JSON)"],
+    tools:["OpenAI API"],
+    practice:["Write a system prompt that defines tone, scope and refusals"],
+    resources:[{t:"Prompt Engineering Guide",u:"https://www.promptingguide.ai/"}],
+    can:"Steer a model's behaviour reliably."},
+  "LLM APIs":{cat:"LLM",level:"Intermediate",time:"~1 week",prereq:["Async & Webhooks"],
+    why:"Integrating a model API — streaming, tokens, errors, cost — is now a baseline chatbot skill.",
+    learn:["Chat completions and streaming","Token limits and cost","Handling failures and retries"],
+    tools:["OpenAI API","anthropic"],
+    practice:["Stream an answer token-by-token into a chat"],
+    resources:[{t:"OpenAI API reference",u:"https://platform.openai.com/docs/api-reference"}],
+    can:"Integrate an LLM into a chat app."},
+  "RAG for Chatbots":{cat:"LLM",level:"Advanced",time:"~2 weeks",prereq:["LLM APIs"],
+    why:"RAG grounds the bot in your documents so answers are accurate and current instead of hallucinated.",
+    learn:["Chunking and embeddings","Vector search","Grounded prompts with citations"],
+    tools:["LangChain","ChromaDB"],
+    practice:["Answer questions from a PDF help-centre with citations"],
+    resources:[{t:"LlamaIndex documentation",u:"https://docs.llamaindex.ai/"},{t:"Chroma docs",u:"https://docs.trychroma.com/"}],
+    can:"Make a bot answer from your own knowledge base."},
+
+  "Memory & Context":{sub:"Weeks 11–15",cat:"Context",level:"Advanced",time:"~3 weeks",prereq:["LLM-Powered Bots"],
+    why:"A conversation is not one message. Remembering preferences and earlier turns within a budget is what makes a bot feel intelligent instead of forgetful.",
+    learn:["Short-term session state","Long-term memory and profiles","Summarising old turns","Managing the context budget"],
+    tools:["Redis","LLM APIs"],
+    practice:["Keep a coherent multi-turn conversation within a token budget"],
+    resources:[{t:"LangChain: memory",u:"https://python.langchain.com/docs/how_to/#memory"}],
+    can:"Give your bot a working memory."},
+  "Session & State":{cat:"Context",level:"Intermediate",time:"~1 week",prereq:["Bot Frameworks"],
+    why:"Knowing who is talking and where they were in a flow is required for any multi-step interaction.",
+    learn:["Session stores (Redis)","Per-user state","Timeouts and cleanup"],
+    tools:["Redis"],
+    practice:["Store and restore conversation state across restarts"],
+    resources:[{t:"Redis: quickstart",u:"https://redis.io/docs/latest/develop/"}],
+    can:"Track conversation state reliably."},
+  "Memory & Summarisation":{cat:"Context",level:"Advanced",time:"~1 week",prereq:["LLM APIs"],
+    why:"Raw history does not fit in the context window; summarising and selecting what to keep is how you stay coherent.",
+    learn:["Rolling summaries","Entity/preference memory","Retrieval of past turns"],
+    tools:["LLM APIs"],
+    practice:["Summarise old turns and keep only what matters"],
+    resources:[{t:"LangChain: memory",u:"https://python.langchain.com/docs/how_to/#memory"}],
+    can:"Keep long conversations coherent."},
+  "Context Window Management":{cat:"Context",level:"Advanced",time:"~1 week",prereq:["Memory & Summarisation"],
+    why:"Tokens cost money and run out; managing the budget keeps quality high and bills sane.",
+    learn:["Token counting","Trimming and prioritising","Prompt caching"],
+    tools:["tiktoken"],
+    practice:["Build a context builder that stays under a token budget"],
+    resources:[{t:"OpenAI: prompt caching",u:"https://platform.openai.com/docs/guides/prompt-caching"}],
+    can:"Keep prompts effective within token limits."},
+
+  "Safety, Evaluation & Guardrails":{sub:"Weeks 14–18",cat:"Safety",level:"Advanced",time:"~3 weeks",prereq:["Memory & Context"],
+    why:"An unguarded LLM bot can be manipulated, can leak data and can say harmful things. Guardrails and evaluation are what make it deployable.",
+    learn:["Prompt-injection defence","Content moderation","Automated conversation testing","Measuring quality and regressions"],
+    tools:["moderation API","promptfoo"],
+    practice:["Add input/output guardrails and an eval suite to your bot"],
+    resources:[{t:"OWASP Top 10 for LLM Apps",u:"https://owasp.org/www-project-top-10-for-large-language-model-applications/"}],
+    can:"Ship a bot that is safe and measurable."},
+  "Prompt Injection Defence":{cat:"Safety",level:"Advanced",time:"~1 week",prereq:["Prompt Engineering"],
+    why:"Users can try to override your instructions or extract secrets; defending against that is essential for any public bot.",
+    learn:["Direct and indirect injection","Instruction hierarchy","Output filtering"],
+    tools:["Guardrails"],
+    practice:["Try to break your own bot and patch the holes"],
+    resources:[{t:"OWASP LLM: prompt injection",u:"https://genai.owasp.org/llmrisk/llm01-prompt-injection/"}],
+    can:"Resist attempts to hijack your bot."},
+  "Testing Conversations":{cat:"Safety",level:"Advanced",time:"~1 week",prereq:["Rule & Flow Engines"],
+    why:"Bots break in ways normal unit tests miss; scenario-based evals catch them before users do.",
+    learn:["Scenario and regression tests","Automated evals for LLM output","Tracking quality over time"],
+    tools:["promptfoo","pytest"],
+    practice:["Write an eval suite of tricky conversations"],
+    resources:[{t:"promptfoo documentation",u:"https://www.promptfoo.dev/docs/"}],
+    can:"Measure and protect bot quality."},
+  "Content Safety":{cat:"Safety",level:"Advanced",time:"~1 week",prereq:["LLM APIs"],
+    why:"Public bots must refuse harmful requests and avoid leaking personal data.",
+    learn:["Moderation APIs","PII detection and redaction","Refusal patterns"],
+    tools:["moderation API"],
+    practice:["Add moderation to both input and output"],
+    resources:[{t:"OpenAI: moderation",u:"https://platform.openai.com/docs/guides/moderation"}],
+    can:"Keep your bot safe and compliant."},
+
+  "Deployment & Operations":{sub:"Weeks 17–20",cat:"Ops",level:"Advanced",time:"~3 weeks",prereq:["Safety, Evaluation & Guardrails"],
+    why:"A bot is a service: it needs to run continuously, scale, log what happens, and hand off to people when it is out of its depth.",
+    learn:["Deploying webhook services","Scaling and queues","Logging conversations and metrics","Human handoff and escalation"],
+    tools:["Docker","FastAPI"],
+    practice:["Deploy your bot with logging and a human handoff path"],
+    resources:[{t:"FastAPI: deployment",u:"https://fastapi.tiangolo.com/deployment/"}],
+    can:"Operate a production chatbot."},
+  "Analytics & Logging":{cat:"Ops",level:"Advanced",time:"~1 week",prereq:["Testing Conversations"],
+    why:"You cannot improve a bot without seeing where users get stuck or what they ask for.",
+    learn:["Conversation logging","Funnel and drop-off metrics","Privacy-aware storage"],
+    tools:["logging","PostgreSQL"],
+    practice:["Track which intents fail most and fix the worst"],
+    resources:[{t:"Python: logging",u:"https://docs.python.org/3/howto/logging.html"}],
+    can:"Improve your bot with real usage data."},
+  "Deployment & Scaling":{cat:"Ops",level:"Advanced",time:"~1 week",prereq:["Analytics & Logging"],
+    why:"Bots must stay online and handle load spikes without dropping messages.",
+    learn:["Containerised deploys","Queues for bursts","Health checks and restarts"],
+    tools:["Docker","Redis"],
+    practice:["Queue incoming messages so bursts do not lose replies"],
+    resources:[{t:"Docker: get started",u:"https://docs.docker.com/get-started/"}],
+    can:"Run a bot that stays up under load."},
+  "Human Handoff":{cat:"Ops",level:"Advanced",time:"~1 week",prereq:["Conversation Design"],
+    why:"Knowing when to give up and fetch a human is what makes a bot trustworthy instead of a dead end.",
+    learn:["Detecting frustration and dead ends","Escalation to agents","Passing over context"],
+    tools:["Slack Bolt"],
+    practice:["Escalate to a human with the conversation summary"],
+    resources:[{t:"Slack Bolt for Python",u:"https://slack.dev/bolt-python/"}],
+    can:"Hand off to humans smoothly."}
+};
+
+
+
+/* all learning paths (from catalog), grouped by depth */
+const PATH_CATS = [
+  {icon:"\ud83c\udf0a",label:"Surface",items:[["Web Development","web-dev"],["Data Science / Analysis","data-science"],["Automation / Scripting","automation"],["Machine Learning","machine-learning"],["Web Scraping","web-scraping"],["Game Development","game-dev"],["GUI Applications","gui-apps"],["API Building","api-building"],["Chatbots","chatbots"],["Excel Automation","excel-automation"]]},
+  {icon:"\ud83c\udf0a",label:"Below Surface",items:[["Deep Learning","deep-learning"],["Computer Vision","computer-vision"],["NLP (Natural Language Processing)","nlp"],["Data Visualization","data-viz"],["Cloud Computing","cloud-computing"],["DevOps Scripting","devops-scripting"],["Testing / QA Automation","testing-qa"],["Database Operations","database-ops"],["ETL Pipelines","etl-pipelines"],["Recommendation Systems","recommendation-systems"]]},
+  {icon:"\ud83c\udf0a",label:"Mid-Level",items:[["Reinforcement Learning","reinforcement-learning"],["Generative AI / LLM Fine-tuning","genai-finetuning"],["Time Series Forecasting","time-series"],["Computer Graphics / Animation","cgi-animation"],["Cybersecurity / Pentesting","cybersecurity"],["Network Programming","network-programming"],["Cryptography Implementation","cryptography"],["Blockchain Scripting","blockchain"],["IoT Programming","iot"],["Robotics","robotics"],["Drone Programming","drones"],["Audio Processing","audio-processing"],["Video Processing","video-processing"],["Image Generation","image-generation"],["Speech Recognition / Synthesis","speech"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a",label:"Scientific",items:[["Bioinformatics","bioinformatics"],["Computational Chemistry","comp-chemistry"],["Physics Simulations","physics-sims"],["Astronomy Data","astronomy"],["Geospatial / GIS","gis"],["Climate Modeling","climate-modeling"],["Quantum Computing","quantum-computing"],["Numerical Methods","numerical-methods"],["Finite Element Analysis","fea"],["Fluid Dynamics Simulation","fluid-dynamics"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a",label:"Finance",items:[["Algorithmic Trading","algo-trading"],["Quantitative Finance","quant-finance"],["Risk Modeling","risk-modeling"],["Fraud Detection Systems","fraud-detection"],["Credit Scoring Models","credit-scoring"],["Portfolio Optimization","portfolio-optimization"],["Crypto Trading Bots","crypto-bots"],["Financial Data Pipelines","financial-pipelines"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a",label:"Infra",items:[["Distributed Systems","distributed-systems"],["Microservices Architecture","microservices"],["Container Orchestration","container-orchestration"],["Message Queues","message-queues"],["Load Testing","load-testing"],["Monitoring / Observability","monitoring"],["CI/CD Pipeline Scripting","cicd"],["Package / Library Development","package-dev"],["Compiler / Interpreter Building","compiler-building"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a",label:"AI Frontier",items:[["Multi-Agent Systems","multi-agent"],["AI Agents with Tool-Use","ai-agents"],["RAG Systems","rag"],["Vector Databases","vector-db"],["Fine-tuning LLMs","llm-finetuning"],["Model Quantization / Optimization","quantization"],["MLOps","mlops"],["Federated Learning","federated-learning"],["Explainable AI","xai"],["Synthetic Data Generation","synthetic-data"],["AI Safety / Alignment","ai-safety"],["Prompt Engineering Frameworks","prompt-eng"],["Voice Cloning / Synthesis","voice-cloning"],["Emotion Detection","emotion-detection"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a\ud83c\udf0a",label:"Research",items:[["Genomics / DNA Analysis","genomics"],["Drug Discovery","drug-discovery"],["Neuroscience Data Analysis","neuroscience"],["Medical Imaging","medical-imaging"],["Epidemiology Modeling","epidemiology"],["Materials Science Simulation","materials-science"],["Weather Prediction Models","weather-prediction"],["Autonomous Vehicle Perception","autonomous-driving"],["SLAM / Localization","slam"],["Satellite Image Analysis","satellite-imagery"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a\ud83c\udf0a",label:"Abyss",items:[["Python C-Extensions","c-extensions"],["Build Your Own ML Framework","own-ml-framework"],["GPU Programming","gpu-programming"],["Parallel / Distributed Computing","parallel-computing"],["OS Scripting / Tooling","os-tooling"],["Malware Analysis / Reverse Engineering","malware-analysis"],["Digital Forensics Tooling","forensics"],["Embedded Systems Firmware","embedded-firmware"],["Simulation Engines","simulation-engines"],["Build Your Own Database Engine","own-db-engine"],["Build Your Own Web Framework","own-web-framework"],["Search Engine Building","search-engine"],["Programming Language / DSL","own-language"]]},
+  {icon:"\ud83e\udd16",label:"Frontier",items:[["Python for AI Research","agi-research"]]},
+];
+
+/* ------------- layout ------------- */
+const MAIN_W=196, MAIN_H=52, CH_W=182, CH_H=42, COL=290, YGAP=54, SECGAP=78;
+const nodes=[]; // {title, x,y,w,h,kind,detail}
+let y=0;
+const sectionYs=[];
+SECTIONS.forEach(sec=>{
+  const k=Math.max(sec.left.length, sec.right.length, 1);
+  const spread=(k-1)*YGAP;
+  const secH=Math.max(MAIN_H, spread);
+  const cy=y+secH/2;
+  nodes.push({title:sec.main,x:-MAIN_W/2,y:cy-MAIN_H/2,w:MAIN_W,h:MAIN_H,kind:"main",rec:!!sec.rec});
+  const place=(list,side,dx)=>{ list.forEach((t,i)=>{
+    const cxX = side==="right" ? dx : -dx-CH_W;
+    const cyy = cy - spread/2 + (i*YGAP) + (k-1-list.length)*0; // stack from top-ish
+    const yy = cy - ((list.length-1)*YGAP)/2 + i*YGAP;
+    nodes.push({title:t,x:cxX,y:yy-CH_H/2,w:CH_W,h:CH_H,kind:"child",side});
+  });};
+  place(sec.right,"right",COL);
+  place(sec.left,"left",COL);
+  y += secH + SECGAP;
+  sectionYs.push({main:sec.main, end:y-SECGAP, callout:sec.callout});
+});
+
+/* bounds */
+let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+nodes.forEach(n=>{minX=Math.min(minX,n.x);maxX=Math.max(maxX,n.x+n.w);minY=Math.min(minY,n.y);maxY=Math.max(maxY,n.y+n.h);});
+const PAD=60, W=(maxX-minX)+PAD*2, H=(maxY-minY)+PAD*2;
+const OX=-minX+PAD, OY=-minY+PAD;
+
+const canvas=document.getElementById("canvas");
+canvas.style.width=W+"px"; canvas.style.height=H+"px";
+const svg=document.getElementById("wires");
+svg.setAttribute("width",W); svg.setAttribute("height",H);
+
+function elbow(x1,y1,x2,y2){
+  const mx=(x1+x2)/2;
+  return `M ${x1} ${y1} H ${mx} V ${y2} H ${x2}`;
+}
+
+/* draw nodes + wires */
+const byTitle={};
+nodes.forEach(n=>{ byTitle[n.title]=n; });
+nodes.forEach(n=>{
+  const d=document.createElement("div");
+  d.className="node "+(n.kind==="main"?"main":"child");
+  d.style.left=(n.x+OX)+"px"; d.style.top=(n.y+OY)+"px";
+  d.style.width=n.w+"px";
+  d.innerHTML='<div class="n-t">'+n.title+'</div>'+(DETAIL[n.title]&&DETAIL[n.title].sub?'<div class="n-s">'+DETAIL[n.title].sub+'</div>':'');
+  if(n.rec) d.insertAdjacentHTML("afterbegin",'<span class="rec"></span>');
+  d.insertAdjacentHTML("beforeend",'<span class="chk"></span>');
+  canvas.appendChild(d);
+  n._el=d;
+  // wire from main to children
+});
+SECTIONS.forEach(sec=>{
+  const m=byTitle[sec.main];
+  [...sec.right].forEach(t=>{const c=byTitle[t]; if(c) addWire(m.x+m.w,m.y+m.h/2,c.x,c.y+c.h/2);});
+  [...sec.left].forEach(t=>{const c=byTitle[t]; if(c) addWire(m.x,m.y+m.h/2,c.x+c.w,c.y+c.h/2);});
+});
+// vertical spine connectors between main nodes
+for(let i=0;i<SECTIONS.length-1;i++){
+  const a=byTitle[SECTIONS[i].main], b=byTitle[SECTIONS[i+1].main];
+  addWire(a.x+a.w/2,a.y+a.h,b.x+b.w/2,b.y);
+}
+function addWire(x1,y1,x2,y2){
+  const p=document.createElementNS("http://www.w3.org/2000/svg","path");
+  p.setAttribute("d",elbow(x1+OX,y1+OY,x2+OX,y2+OY));
+  p.setAttribute("class","wire");
+  svg.appendChild(p);
+}
+// callouts
+sectionYs.forEach(s=>{ if(!s.callout) return; const sec=SECTIONS.find(x=>x.main===s.main); const k=Math.max(sec.left.length,sec.right.length,1);
+  const co=document.createElement("div"); co.className="callout"; co.textContent=s.callout;
+  const cw=380; co.style.width=cw+"px";
+  const cnode=byTitle[s.main];
+  co.style.left=(-cw/2+OX)+"px"; co.style.top=(s.end+OY+6)+"px";
+  canvas.appendChild(co);
+});
+
+/* click + check + panel */
+document.querySelectorAll(".node").forEach(el=>{
+  const title=el.querySelector(".n-t").textContent;
+  el.addEventListener("click",(e)=>{
+    if(e.target.classList.contains("chk")){ el.classList.toggle("done"); return; }
+    openPanel(title);
+    document.querySelectorAll(".node").forEach(o=>o.style.outline="");
+    el.style.outline="3px solid rgba(139,92,246,.5)";
+  });
+  if(localStorage.getItem("rm:"+title)==="1") el.classList.add("done");
+  el.addEventListener("click",e=>{ if(e.target.classList.contains("chk")){ localStorage.setItem("rm:"+title, el.classList.contains("done")?"1":"0"); }});
+});
+
+function openPanel(title){
+  const d=DETAIL[title]||{};
+  document.getElementById("p-title").textContent=title;
+  document.getElementById("p-sub").textContent=d.sub||"Topic";
+  const chips=document.getElementById("p-chips"); chips.innerHTML="";
+  [["cat",d.cat],["level",d.level],["time",d.time]].forEach(([k,v])=>{
+    if(!v) return; const c=document.createElement("span"); c.className="chip "+k; c.textContent=v; chips.appendChild(c);
+  });
+  const b=document.getElementById("p-body"); b.innerHTML="";
+  const sec=(h,node)=>{const s=document.createElement("div");s.className="sec";const t=document.createElement("h3");t.textContent=h;s.appendChild(t);s.appendChild(node);b.appendChild(s);};
+  const list=(arr,cls)=>{const ul=document.createElement("ul");ul.className="li "+(cls||"");arr.forEach(x=>{const li=document.createElement("li");li.textContent=x;ul.appendChild(li);});return ul;};
+  const pEl=document.createElement("p");
+  if(d.why){pEl.className="why";pEl.textContent=d.why;sec("Overview",pEl.cloneNode(true));}
+  if(d.prereq) sec("Prerequisites",list(d.prereq,"pr"));
+  if(d.learn) sec("What you'll learn",list(d.learn));
+  if(d.tools){const t=document.createElement("div");t.className="tags";d.tools.forEach(x=>{const sp=document.createElement("span");sp.className="tag";sp.textContent=x;t.appendChild(sp);});sec("Tools & technologies",t);}
+  if(d.practice) sec("Hands-on practice",list(d.practice));
+  if(d.resources){const r=document.createElement("div");r.className="res";d.resources.forEach(x=>{
+    const a=document.createElement("a");a.href=x.u;a.target="_blank";a.rel="noopener";
+    a.innerHTML=x.t+'<span>↗</span>';r.appendChild(a);});sec("Resources",r);}
+  if(d.can){const c=document.createElement("div");c.className="can";c.textContent=d.can;sec("What you can do afterwards",c);}
+  const p=document.getElementById("panel");p.classList.add("open");p.setAttribute("aria-hidden","false");
+}
+document.getElementById("p-close").addEventListener("click",()=>{
+  const p=document.getElementById("panel");p.classList.remove("open");p.setAttribute("aria-hidden","true");});
+
+/* ------------- left sidebar: all learning paths ------------- */
+const CURRENT_SLUG="chatbots";
+const BUILT=new Set(["agi-research", "ai-agents", "ai-safety", "algo-trading", "api-building", "astronomy", "audio-processing", "automation", "autonomous-driving", "bioinformatics", "blockchain", "c-extensions", "cgi-animation", "chatbots", "cicd", "climate-modeling", "cloud-computing", "comp-chemistry", "compiler-building", "computer-vision", "container-orchestration", "credit-scoring", "crypto-bots", "cryptography", "cybersecurity", "data-science", "data-viz", "database-ops", "deep-learning", "devops-scripting", "distributed-systems", "drones", "drug-discovery", "embedded-firmware", "emotion-detection", "epidemiology", "etl-pipelines", "excel-automation", "fea", "federated-learning", "financial-pipelines", "fluid-dynamics", "forensics", "fraud-detection", "game-dev", "genai-finetuning", "genomics", "gis", "gpu-programming", "gui-apps", "image-generation", "iot", "llm-finetuning", "load-testing", "machine-learning", "malware-analysis", "materials-science", "medical-imaging", "message-queues", "microservices", "mlops", "monitoring", "multi-agent", "network-programming", "neuroscience", "nlp", "numerical-methods", "os-tooling", "own-db-engine", "own-language", "own-ml-framework", "own-web-framework", "package-dev", "parallel-computing", "physics-sims", "portfolio-optimization", "prompt-eng", "quant-finance", "quantization", "quantum-computing", "rag", "recommendation-systems", "reinforcement-learning", "risk-modeling", "robotics", "satellite-imagery", "search-engine", "simulation-engines", "slam", "speech", "synthetic-data", "testing-qa", "time-series", "vector-db", "video-processing", "voice-cloning", "weather-prediction", "web-dev", "web-scraping", "xai"]);
+const side=document.getElementById("side");
+const sidebarItems=[];
+{
+  const inp=document.createElement("input"); inp.className="search"; inp.placeholder="Search 100 paths…";
+  side.appendChild(inp);
+  PATH_CATS.forEach(cat=>{
+    const hd=document.createElement("h5"); hd.innerHTML=cat.icon+" "+cat.label; side.appendChild(hd);
+    cat.items.forEach(([name,slug])=>{
+      const isCur=slug===CURRENT_SLUG, built=BUILT.has(slug), navigable=built&&!isCur;
+      const el=document.createElement(navigable?"a":"span");
+      el.className="p-item"+(isCur?" active":built?"":" soon");
+      if(navigable) el.href="./"+slug+"-roadmap.html";
+      const nm=document.createElement("span"); nm.textContent=name;
+      const bd=document.createElement("em"); bd.textContent=isCur?"now":built?"open":"soon";
+      el.appendChild(nm); el.appendChild(bd);
+      el.dataset.q=(name+" "+slug).toLowerCase();
+      el.dataset.cat=cat.label;
+      side.appendChild(el); sidebarItems.push(el);
+    });
+  });
+  inp.addEventListener("input",()=>{
+    const q=inp.value.trim().toLowerCase();
+    sidebarItems.forEach(el=>{ el.style.display = !q || el.dataset.q.includes(q) ? "" : "none"; });
+    side.querySelectorAll("h5").forEach(hd=>{
+      let any=false, n=hd.nextElementSibling;
+      while(n && n.tagName!=="H5"){ if(n.style.display!=="none") any=true; n=n.nextElementSibling; }
+      hd.style.display=any?"":"none";
+    });
+  });
+}
+document.getElementById("sideToggle").addEventListener("click",()=>document.body.classList.toggle("no-side"));
+</script>
+</body>
+</html>

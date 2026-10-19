@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Recommendation Systems — Roadmap</title>
+<style>
+  :root{
+    --bg:#fafafa; --ink:#18181b; --mut:#71717a; --line:#e4e4e7;
+    --yellow:#fde047; --yellow-bd:#52525b; --yellow-deep:#facc15;
+    --rec:#8b5cf6; --alt:#22c55e; --opt:#a1a1aa;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%;color:var(--ink);
+    font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  /* top nav */
+  .nav{position:sticky;top:0;height:52px;background:#fff;border-bottom:1px solid var(--line);
+    display:flex;align-items:center;gap:12px;padding:0 18px;z-index:50}
+  .nav .brand{font-weight:800;letter-spacing:-.02em}
+  .nav .brand span{color:var(--rec)}
+  .nav .title{color:var(--mut);font-size:14px}
+
+  /* diagram flows with the page; wide trees scroll horizontally */
+  .diagram-wrap{overflow-x:auto;background-color:var(--bg);
+    background-image:radial-gradient(#d4d4d8 1.1px, transparent 1.1px);
+    background-size:22px 22px;padding:26px 30px 70px}
+  .canvas{position:relative;margin:0 auto}
+  svg.wires{position:absolute;top:0;left:0;overflow:visible;pointer-events:none}
+  .wire{fill:none;stroke:#a1a1aa;stroke-width:1.6;stroke-dasharray:5 5}
+
+  .node{position:absolute;background:var(--yellow);border:1.6px solid var(--yellow-bd);
+    border-radius:7px;padding:9px 12px;text-align:center;cursor:pointer;user-select:none;
+    box-shadow:0 2px 0 rgba(0,0,0,.16);transition:box-shadow .1s,transform .1s}
+  .node:hover{box-shadow:0 2px 0 rgba(0,0,0,.16),0 0 0 3px rgba(139,92,246,.25)}
+  .node.main{background:var(--yellow-deep);font-weight:800;font-size:15px}
+  .node .n-t{font-weight:600;font-size:13.5px;line-height:1.25}
+  .node.main .n-t{font-weight:800}
+  .node .n-s{font-size:11px;color:#3f3f46;margin-top:2px;font-weight:500;opacity:.85}
+  .node .rec{position:absolute;top:-7px;left:-7px;width:12px;height:12px;border-radius:50%;
+    background:var(--rec);border:2px solid #fff}
+  .node .chk{position:absolute;top:-8px;right:-8px;width:18px;height:18px;border-radius:50%;
+    background:#fff;border:1.6px solid var(--yellow-bd);display:flex;align-items:center;
+    justify-content:center;font-size:11px;color:#fff;font-weight:800}
+  .node.done .chk{background:var(--alt);border-color:var(--alt);color:#fff}
+  .node.done .chk::after{content:"✓"}
+  .callout{position:absolute;background:#fff;border:1.6px solid var(--yellow-bd);border-radius:8px;
+    padding:11px 16px;text-align:center;font-size:13px;font-weight:600;box-shadow:0 2px 0 rgba(0,0,0,.12)}
+
+  /* legend */
+  .legend{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 16px;
+    max-width:720px;margin:18px auto 0;box-shadow:0 4px 14px rgba(0,0,0,.05);
+    display:flex;flex-wrap:wrap;align-items:center;gap:8px 22px}
+  .legend h4{margin:0;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);width:100%}
+  .legend .row{display:flex;align-items:center;gap:8px;font-size:13px;margin:0;color:#3f3f46}
+  .legend .d{width:11px;height:11px;border-radius:50%}
+  .legend .hint{font-size:11.5px;color:var(--mut);width:100%}
+
+  /* layout + left sidebar */
+  .layout{display:flex;align-items:flex-start}
+  .main{flex:1;min-width:0}
+  .side{width:272px;flex:none;position:sticky;top:52px;height:calc(100vh - 52px);overflow:auto;
+    border-right:1px solid var(--line);background:#fcfcfd;padding:14px 12px 40px}
+  body.no-side .side{display:none}
+  .side .search{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;margin-bottom:8px;outline:none}
+  .side .search:focus{border-color:var(--rec)}
+  .side h5{margin:14px 6px 6px;font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);display:flex;align-items:center;gap:6px}
+  .side a.p-item,.side span.p-item{display:flex;align-items:center;justify-content:space-between;gap:8px;
+    font-size:13px;text-decoration:none;color:#3f3f46;padding:6px 9px;border-radius:7px;cursor:pointer}
+  .side a.p-item:hover{background:#f4f4f5}
+  .side .p-item.active{background:#fef9c3;color:#713f12;font-weight:600;border:1px solid #fde047}
+  .side .p-item.soon{color:#b6b6bd;cursor:default}
+  .side .p-item em{font-style:normal;font-size:9.5px;border:1px solid var(--line);border-radius:999px;padding:1px 6px;color:var(--mut);background:#fff}
+  .side .p-item.active em{border-color:#fde047;background:#fffbeb;color:#92400e}
+  .nav .spacer{flex:1}
+  .nav .btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 11px;font-size:13px;cursor:pointer}
+  .nav .btn:hover{background:#f4f4f5}
+  /* when embedded in the PySchool app iframe, the app provides the chrome */
+  body.embedded .nav{display:none}
+  body.embedded .side{top:0;height:100vh}
+  body.embedded .panel{top:0;height:100%}
+
+  /* panel */
+  .panel{position:fixed;top:52px;right:0;height:calc(100% - 52px);width:min(420px,92vw);background:#fff;
+    border-left:1px solid var(--line);box-shadow:-14px 0 40px rgba(0,0,0,.1);z-index:40;
+    transform:translateX(103%);transition:transform .2s ease;display:flex;flex-direction:column}
+  .panel.open{transform:none}
+  .panel .head{padding:16px 20px 14px;border-bottom:1px solid #f1f1f3;display:flex;justify-content:space-between;gap:12px}
+  .panel h2{margin:0 0 6px;font-size:19px;line-height:1.25}
+  .panel .sub{color:var(--mut);font-size:12.5px;margin-bottom:9px}
+  .panel .close{background:none;border:1px solid var(--line);color:var(--mut);border-radius:8px;width:30px;height:30px;cursor:pointer;flex:none}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{font-size:11px;font-weight:600;border-radius:999px;padding:3px 9px;border:1px solid transparent}
+  .chip.cat{background:#eef2ff;color:#3730a3;border-color:#c7d2fe}
+  .chip.level{background:#ecfdf5;color:#065f46;border-color:#a7f3d0}
+  .chip.time{background:#fffbeb;color:#92400e;border-color:#fde68a}
+  .panel .body{padding:16px 20px 40px;overflow:auto}
+  .sec{margin-bottom:18px}
+  .sec h3{margin:0 0 8px;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--rec)}
+  .why{font-size:13.5px;color:#374151;line-height:1.55;margin:0}
+  ul.li{margin:0;padding-left:18px} ul.li li{font-size:13px;color:#374151;margin:3px 0}
+  ul.li.pr li::marker{color:var(--mut)}
+  .can{background:#faf5ff;border:1px solid #e9d5ff;color:#5b21b6;border-radius:9px;padding:11px 13px;font-size:13px}
+  .tags{display:flex;flex-wrap:wrap;gap:6px}
+  .tag{background:#f4f4f5;border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:12px;color:#3f3f46}
+  .res{display:flex;flex-direction:column;gap:6px}
+  .res a{display:flex;align-items:center;gap:8px;font-size:13px;color:#2563eb;text-decoration:none;
+    border:1px solid #e5e7eb;border-radius:8px;padding:8px 11px;background:#fafafa}
+  .res a:hover{background:#f0f6ff;border-color:#bfdbfe}
+  .res a span{color:var(--mut);margin-left:auto;font-size:11px}
+</style>
+</head>
+<body>
+<div class="nav">
+  <div class="brand">Py<span>School</span></div>
+  <div class="title">/ Recommendation Systems</div>
+  <div class="spacer"></div>
+  <button class="btn" id="sideToggle">☰ All paths</button>
+</div>
+
+<div class="layout">
+<nav class="side" id="side"></nav>
+<div class="main">
+
+<div class="legend">
+  <h4>Recommendation Systems</h4>
+  <div class="row"><span class="d" style="background:var(--rec)"></span>Recommended</div>
+  <div class="row"><span class="d" style="background:var(--alt)"></span>Alternative option</div>
+  <div class="row"><span class="d" style="background:var(--opt)"></span>Order not strict</div>
+  <div class="hint">Click a topic for details · click the ✓ to mark it done · Ctrl +/− to zoom the whole page</div>
+</div>
+
+<div class="diagram-wrap">
+  <div class="canvas" id="canvas">
+    <svg class="wires" id="wires"></svg>
+  </div>
+</div>
+
+</div>
+</div>
+
+<aside class="panel" id="panel" aria-hidden="true">
+  <div class="head">
+    <div><h2 id="p-title">Select a topic</h2><div class="sub" id="p-sub"></div><div class="chips" id="p-chips"></div></div>
+    <button class="close" id="p-close">✕</button>
+  </div>
+  <div class="body" id="p-body"></div>
+</aside>
+
+<script>
+/* embedded inside the PySchool app? then let the app own the top bar */
+if(window.self!==window.top) document.body.classList.add("embedded");
+/* ------------- content ------------- */
+const SECTIONS = [
+  {main:"Foundations", rec:true, left:[], right:["The Recommendation Problem","Data & Feedback Signals"],
+   callout:"At this point you understand what recommenders do and the data they need."},
+  {main:"Baseline Recommenders", rec:true, left:["Popularity & Ratings"], right:["Content-Based Filtering","Evaluation Metrics"],
+   callout:"At this point you can ship a simple working recommender."},
+  {main:"Collaborative Filtering", left:["User & Item Similarity"], right:["Matrix Factorisation","Implicit Feedback"],
+   callout:"At this point you can model user-item interactions."},
+  {main:"Learning-Based Models", left:["Deep Recommenders"], right:["Ranking & Learning to Rank","Feature Engineering"],
+   callout:"At this point you can build modern neural recommenders."},
+  {main:"Serving & Systems", left:["Candidate Generation"], right:["Ranking Pipeline","Serving & Latency"],
+   callout:"At this point you can serve recommendations at scale."},
+  {main:"Evaluation & Quality", left:["Offline & Online Testing"], right:["Bias & Fairness","Diversity & Serendipity"],
+   callout:"At this point you measure and improve real outcomes."},
+  {main:"Production Practice", left:["A/B Testing & Feedback Loops"], right:["Real-World Systems","Series & Sequence Models"],
+   callout:"At this point you run recommenders in production."}
+];
+const DETAIL = {
+  "Foundations":{sub:"Start here · weeks 1–2",cat:"Foundations",level:"Beginner",time:"~2 weeks",
+    why:"Recommenders power feeds, stores and media. Understanding the problem and the feedback signals is what everything else is built on.",
+    learn:["What recommendation solves","Explicit vs implicit feedback","The data you need"],
+    tools:["Python","pandas"],
+    practice:["Frame a recommendation problem and list its signals"],
+    resources:[{t:"Google: recommendation systems course",u:"https://developers.google.com/machine-learning/recommendation"}],
+    can:"Frame a recommendation problem."},
+  "The Recommendation Problem":{cat:"Foundations",level:"Beginner",time:"~1 week",prereq:["None — start here"],
+    why:"Recommendation is ranking: predicting which items a user will value most from a huge catalogue.",
+    learn:["Ranking vs regression","Recall vs precision framing","Cold-start"],
+    tools:["—"],
+    practice:["Define the objective for a movie recommender"],
+    resources:[{t:"Google: recommendation overview",u:"https://developers.google.com/machine-learning/recommendation/overview"}],
+    can:"Define recommender objectives."},
+  "Data & Feedback Signals":{cat:"Foundations",level:"Beginner",time:"~1 week",prereq:["The Recommendation Problem"],
+    why:"Recommenders are only as good as their signals; implicit feedback is abundant but noisy.",
+    learn:["Explicit ratings","Implicit clicks and views","Handling missing data"],
+    tools:["pandas"],
+    practice:["Turn event logs into a user-item matrix"],
+    resources:[{t:"Google: recommendation data",u:"https://developers.google.com/machine-learning/recommendation/overview/data"}],
+    can:"Prepare recommendation data."},
+
+  "Baseline Recommenders":{sub:"Weeks 2–5",cat:"Baselines",level:"Beginner",time:"~3 weeks",prereq:["Foundations"],
+    why:"A strong baseline — popularity and content similarity — is often good enough and always the yardstick.",
+    learn:["Popularity and ratings","Content-based filtering","Offline evaluation"],
+    tools:["pandas","scikit-learn"],
+    practice:["Build and evaluate a popularity baseline"],
+    resources:[{t:"Google: content-based filtering",u:"https://developers.google.com/machine-learning/recommendation/content-based/basics"}],
+    can:"Ship a simple recommender."},
+  "Popularity & Ratings":{cat:"Baselines",level:"Beginner",time:"~1 week",prereq:["Data & Feedback Signals"],
+    why:"Popularity is a strong, cheap baseline and hard to beat without personalisation.",
+    learn:["Popularity ranking","Bayesian averaging","Trending windows"],
+    tools:["pandas"],
+    practice:["Build a trending-items recommender"],
+    resources:[{t:"Google: recommendation",u:"https://developers.google.com/machine-learning/recommendation"}],
+    can:"Build popularity recommendations."},
+  "Content-Based Filtering":{cat:"Baselines",level:"Beginner",time:"~1 week",prereq:["Data & Feedback Signals"],
+    why:"When interaction data is sparse, item features still let you recommend.",
+    learn:["Item features and vectors","Similarity scoring","User profiles"],
+    tools:["scikit-learn"],
+    practice:["Recommend items similar to ones a user liked"],
+    resources:[{t:"scikit-learn: metrics",u:"https://scikit-learn.org/stable/modules/metrics.html"}],
+    can:"Recommend from item content."},
+  "Evaluation Metrics":{cat:"Baselines",level:"Intermediate",time:"~1 week",prereq:["Popularity & Ratings"],
+    why:"Without the right metrics you optimise the wrong thing; ranking metrics differ from classification.",
+    learn:["Precision@k, Recall@k","MAP, NDCG","AUC"],
+    tools:["scikit-learn"],
+    practice:["Evaluate recommenders with NDCG@k"],
+    resources:[{t:"Google: metrics",u:"https://developers.google.com/machine-learning/recommendation/overview/correctness"}],
+    can:"Measure recommender quality."},
+
+  "Collaborative Filtering":{sub:"Weeks 4–8",cat:"Collaborative",level:"Intermediate",time:"~4 weeks",prereq:["Baseline Recommenders"],
+    why:"Collaborative filtering learns from interactions alone — the technique behind most classic recommenders.",
+    learn:["User and item similarity","Matrix factorisation","Implicit feedback models"],
+    tools:["Surprise","implicit"],
+    practice:["Train a matrix-factorisation recommender"],
+    resources:[{t:"Google: collaborative filtering",u:"https://developers.google.com/machine-learning/recommendation/collaborative/basics"}],
+    can:"Model user-item interactions."},
+  "User & Item Similarity":{cat:"Collaborative",level:"Intermediate",time:"~1 week",prereq:["Evaluation Metrics"],
+    why:"Neighbourhood methods are intuitive and a good stepping stone to latent-factor models.",
+    learn:["Cosine and Pearson similarity","User-based vs item-based","Nearest neighbours"],
+    tools:["scikit-learn"],
+    practice:["Build an item-item similarity recommender"],
+    resources:[{t:"Google: collaborative filtering",u:"https://developers.google.com/machine-learning/recommendation/collaborative/basics"}],
+    can:"Recommend by similarity."},
+  "Matrix Factorisation":{cat:"Collaborative",level:"Intermediate",time:"~1–2 weeks",prereq:["User & Item Similarity"],
+    why:"Latent factors capture preferences compactly and generalise far better than raw similarity.",
+    learn:["Latent factors","ALS and SGD","Regularisation"],
+    tools:["Surprise","implicit"],
+    practice:["Train ALS on a ratings dataset"],
+    resources:[{t:"implicit docs",u:"https://benfred.github.io/implicit/"}],
+    can:"Learn latent preference factors."},
+  "Implicit Feedback":{cat:"Collaborative",level:"Advanced",time:"~1 week",prereq:["Matrix Factorisation"],
+    why:"Clicks and views are implicit — no negatives, huge scale — and need different models.",
+    learn:["Confidence weighting","BPR and pairwise ranking","Negative sampling"],
+    tools:["implicit"],
+    practice:["Train a recommender on implicit signals"],
+    resources:[{t:"implicit: ALS",u:"https://benfred.github.io/implicit/"}],
+    can:"Model implicit feedback."},
+
+  "Learning-Based Models":{sub:"Weeks 7–12",cat:"Learning",level:"Advanced",time:"~5 weeks",prereq:["Collaborative Filtering"],
+    why:"Modern recommenders are large ranking models that combine many signals — this is where production quality comes from.",
+    learn:["Neural recommenders","Learning to rank","Rich feature engineering"],
+    tools:["PyTorch","TensorFlow Recommenders"],
+    practice:["Build a two-tower or ranking model"],
+    resources:[{t:"TensorFlow Recommenders",u:"https://www.tensorflow.org/recommenders"}],
+    can:"Build deep recommenders."},
+  "Deep Recommenders":{cat:"Learning",level:"Advanced",time:"~2 weeks",prereq:["Implicit Feedback"],
+    why:"Neural models capture non-linear interactions and scale to rich features and huge catalogues.",
+    learn:["Two-tower models","Embeddings and MLPs","Sequence models"],
+    tools:["TensorFlow Recommenders","PyTorch"],
+    practice:["Train a two-tower retrieval model"],
+    resources:[{t:"TensorFlow Recommenders",u:"https://www.tensorflow.org/recommenders"}],
+    can:"Train neural recommenders."},
+  "Ranking & Learning to Rank":{cat:"Learning",level:"Advanced",time:"~1–2 weeks",prereq:["Evaluation Metrics"],
+    why:"Recommenders rank lists; learning-to-rank objectives match that goal directly.",
+    learn:["Pointwise, pairwise, listwise","Ranking losses","Feature-based ranking"],
+    tools:["LightGBM","XGBoost"],
+    practice:["Train a LightGBM ranker"],
+    resources:[{t:"LightGBM: ranking",u:"https://lightgbm.readthedocs.io/"}],
+    can:"Rank recommendation candidates."},
+  "Feature Engineering":{cat:"Learning",level:"Advanced",time:"~1 week",prereq:["Matrix Factorisation"],
+    why:"In practice, good features often beat model architecture alone.",
+    learn:["User and item features","Context features","Interaction features"],
+    tools:["pandas"],
+    practice:["Engineer features that lift ranking scores"],
+    resources:[{t:"Google: recommendation",u:"https://developers.google.com/machine-learning/recommendation"}],
+    can:"Engineer high-signal features."},
+
+  "Serving & Systems":{sub:"Weeks 11–16",cat:"Systems",level:"Advanced",time:"~4 weeks",prereq:["Learning-Based Models"],
+    why:"A good model is useless if recommendation is slow; retrieval, ranking and serving are an engineering pipeline.",
+    learn:["Candidate generation","Ranking pipelines","Low-latency serving"],
+    tools:["Faiss","Redis"],
+    practice:["Serve recommendations under 100ms"],
+    resources:[{t:"Faiss: docs",u:"https://faiss.ai/"}],
+    can:"Serve recommendations at scale."},
+  "Candidate Generation":{cat:"Systems",level:"Advanced",time:"~1–2 weeks",prereq:["Deep Recommenders"],
+    why:"You cannot score millions of items per request; retrieval narrows to hundreds, fast.",
+    learn:["Vector search","Approximate nearest neighbours","Retrieval models"],
+    tools:["Faiss","ScaNN"],
+    practice:["Build ANN retrieval over embeddings"],
+    resources:[{t:"Faiss: docs",u:"https://faiss.ai/"}],
+    can:"Retrieve candidates fast."},
+  "Ranking Pipeline":{cat:"Systems",level:"Advanced",time:"~1 week",prereq:["Ranking & Learning to Rank"],
+    why:"Retrieval then ranking is the standard two-stage design that balances quality and cost.",
+    learn:["Two-stage design","Re-ranking","Filters and business rules"],
+    tools:["LightGBM"],
+    practice:["Chain retrieval into a ranking stage"],
+    resources:[{t:"Google: recommendation",u:"https://developers.google.com/machine-learning/recommendation"}],
+    can:"Build a ranking pipeline."},
+  "Serving & Latency":{cat:"Systems",level:"Advanced",time:"~1 week",prereq:["Candidate Generation"],
+    why:"Production recommenders must answer in milliseconds with fresh features.",
+    learn:["Feature stores","Caching","Low-latency frameworks"],
+    tools:["Redis","FastAPI"],
+    practice:["Add a feature cache to the serving path"],
+    resources:[{t:"Feast: docs",u:"https://docs.feast.dev/"}],
+    can:"Serve recommendations with low latency."},
+
+  "Evaluation & Quality":{sub:"Weeks 15–18",cat:"Evaluation",level:"Advanced",time:"~3 weeks",prereq:["Serving & Systems"],
+    why:"Offline metrics lie; real quality comes from online testing and guarding against bias and feedback loops.",
+    learn:["Offline vs online evaluation","Bias and fairness","Diversity and novelty"],
+    tools:["—"],
+    practice:["Design an online evaluation for a recommender"],
+    resources:[{t:"Google: recommendation",u:"https://developers.google.com/machine-learning/recommendation"}],
+    can:"Evaluate recommenders properly."},
+  "Offline & Online Testing":{cat:"Evaluation",level:"Advanced",time:"~1–2 weeks",prereq:["Ranking Pipeline"],
+    why:"Offline gains do not always translate; A/B tests prove real impact.",
+    learn:["Offline protocols","A/B testing basics","Counterfactual evaluation"],
+    tools:["—"],
+    practice:["Compare two models offline then online"],
+    resources:[{t:"Google: A/B testing",u:"https://developers.google.com/machine-learning/glossary"}],
+    can:"Test recommenders online."},
+  "Bias & Fairness":{cat:"Evaluation",level:"Advanced",time:"~1 week",prereq:["Offline & Online Testing"],
+    why:"Recommendation can amplify popularity and bias, hurting both users and content creators.",
+    learn:["Popularity bias","Feedback loops","Fairness metrics"],
+    tools:["—"],
+    practice:["Measure bias in a recommender's output"],
+    resources:[{t:"Fairness in ML",u:"https://fairmlbook.org/"}],
+    can:"Detect and reduce bias."},
+  "Diversity & Serendipity":{cat:"Evaluation",level:"Advanced",time:"~1 week",prereq:["Offline & Online Testing"],
+    why:"Endless similar items reduce long-term engagement; diversity and novelty matter.",
+    learn:["Diversity metrics","Novelty and serendipity","Re-ranking for diversity"],
+    tools:["—"],
+    practice:["Re-rank for diversity and measure the effect"],
+    resources:[{t:"Google: recommendation",u:"https://developers.google.com/machine-learning/recommendation"}],
+    can:"Improve long-term engagement."},
+
+  "Production Practice":{sub:"Months 7+",cat:"Production",level:"Advanced",time:"ongoing",prereq:["Evaluation & Quality"],
+    why:"Senior recommender work is running live systems, closing the feedback loop and evolving with user behaviour.",
+    learn:["Feedback loops","Real-world architectures","Sequence and session models"],
+    tools:["PyTorch","Kafka"],
+    practice:["Own a recommender from data to A/B result"],
+    resources:[{t:"Google: recommendation systems",u:"https://developers.google.com/machine-learning/recommendation"}],
+    can:"Run production recommenders."},
+  "A/B Testing & Feedback Loops":{cat:"Production",level:"Advanced",time:"~1–2 weeks",prereq:["Bias & Fairness"],
+    why:"Live systems change user behaviour, which changes the data — loops must be managed deliberately.",
+    learn:["Experimentation platforms","Interleaving","Managing drift"],
+    tools:["—"],
+    practice:["Run an experiment and watch for drift"],
+    resources:[{t:"Netflix: experimentation",u:"https://netflixtechblog.com/"}],
+    can:"Manage feedback loops."},
+  "Real-World Systems":{cat:"Production",level:"Advanced",time:"~2 weeks",prereq:["Serving & Latency"],
+    why:"Studying how large platforms build recommenders turns theory into engineering.",
+    learn:["Industrial architectures","Two-tower at scale","Real-time personalisation"],
+    tools:["—"],
+    practice:["Reproduce a published architecture sketch"],
+    resources:[{t:"YouTube: recommendations paper",u:"https://research.google/pubs/pub45530/"}],
+    can:"Design industrial recommenders."},
+  "Series & Sequence Models":{cat:"Production",level:"Advanced",time:"~1 week",prereq:["Deep Recommenders"],
+    why:"Users consume content in sequence; session-based models capture that intent.",
+    learn:["Session-based recommendations","RNN and transformer recommenders","Sequential metrics"],
+    tools:["PyTorch"],
+    practice:["Build a session-based recommender"],
+    resources:[{t:"SASRec paper",u:"https://arxiv.org/abs/1808.09781"}],
+    can:"Model sequences of behaviour."}
+};
+
+
+
+/* all learning paths (from catalog), grouped by depth */
+const PATH_CATS = [
+  {icon:"\ud83c\udf0a",label:"Surface",items:[["Web Development","web-dev"],["Data Science / Analysis","data-science"],["Automation / Scripting","automation"],["Machine Learning","machine-learning"],["Web Scraping","web-scraping"],["Game Development","game-dev"],["GUI Applications","gui-apps"],["API Building","api-building"],["Chatbots","chatbots"],["Excel Automation","excel-automation"]]},
+  {icon:"\ud83c\udf0a",label:"Below Surface",items:[["Deep Learning","deep-learning"],["Computer Vision","computer-vision"],["NLP (Natural Language Processing)","nlp"],["Data Visualization","data-viz"],["Cloud Computing","cloud-computing"],["DevOps Scripting","devops-scripting"],["Testing / QA Automation","testing-qa"],["Database Operations","database-ops"],["ETL Pipelines","etl-pipelines"],["Recommendation Systems","recommendation-systems"]]},
+  {icon:"\ud83c\udf0a",label:"Mid-Level",items:[["Reinforcement Learning","reinforcement-learning"],["Generative AI / LLM Fine-tuning","genai-finetuning"],["Time Series Forecasting","time-series"],["Computer Graphics / Animation","cgi-animation"],["Cybersecurity / Pentesting","cybersecurity"],["Network Programming","network-programming"],["Cryptography Implementation","cryptography"],["Blockchain Scripting","blockchain"],["IoT Programming","iot"],["Robotics","robotics"],["Drone Programming","drones"],["Audio Processing","audio-processing"],["Video Processing","video-processing"],["Image Generation","image-generation"],["Speech Recognition / Synthesis","speech"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a",label:"Scientific",items:[["Bioinformatics","bioinformatics"],["Computational Chemistry","comp-chemistry"],["Physics Simulations","physics-sims"],["Astronomy Data","astronomy"],["Geospatial / GIS","gis"],["Climate Modeling","climate-modeling"],["Quantum Computing","quantum-computing"],["Numerical Methods","numerical-methods"],["Finite Element Analysis","fea"],["Fluid Dynamics Simulation","fluid-dynamics"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a",label:"Finance",items:[["Algorithmic Trading","algo-trading"],["Quantitative Finance","quant-finance"],["Risk Modeling","risk-modeling"],["Fraud Detection Systems","fraud-detection"],["Credit Scoring Models","credit-scoring"],["Portfolio Optimization","portfolio-optimization"],["Crypto Trading Bots","crypto-bots"],["Financial Data Pipelines","financial-pipelines"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a",label:"Infra",items:[["Distributed Systems","distributed-systems"],["Microservices Architecture","microservices"],["Container Orchestration","container-orchestration"],["Message Queues","message-queues"],["Load Testing","load-testing"],["Monitoring / Observability","monitoring"],["CI/CD Pipeline Scripting","cicd"],["Package / Library Development","package-dev"],["Compiler / Interpreter Building","compiler-building"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a",label:"AI Frontier",items:[["Multi-Agent Systems","multi-agent"],["AI Agents with Tool-Use","ai-agents"],["RAG Systems","rag"],["Vector Databases","vector-db"],["Fine-tuning LLMs","llm-finetuning"],["Model Quantization / Optimization","quantization"],["MLOps","mlops"],["Federated Learning","federated-learning"],["Explainable AI","xai"],["Synthetic Data Generation","synthetic-data"],["AI Safety / Alignment","ai-safety"],["Prompt Engineering Frameworks","prompt-eng"],["Voice Cloning / Synthesis","voice-cloning"],["Emotion Detection","emotion-detection"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a\ud83c\udf0a",label:"Research",items:[["Genomics / DNA Analysis","genomics"],["Drug Discovery","drug-discovery"],["Neuroscience Data Analysis","neuroscience"],["Medical Imaging","medical-imaging"],["Epidemiology Modeling","epidemiology"],["Materials Science Simulation","materials-science"],["Weather Prediction Models","weather-prediction"],["Autonomous Vehicle Perception","autonomous-driving"],["SLAM / Localization","slam"],["Satellite Image Analysis","satellite-imagery"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a\ud83c\udf0a",label:"Abyss",items:[["Python C-Extensions","c-extensions"],["Build Your Own ML Framework","own-ml-framework"],["GPU Programming","gpu-programming"],["Parallel / Distributed Computing","parallel-computing"],["OS Scripting / Tooling","os-tooling"],["Malware Analysis / Reverse Engineering","malware-analysis"],["Digital Forensics Tooling","forensics"],["Embedded Systems Firmware","embedded-firmware"],["Simulation Engines","simulation-engines"],["Build Your Own Database Engine","own-db-engine"],["Build Your Own Web Framework","own-web-framework"],["Search Engine Building","search-engine"],["Programming Language / DSL","own-language"]]},
+  {icon:"\ud83e\udd16",label:"Frontier",items:[["Python for AI Research","agi-research"]]},
+];
+
+/* ------------- layout ------------- */
+const MAIN_W=196, MAIN_H=52, CH_W=182, CH_H=42, COL=290, YGAP=54, SECGAP=78;
+const nodes=[]; // {title, x,y,w,h,kind,detail}
+let y=0;
+const sectionYs=[];
+SECTIONS.forEach(sec=>{
+  const k=Math.max(sec.left.length, sec.right.length, 1);
+  const spread=(k-1)*YGAP;
+  const secH=Math.max(MAIN_H, spread);
+  const cy=y+secH/2;
+  nodes.push({title:sec.main,x:-MAIN_W/2,y:cy-MAIN_H/2,w:MAIN_W,h:MAIN_H,kind:"main",rec:!!sec.rec});
+  const place=(list,side,dx)=>{ list.forEach((t,i)=>{
+    const cxX = side==="right" ? dx : -dx-CH_W;
+    const cyy = cy - spread/2 + (i*YGAP) + (k-1-list.length)*0; // stack from top-ish
+    const yy = cy - ((list.length-1)*YGAP)/2 + i*YGAP;
+    nodes.push({title:t,x:cxX,y:yy-CH_H/2,w:CH_W,h:CH_H,kind:"child",side});
+  });};
+  place(sec.right,"right",COL);
+  place(sec.left,"left",COL);
+  y += secH + SECGAP;
+  sectionYs.push({main:sec.main, end:y-SECGAP, callout:sec.callout});
+});
+
+/* bounds */
+let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+nodes.forEach(n=>{minX=Math.min(minX,n.x);maxX=Math.max(maxX,n.x+n.w);minY=Math.min(minY,n.y);maxY=Math.max(maxY,n.y+n.h);});
+const PAD=60, W=(maxX-minX)+PAD*2, H=(maxY-minY)+PAD*2;
+const OX=-minX+PAD, OY=-minY+PAD;
+
+const canvas=document.getElementById("canvas");
+canvas.style.width=W+"px"; canvas.style.height=H+"px";
+const svg=document.getElementById("wires");
+svg.setAttribute("width",W); svg.setAttribute("height",H);
+
+function elbow(x1,y1,x2,y2){
+  const mx=(x1+x2)/2;
+  return `M ${x1} ${y1} H ${mx} V ${y2} H ${x2}`;
+}
+
+/* draw nodes + wires */
+const byTitle={};
+nodes.forEach(n=>{ byTitle[n.title]=n; });
+nodes.forEach(n=>{
+  const d=document.createElement("div");
+  d.className="node "+(n.kind==="main"?"main":"child");
+  d.style.left=(n.x+OX)+"px"; d.style.top=(n.y+OY)+"px";
+  d.style.width=n.w+"px";
+  d.innerHTML='<div class="n-t">'+n.title+'</div>'+(DETAIL[n.title]&&DETAIL[n.title].sub?'<div class="n-s">'+DETAIL[n.title].sub+'</div>':'');
+  if(n.rec) d.insertAdjacentHTML("afterbegin",'<span class="rec"></span>');
+  d.insertAdjacentHTML("beforeend",'<span class="chk"></span>');
+  canvas.appendChild(d);
+  n._el=d;
+  // wire from main to children
+});
+SECTIONS.forEach(sec=>{
+  const m=byTitle[sec.main];
+  [...sec.right].forEach(t=>{const c=byTitle[t]; if(c) addWire(m.x+m.w,m.y+m.h/2,c.x,c.y+c.h/2);});
+  [...sec.left].forEach(t=>{const c=byTitle[t]; if(c) addWire(m.x,m.y+m.h/2,c.x+c.w,c.y+c.h/2);});
+});
+// vertical spine connectors between main nodes
+for(let i=0;i<SECTIONS.length-1;i++){
+  const a=byTitle[SECTIONS[i].main], b=byTitle[SECTIONS[i+1].main];
+  addWire(a.x+a.w/2,a.y+a.h,b.x+b.w/2,b.y);
+}
+function addWire(x1,y1,x2,y2){
+  const p=document.createElementNS("http://www.w3.org/2000/svg","path");
+  p.setAttribute("d",elbow(x1+OX,y1+OY,x2+OX,y2+OY));
+  p.setAttribute("class","wire");
+  svg.appendChild(p);
+}
+// callouts
+sectionYs.forEach(s=>{ if(!s.callout) return; const sec=SECTIONS.find(x=>x.main===s.main); const k=Math.max(sec.left.length,sec.right.length,1);
+  const co=document.createElement("div"); co.className="callout"; co.textContent=s.callout;
+  const cw=380; co.style.width=cw+"px";
+  const cnode=byTitle[s.main];
+  co.style.left=(-cw/2+OX)+"px"; co.style.top=(s.end+OY+6)+"px";
+  canvas.appendChild(co);
+});
+
+/* click + check + panel */
+document.querySelectorAll(".node").forEach(el=>{
+  const title=el.querySelector(".n-t").textContent;
+  el.addEventListener("click",(e)=>{
+    if(e.target.classList.contains("chk")){ el.classList.toggle("done"); return; }
+    openPanel(title);
+    document.querySelectorAll(".node").forEach(o=>o.style.outline="");
+    el.style.outline="3px solid rgba(139,92,246,.5)";
+  });
+  if(localStorage.getItem("rm:"+title)==="1") el.classList.add("done");
+  el.addEventListener("click",e=>{ if(e.target.classList.contains("chk")){ localStorage.setItem("rm:"+title, el.classList.contains("done")?"1":"0"); }});
+});
+
+function openPanel(title){
+  const d=DETAIL[title]||{};
+  document.getElementById("p-title").textContent=title;
+  document.getElementById("p-sub").textContent=d.sub||"Topic";
+  const chips=document.getElementById("p-chips"); chips.innerHTML="";
+  [["cat",d.cat],["level",d.level],["time",d.time]].forEach(([k,v])=>{
+    if(!v) return; const c=document.createElement("span"); c.className="chip "+k; c.textContent=v; chips.appendChild(c);
+  });
+  const b=document.getElementById("p-body"); b.innerHTML="";
+  const sec=(h,node)=>{const s=document.createElement("div");s.className="sec";const t=document.createElement("h3");t.textContent=h;s.appendChild(t);s.appendChild(node);b.appendChild(s);};
+  const list=(arr,cls)=>{const ul=document.createElement("ul");ul.className="li "+(cls||"");arr.forEach(x=>{const li=document.createElement("li");li.textContent=x;ul.appendChild(li);});return ul;};
+  const pEl=document.createElement("p");
+  if(d.why){pEl.className="why";pEl.textContent=d.why;sec("Overview",pEl.cloneNode(true));}
+  if(d.prereq) sec("Prerequisites",list(d.prereq,"pr"));
+  if(d.learn) sec("What you'll learn",list(d.learn));
+  if(d.tools){const t=document.createElement("div");t.className="tags";d.tools.forEach(x=>{const sp=document.createElement("span");sp.className="tag";sp.textContent=x;t.appendChild(sp);});sec("Tools & technologies",t);}
+  if(d.practice) sec("Hands-on practice",list(d.practice));
+  if(d.resources){const r=document.createElement("div");r.className="res";d.resources.forEach(x=>{
+    const a=document.createElement("a");a.href=x.u;a.target="_blank";a.rel="noopener";
+    a.innerHTML=x.t+'<span>↗</span>';r.appendChild(a);});sec("Resources",r);}
+  if(d.can){const c=document.createElement("div");c.className="can";c.textContent=d.can;sec("What you can do afterwards",c);}
+  const p=document.getElementById("panel");p.classList.add("open");p.setAttribute("aria-hidden","false");
+}
+document.getElementById("p-close").addEventListener("click",()=>{
+  const p=document.getElementById("panel");p.classList.remove("open");p.setAttribute("aria-hidden","true");});
+
+/* ------------- left sidebar: all learning paths ------------- */
+const CURRENT_SLUG="recommendation-systems";
+const BUILT=new Set(["agi-research", "ai-agents", "ai-safety", "algo-trading", "api-building", "astronomy", "audio-processing", "automation", "autonomous-driving", "bioinformatics", "blockchain", "c-extensions", "cgi-animation", "chatbots", "cicd", "climate-modeling", "cloud-computing", "comp-chemistry", "compiler-building", "computer-vision", "container-orchestration", "credit-scoring", "crypto-bots", "cryptography", "cybersecurity", "data-science", "data-viz", "database-ops", "deep-learning", "devops-scripting", "distributed-systems", "drones", "drug-discovery", "embedded-firmware", "emotion-detection", "epidemiology", "etl-pipelines", "excel-automation", "fea", "federated-learning", "financial-pipelines", "fluid-dynamics", "forensics", "fraud-detection", "game-dev", "genai-finetuning", "genomics", "gis", "gpu-programming", "gui-apps", "image-generation", "iot", "llm-finetuning", "load-testing", "machine-learning", "malware-analysis", "materials-science", "medical-imaging", "message-queues", "microservices", "mlops", "monitoring", "multi-agent", "network-programming", "neuroscience", "nlp", "numerical-methods", "os-tooling", "own-db-engine", "own-language", "own-ml-framework", "own-web-framework", "package-dev", "parallel-computing", "physics-sims", "portfolio-optimization", "prompt-eng", "quant-finance", "quantization", "quantum-computing", "rag", "recommendation-systems", "reinforcement-learning", "risk-modeling", "robotics", "satellite-imagery", "search-engine", "simulation-engines", "slam", "speech", "synthetic-data", "testing-qa", "time-series", "vector-db", "video-processing", "voice-cloning", "weather-prediction", "web-dev", "web-scraping", "xai"]);
+const side=document.getElementById("side");
+const sidebarItems=[];
+{
+  const inp=document.createElement("input"); inp.className="search"; inp.placeholder="Search 100 paths…";
+  side.appendChild(inp);
+  PATH_CATS.forEach(cat=>{
+    const hd=document.createElement("h5"); hd.innerHTML=cat.icon+" "+cat.label; side.appendChild(hd);
+    cat.items.forEach(([name,slug])=>{
+      const isCur=slug===CURRENT_SLUG, built=BUILT.has(slug), navigable=built&&!isCur;
+      const el=document.createElement(navigable?"a":"span");
+      el.className="p-item"+(isCur?" active":built?"":" soon");
+      if(navigable) el.href="./"+slug+"-roadmap.html";
+      const nm=document.createElement("span"); nm.textContent=name;
+      const bd=document.createElement("em"); bd.textContent=isCur?"now":built?"open":"soon";
+      el.appendChild(nm); el.appendChild(bd);
+      el.dataset.q=(name+" "+slug).toLowerCase();
+      el.dataset.cat=cat.label;
+      side.appendChild(el); sidebarItems.push(el);
+    });
+  });
+  inp.addEventListener("input",()=>{
+    const q=inp.value.trim().toLowerCase();
+    sidebarItems.forEach(el=>{ el.style.display = !q || el.dataset.q.includes(q) ? "" : "none"; });
+    side.querySelectorAll("h5").forEach(hd=>{
+      let any=false, n=hd.nextElementSibling;
+      while(n && n.tagName!=="H5"){ if(n.style.display!=="none") any=true; n=n.nextElementSibling; }
+      hd.style.display=any?"":"none";
+    });
+  });
+}
+document.getElementById("sideToggle").addEventListener("click",()=>document.body.classList.toggle("no-side"));
+</script>
+</body>
+</html>

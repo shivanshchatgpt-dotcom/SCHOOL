@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cloud Computing — Roadmap</title>
+<style>
+  :root{
+    --bg:#fafafa; --ink:#18181b; --mut:#71717a; --line:#e4e4e7;
+    --yellow:#fde047; --yellow-bd:#52525b; --yellow-deep:#facc15;
+    --rec:#8b5cf6; --alt:#22c55e; --opt:#a1a1aa;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%;color:var(--ink);
+    font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  /* top nav */
+  .nav{position:sticky;top:0;height:52px;background:#fff;border-bottom:1px solid var(--line);
+    display:flex;align-items:center;gap:12px;padding:0 18px;z-index:50}
+  .nav .brand{font-weight:800;letter-spacing:-.02em}
+  .nav .brand span{color:var(--rec)}
+  .nav .title{color:var(--mut);font-size:14px}
+
+  /* diagram flows with the page; wide trees scroll horizontally */
+  .diagram-wrap{overflow-x:auto;background-color:var(--bg);
+    background-image:radial-gradient(#d4d4d8 1.1px, transparent 1.1px);
+    background-size:22px 22px;padding:26px 30px 70px}
+  .canvas{position:relative;margin:0 auto}
+  svg.wires{position:absolute;top:0;left:0;overflow:visible;pointer-events:none}
+  .wire{fill:none;stroke:#a1a1aa;stroke-width:1.6;stroke-dasharray:5 5}
+
+  .node{position:absolute;background:var(--yellow);border:1.6px solid var(--yellow-bd);
+    border-radius:7px;padding:9px 12px;text-align:center;cursor:pointer;user-select:none;
+    box-shadow:0 2px 0 rgba(0,0,0,.16);transition:box-shadow .1s,transform .1s}
+  .node:hover{box-shadow:0 2px 0 rgba(0,0,0,.16),0 0 0 3px rgba(139,92,246,.25)}
+  .node.main{background:var(--yellow-deep);font-weight:800;font-size:15px}
+  .node .n-t{font-weight:600;font-size:13.5px;line-height:1.25}
+  .node.main .n-t{font-weight:800}
+  .node .n-s{font-size:11px;color:#3f3f46;margin-top:2px;font-weight:500;opacity:.85}
+  .node .rec{position:absolute;top:-7px;left:-7px;width:12px;height:12px;border-radius:50%;
+    background:var(--rec);border:2px solid #fff}
+  .node .chk{position:absolute;top:-8px;right:-8px;width:18px;height:18px;border-radius:50%;
+    background:#fff;border:1.6px solid var(--yellow-bd);display:flex;align-items:center;
+    justify-content:center;font-size:11px;color:#fff;font-weight:800}
+  .node.done .chk{background:var(--alt);border-color:var(--alt);color:#fff}
+  .node.done .chk::after{content:"✓"}
+  .callout{position:absolute;background:#fff;border:1.6px solid var(--yellow-bd);border-radius:8px;
+    padding:11px 16px;text-align:center;font-size:13px;font-weight:600;box-shadow:0 2px 0 rgba(0,0,0,.12)}
+
+  /* legend */
+  .legend{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 16px;
+    max-width:720px;margin:18px auto 0;box-shadow:0 4px 14px rgba(0,0,0,.05);
+    display:flex;flex-wrap:wrap;align-items:center;gap:8px 22px}
+  .legend h4{margin:0;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);width:100%}
+  .legend .row{display:flex;align-items:center;gap:8px;font-size:13px;margin:0;color:#3f3f46}
+  .legend .d{width:11px;height:11px;border-radius:50%}
+  .legend .hint{font-size:11.5px;color:var(--mut);width:100%}
+
+  /* layout + left sidebar */
+  .layout{display:flex;align-items:flex-start}
+  .main{flex:1;min-width:0}
+  .side{width:272px;flex:none;position:sticky;top:52px;height:calc(100vh - 52px);overflow:auto;
+    border-right:1px solid var(--line);background:#fcfcfd;padding:14px 12px 40px}
+  body.no-side .side{display:none}
+  .side .search{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;margin-bottom:8px;outline:none}
+  .side .search:focus{border-color:var(--rec)}
+  .side h5{margin:14px 6px 6px;font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);display:flex;align-items:center;gap:6px}
+  .side a.p-item,.side span.p-item{display:flex;align-items:center;justify-content:space-between;gap:8px;
+    font-size:13px;text-decoration:none;color:#3f3f46;padding:6px 9px;border-radius:7px;cursor:pointer}
+  .side a.p-item:hover{background:#f4f4f5}
+  .side .p-item.active{background:#fef9c3;color:#713f12;font-weight:600;border:1px solid #fde047}
+  .side .p-item.soon{color:#b6b6bd;cursor:default}
+  .side .p-item em{font-style:normal;font-size:9.5px;border:1px solid var(--line);border-radius:999px;padding:1px 6px;color:var(--mut);background:#fff}
+  .side .p-item.active em{border-color:#fde047;background:#fffbeb;color:#92400e}
+  .nav .spacer{flex:1}
+  .nav .btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 11px;font-size:13px;cursor:pointer}
+  .nav .btn:hover{background:#f4f4f5}
+  /* when embedded in the PySchool app iframe, the app provides the chrome */
+  body.embedded .nav{display:none}
+  body.embedded .side{top:0;height:100vh}
+  body.embedded .panel{top:0;height:100%}
+
+  /* panel */
+  .panel{position:fixed;top:52px;right:0;height:calc(100% - 52px);width:min(420px,92vw);background:#fff;
+    border-left:1px solid var(--line);box-shadow:-14px 0 40px rgba(0,0,0,.1);z-index:40;
+    transform:translateX(103%);transition:transform .2s ease;display:flex;flex-direction:column}
+  .panel.open{transform:none}
+  .panel .head{padding:16px 20px 14px;border-bottom:1px solid #f1f1f3;display:flex;justify-content:space-between;gap:12px}
+  .panel h2{margin:0 0 6px;font-size:19px;line-height:1.25}
+  .panel .sub{color:var(--mut);font-size:12.5px;margin-bottom:9px}
+  .panel .close{background:none;border:1px solid var(--line);color:var(--mut);border-radius:8px;width:30px;height:30px;cursor:pointer;flex:none}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{font-size:11px;font-weight:600;border-radius:999px;padding:3px 9px;border:1px solid transparent}
+  .chip.cat{background:#eef2ff;color:#3730a3;border-color:#c7d2fe}
+  .chip.level{background:#ecfdf5;color:#065f46;border-color:#a7f3d0}
+  .chip.time{background:#fffbeb;color:#92400e;border-color:#fde68a}
+  .panel .body{padding:16px 20px 40px;overflow:auto}
+  .sec{margin-bottom:18px}
+  .sec h3{margin:0 0 8px;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--rec)}
+  .why{font-size:13.5px;color:#374151;line-height:1.55;margin:0}
+  ul.li{margin:0;padding-left:18px} ul.li li{font-size:13px;color:#374151;margin:3px 0}
+  ul.li.pr li::marker{color:var(--mut)}
+  .can{background:#faf5ff;border:1px solid #e9d5ff;color:#5b21b6;border-radius:9px;padding:11px 13px;font-size:13px}
+  .tags{display:flex;flex-wrap:wrap;gap:6px}
+  .tag{background:#f4f4f5;border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:12px;color:#3f3f46}
+  .res{display:flex;flex-direction:column;gap:6px}
+  .res a{display:flex;align-items:center;gap:8px;font-size:13px;color:#2563eb;text-decoration:none;
+    border:1px solid #e5e7eb;border-radius:8px;padding:8px 11px;background:#fafafa}
+  .res a:hover{background:#f0f6ff;border-color:#bfdbfe}
+  .res a span{color:var(--mut);margin-left:auto;font-size:11px}
+</style>
+</head>
+<body>
+<div class="nav">
+  <div class="brand">Py<span>School</span></div>
+  <div class="title">/ Cloud Computing</div>
+  <div class="spacer"></div>
+  <button class="btn" id="sideToggle">☰ All paths</button>
+</div>
+
+<div class="layout">
+<nav class="side" id="side"></nav>
+<div class="main">
+
+<div class="legend">
+  <h4>Cloud Computing</h4>
+  <div class="row"><span class="d" style="background:var(--rec)"></span>Recommended</div>
+  <div class="row"><span class="d" style="background:var(--alt)"></span>Alternative option</div>
+  <div class="row"><span class="d" style="background:var(--opt)"></span>Order not strict</div>
+  <div class="hint">Click a topic for details · click the ✓ to mark it done · Ctrl +/− to zoom the whole page</div>
+</div>
+
+<div class="diagram-wrap">
+  <div class="canvas" id="canvas">
+    <svg class="wires" id="wires"></svg>
+  </div>
+</div>
+
+</div>
+</div>
+
+<aside class="panel" id="panel" aria-hidden="true">
+  <div class="head">
+    <div><h2 id="p-title">Select a topic</h2><div class="sub" id="p-sub"></div><div class="chips" id="p-chips"></div></div>
+    <button class="close" id="p-close">✕</button>
+  </div>
+  <div class="body" id="p-body"></div>
+</aside>
+
+<script>
+/* embedded inside the PySchool app? then let the app own the top bar */
+if(window.self!==window.top) document.body.classList.add("embedded");
+/* ------------- content ------------- */
+const SECTIONS = [
+  {main:"Cloud & Python Foundations", rec:true, left:[], right:["Cloud Fundamentals","Python & SDKs (boto3)"],
+   callout:"At this point you can talk to cloud services from Python."},
+  {main:"Compute & Storage", rec:true, left:["Compute Services"], right:["Object Storage (S3)","Managed Databases"],
+   callout:"At this point you can run code and store data in the cloud."},
+  {main:"Identity & Security", left:["IAM & Permissions"], right:["Secrets & Key Management","Networking & VPC"],
+   callout:"At this point your cloud resources are locked down properly."},
+  {main:"Infrastructure as Code", left:["Terraform Basics"], right:["Serverless & Containers","CI/CD for Cloud"],
+   callout:"At this point you provision cloud environments from code."},
+  {main:"Data & Events on Cloud", left:["Data Lakes & Warehouses"], right:["Queues & Events","ETL & Orchestration"],
+   callout:"At this point you can build cloud data pipelines."},
+  {main:"Cost, Reliability & Monitoring", left:["Cost Optimisation"], right:["Monitoring & Logging","Reliability & Scaling"],
+   callout:"At this point your cloud setup is affordable and dependable."},
+  {main:"Cloud Architectures", left:["Well-Architected Design"], right:["Multi-Service Apps","Serverless Data Pipelines"],
+   callout:"At this point you can design real cloud systems end to end."}
+];
+const DETAIL = {
+  "Cloud & Python Foundations":{sub:"Start here · weeks 1–3",cat:"Foundations",level:"Beginner",time:"~3 weeks",
+    why:"Cloud replaces servers you own with services you call. Understanding the model — regions, services, pay-as-you-go — and being able to drive it from Python is the entry point.",
+    learn:["IaaS, PaaS, serverless","Regions, availability zones and accounts","Calling services from Python"],
+    tools:["AWS / GCP / Azure","boto3"],
+    practice:["List and inspect resources in a sandbox account with Python"],
+    resources:[{t:"AWS: getting started",u:"https://docs.aws.amazon.com/index.html"}],
+    can:"Use cloud services programmatically."},
+  "Cloud Fundamentals":{cat:"Foundations",level:"Beginner",time:"~2 weeks",prereq:["None — start here"],
+    why:"Every cloud provider shares the same concepts; learning them once transfers everywhere.",
+    learn:["Core service categories","Regions and availability","Shared responsibility model"],
+    tools:["AWS free tier"],
+    practice:["Map ten familiar tasks to cloud services"],
+    resources:[{t:"Microsoft: cloud concepts",u:"https://learn.microsoft.com/en-us/training/"}],
+    can:"Reason about cloud architecture."},
+  "Python & SDKs (boto3)":{cat:"Foundations",level:"Beginner",time:"~1 week",prereq:["Cloud Fundamentals"],
+    why:"The SDK is how you automate cloud work: create, list, modify and delete resources from code.",
+    learn:["Credentials and sessions","Clients vs resources","Error handling and pagination"],
+    tools:["boto3"],
+    practice:["Write a script that lists and tags resources"],
+    resources:[{t:"boto3 documentation",u:"https://boto3.amazonaws.com/v1/documentation/api/latest/index.html"}],
+    can:"Drive the cloud from Python."},
+
+  "Compute & Storage":{sub:"Weeks 3–6",cat:"Core",level:"Beginner",time:"~3 weeks",prereq:["Cloud & Python Foundations"],
+    why:"Compute runs your code, storage keeps your data. These two services are the core of almost every cloud system.",
+    learn:["Virtual machines and containers","Object vs block storage","Managed databases"],
+    tools:["EC2 / Lambda","S3","RDS"],
+    practice:["Deploy a script to a VM and store its output in object storage"],
+    resources:[{t:"AWS: S3 user guide",u:"https://docs.aws.amazon.com/s3/"}],
+    can:"Run code and store data in the cloud."},
+  "Compute Services":{cat:"Core",level:"Beginner",time:"~1–2 weeks",prereq:["Cloud Fundamentals"],
+    why:"Choosing between VMs, containers and functions is a core architecture decision.",
+    learn:["VMs (EC2)","Containers and serverless","When to use each"],
+    tools:["EC2","Lambda"],
+    practice:["Run the same task on a VM and as a function"],
+    resources:[{t:"AWS Lambda docs",u:"https://docs.aws.amazon.com/lambda/"}],
+    can:"Pick the right compute option."},
+  "Object Storage (S3)":{cat:"Core",level:"Beginner",time:"~1 week",prereq:["Python & SDKs (boto3)"],
+    why:"Object storage is the default place for files, backups, data lakes and static sites — and it is cheap.",
+    learn:["Buckets, keys and prefixes","Permissions and lifecycle","Uploading from Python"],
+    tools:["S3","boto3"],
+    practice:["Build a script that syncs a folder to a bucket"],
+    resources:[{t:"AWS: S3 user guide",u:"https://docs.aws.amazon.com/s3/"}],
+    can:"Store and retrieve files at scale."},
+  "Managed Databases":{cat:"Core",level:"Intermediate",time:"~1 week",prereq:["Object Storage (S3)"],
+    why:"Managed databases handle backups, scaling and failover so you do not have to.",
+    learn:["Relational vs NoSQL services","Connecting from applications","Backups and snapshots"],
+    tools:["RDS","DynamoDB"],
+    practice:["Provision a managed database and connect from Python"],
+    resources:[{t:"AWS: RDS docs",u:"https://docs.aws.amazon.com/rds/"}],
+    can:"Use managed databases reliably."},
+
+  "Identity & Security":{sub:"Weeks 5–9",cat:"Security",level:"Intermediate",time:"~3 weeks",prereq:["Compute & Storage"],
+    why:"Cloud security is identity-first. Most breaches come from over-permissive credentials, not clever attacks.",
+    learn:["Users, roles and policies","Least privilege","Secrets, keys and encryption"],
+    tools:["IAM","KMS","Secrets Manager"],
+    practice:["Create a least-privilege role for a specific job"],
+    resources:[{t:"AWS: IAM best practices",u:"https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html"}],
+    can:"Secure cloud access properly."},
+  "IAM & Permissions":{cat:"Security",level:"Intermediate",time:"~1–2 weeks",prereq:["Python & SDKs (boto3)"],
+    why:"Getting permissions right is the single most important cloud-security skill.",
+    learn:["Roles vs users","Policy documents","Assuming roles"],
+    tools:["IAM"],
+    practice:["Write a policy allowing only the needed actions"],
+    resources:[{t:"AWS: IAM policies",u:"https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html"}],
+    can:"Grant exactly the right access."},
+  "Secrets & Key Management":{cat:"Security",level:"Intermediate",time:"~1 week",prereq:["IAM & Permissions"],
+    why:"Hard-coded keys are a classic breach; managed secrets and encryption prevent that.",
+    learn:["Storing secrets","Encryption with KMS","Rotation"],
+    tools:["Secrets Manager","KMS"],
+    practice:["Move credentials from code into a secret store"],
+    resources:[{t:"AWS: Secrets Manager",u:"https://docs.aws.amazon.com/secretsmanager/"}],
+    can:"Manage secrets safely."},
+  "Networking & VPC":{cat:"Security",level:"Advanced",time:"~1–2 weeks",prereq:["Compute Services"],
+    why:"Networks decide what can talk to what — the foundation of isolation and security.",
+    learn:["VPCs, subnets and routing","Security groups and firewalls","Load balancers and DNS"],
+    tools:["VPC","Route 53"],
+    practice:["Put a service in a private subnet behind a load balancer"],
+    resources:[{t:"AWS: VPC docs",u:"https://docs.aws.amazon.com/vpc/"}],
+    can:"Design secure cloud networks."},
+
+  "Infrastructure as Code":{sub:"Weeks 8–12",cat:"IaC",level:"Advanced",time:"~4 weeks",prereq:["Identity & Security"],
+    why:"Clicking in the console does not scale or reproduce. Defining infrastructure in code makes environments repeatable, reviewable and safe.",
+    learn:["Declarative infrastructure","Terraform workflow","Containers and serverless deploys"],
+    tools:["Terraform","Docker"],
+    practice:["Provision a full environment from a Terraform file"],
+    resources:[{t:"Terraform docs",u:"https://developer.hashicorp.com/terraform/docs"}],
+    can:"Provision cloud environments from code."},
+  "Terraform Basics":{cat:"IaC",level:"Advanced",time:"~2 weeks",prereq:["IAM & Permissions"],
+    why:"Terraform is the most common way to define cloud infrastructure across providers.",
+    learn:["Providers and resources","Plan and apply","State management"],
+    tools:["Terraform"],
+    practice:["Create and destroy a VM from Terraform"],
+    resources:[{t:"Terraform: get started",u:"https://developer.hashicorp.com/terraform/tutorials"}],
+    can:"Manage infrastructure declaratively."},
+  "Serverless & Containers":{cat:"IaC",level:"Advanced",time:"~1 week",prereq:["Compute Services"],
+    why:"Containers give portability; serverless removes servers entirely. Both are core to modern cloud delivery.",
+    learn:["Containerising apps","Deploying functions","Managed container services"],
+    tools:["Docker","Lambda","ECS"],
+    practice:["Deploy a containerised app to a managed service"],
+    resources:[{t:"Docker: get started",u:"https://docs.docker.com/get-started/"}],
+    can:"Deploy apps without managing servers."},
+  "CI/CD for Cloud":{cat:"IaC",level:"Advanced",time:"~1 week",prereq:["Terraform Basics"],
+    why:"Automating deploys with pipelines is how cloud changes ship safely and often.",
+    learn:["Pipeline stages","Deploying infra and apps","Environment promotion"],
+    tools:["GitHub Actions","Terraform"],
+    practice:["Automate a deploy that runs on every merge"],
+    resources:[{t:"GitHub Actions docs",u:"https://docs.github.com/actions"}],
+    can:"Deliver cloud changes automatically."},
+
+  "Data & Events on Cloud":{sub:"Weeks 11–15",cat:"Data",level:"Advanced",time:"~3 weeks",prereq:["Infrastructure as Code"],
+    why:"Cloud is where data lives and moves. Warehouses, queues and event-driven pipelines are how modern systems stay decoupled and scalable.",
+    learn:["Data lakes and warehouses","Queues, events and streams","Orchestrating pipelines"],
+    tools:["S3","SQS / Kafka","Airflow"],
+    practice:["Build an event-driven pipeline that processes uploads"],
+    resources:[{t:"AWS: analytics services",u:"https://docs.aws.amazon.com/analytics/"}],
+    can:"Build cloud data pipelines."},
+  "Data Lakes & Warehouses":{cat:"Data",level:"Advanced",time:"~1–2 weeks",prereq:["Object Storage (S3)"],
+    why:"Knowing where to land raw vs modelled data decides how usable your analytics will be.",
+    learn:["Lake vs warehouse vs lakehouse","Partitioning and formats","Query engines"],
+    tools:["S3","Athena / BigQuery"],
+    practice:["Load partitioned data and query it"],
+    resources:[{t:"AWS: Athena docs",u:"https://docs.aws.amazon.com/athena/"}],
+    can:"Store and query cloud data."},
+  "Queues & Events":{cat:"Data",level:"Advanced",time:"~1 week",prereq:["Serverless & Containers"],
+    why:"Decoupling with queues makes systems resilient and lets work scale independently.",
+    learn:["Queues vs pub/sub","Retries and dead-letter queues","Triggering from events"],
+    tools:["SQS","SNS","EventBridge"],
+    practice:["Trigger a function from a queue with retries"],
+    resources:[{t:"AWS: SQS docs",u:"https://docs.aws.amazon.com/sqs/"}],
+    can:"Build decoupled event-driven systems."},
+  "ETL & Orchestration":{cat:"Data",level:"Advanced",time:"~1–2 weeks",prereq:["Data Lakes & Warehouses"],
+    why:"Pipelines must run on schedule, retry on failure and alert when they break.",
+    learn:["Orchestrators (Airflow)","Scheduling and dependencies","Idempotent jobs"],
+    tools:["Airflow","Lambda"],
+    practice:["Automate a daily ETL job with retries"],
+    resources:[{t:"Airflow docs",u:"https://airflow.apache.org/docs/"}],
+    can:"Orchestrate cloud data jobs."},
+
+  "Cost, Reliability & Monitoring":{sub:"Weeks 14–18",cat:"Operations",level:"Advanced",time:"~3 weeks",prereq:["Data & Events on Cloud"],
+    why:"Cloud costs and failures are the two things that end projects. Observability, cost control and resilience are what keep a system alive.",
+    learn:["Cost drivers and budgets","Logs, metrics and traces","Scaling and high availability"],
+    tools:["CloudWatch","Grafana"],
+    practice:["Set a budget alarm and add monitoring to a service"],
+    resources:[{t:"AWS: Well-Architected",u:"https://docs.aws.amazon.com/wellarchitected/"}],
+    can:"Run cloud systems affordably and reliably."},
+  "Cost Optimisation":{cat:"Operations",level:"Advanced",time:"~1 week",prereq:["Compute Services"],
+    why:"Cloud bills grow silently; understanding the cost model keeps budgets under control.",
+    learn:["Pricing models","Right-sizing and reserved capacity","Cost monitoring"],
+    tools:["Cost Explorer"],
+    practice:["Cut a bill by right-sizing and lifecycle policies"],
+    resources:[{t:"AWS: cost management",u:"https://docs.aws.amazon.com/cost-management/"}],
+    can:"Keep cloud spending sane."},
+  "Monitoring & Logging":{cat:"Operations",level:"Advanced",time:"~1 week",prereq:["Queues & Events"],
+    why:"You cannot operate what you cannot see; logs and metrics are how you find problems fast.",
+    learn:["Structured logging","Metrics and dashboards","Alerts"],
+    tools:["CloudWatch","Grafana"],
+    practice:["Add metrics and an alert to a deployed service"],
+    resources:[{t:"AWS: CloudWatch docs",u:"https://docs.aws.amazon.com/cloudwatch/"}],
+    can:"Observe cloud systems."},
+  "Reliability & Scaling":{cat:"Operations",level:"Advanced",time:"~1–2 weeks",prereq:["Networking & VPC"],
+    why:"Systems must survive traffic spikes and failures; scaling and redundancy are how.",
+    learn:["Horizontal scaling","Multi-AZ and failover","Backups and recovery"],
+    tools:["Auto Scaling","ELB"],
+    practice:["Make a service survive an instance failure"],
+    resources:[{t:"AWS: reliability pillar",u:"https://docs.aws.amazon.com/wellarchitected/latest/reliability-pillar/welcome.html"}],
+    can:"Build resilient cloud systems."},
+
+  "Cloud Architectures":{sub:"Months 6+",cat:"Architecture",level:"Advanced",time:"ongoing",prereq:["Cost, Reliability & Monitoring"],
+    why:"Senior cloud work is design: choosing services and composing them into secure, affordable, observable systems.",
+    learn:["Reference architectures","Trade-offs in service choice","End-to-end system design"],
+    tools:["Terraform","AWS"],
+    practice:["Design and build a full multi-service application"],
+    resources:[{t:"AWS: Well-Architected Framework",u:"https://docs.aws.amazon.com/wellarchitected/"}],
+    can:"Design complete cloud systems."},
+  "Well-Architected Design":{cat:"Architecture",level:"Advanced",time:"~2 weeks",prereq:["Reliability & Scaling"],
+    why:"The Well-Architected pillars give a checklist for judging any cloud design.",
+    learn:["The six pillars","Trade-offs","Architecture reviews"],
+    tools:["AWS Well-Architected Tool"],
+    practice:["Review a design against all six pillars"],
+    resources:[{t:"AWS: Well-Architected Framework",u:"https://docs.aws.amazon.com/wellarchitected/"}],
+    can:"Evaluate and improve architectures."},
+  "Multi-Service Apps":{cat:"Architecture",level:"Advanced",time:"~2 weeks",prereq:["Well-Architected Design"],
+    why:"Real systems combine compute, storage, auth, queues and networking — knowing how they fit is the job.",
+    learn:["Composing services","Auth and APIs","Environment separation"],
+    tools:["Terraform","Lambda"],
+    practice:["Build a three-tier app entirely in the cloud"],
+    resources:[{t:"AWS: architecture center",u:"https://aws.amazon.com/architecture/"}],
+    can:"Assemble real cloud applications."},
+  "Serverless Data Pipelines":{cat:"Architecture",level:"Advanced",time:"~2 weeks",prereq:["ETL & Orchestration"],
+    why:"Serverless pipelines scale to zero and cost almost nothing when idle — ideal for sporadic data work.",
+    learn:["Event-driven ETL","Serverless compute for data","Monitoring pipelines"],
+    tools:["Lambda","S3","Step Functions"],
+    practice:["Build a serverless pipeline from upload to report"],
+    resources:[{t:"AWS Step Functions",u:"https://docs.aws.amazon.com/step-functions/"}],
+    can:"Build cost-efficient data pipelines."}
+};
+
+
+
+/* all learning paths (from catalog), grouped by depth */
+const PATH_CATS = [
+  {icon:"\ud83c\udf0a",label:"Surface",items:[["Web Development","web-dev"],["Data Science / Analysis","data-science"],["Automation / Scripting","automation"],["Machine Learning","machine-learning"],["Web Scraping","web-scraping"],["Game Development","game-dev"],["GUI Applications","gui-apps"],["API Building","api-building"],["Chatbots","chatbots"],["Excel Automation","excel-automation"]]},
+  {icon:"\ud83c\udf0a",label:"Below Surface",items:[["Deep Learning","deep-learning"],["Computer Vision","computer-vision"],["NLP (Natural Language Processing)","nlp"],["Data Visualization","data-viz"],["Cloud Computing","cloud-computing"],["DevOps Scripting","devops-scripting"],["Testing / QA Automation","testing-qa"],["Database Operations","database-ops"],["ETL Pipelines","etl-pipelines"],["Recommendation Systems","recommendation-systems"]]},
+  {icon:"\ud83c\udf0a",label:"Mid-Level",items:[["Reinforcement Learning","reinforcement-learning"],["Generative AI / LLM Fine-tuning","genai-finetuning"],["Time Series Forecasting","time-series"],["Computer Graphics / Animation","cgi-animation"],["Cybersecurity / Pentesting","cybersecurity"],["Network Programming","network-programming"],["Cryptography Implementation","cryptography"],["Blockchain Scripting","blockchain"],["IoT Programming","iot"],["Robotics","robotics"],["Drone Programming","drones"],["Audio Processing","audio-processing"],["Video Processing","video-processing"],["Image Generation","image-generation"],["Speech Recognition / Synthesis","speech"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a",label:"Scientific",items:[["Bioinformatics","bioinformatics"],["Computational Chemistry","comp-chemistry"],["Physics Simulations","physics-sims"],["Astronomy Data","astronomy"],["Geospatial / GIS","gis"],["Climate Modeling","climate-modeling"],["Quantum Computing","quantum-computing"],["Numerical Methods","numerical-methods"],["Finite Element Analysis","fea"],["Fluid Dynamics Simulation","fluid-dynamics"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a",label:"Finance",items:[["Algorithmic Trading","algo-trading"],["Quantitative Finance","quant-finance"],["Risk Modeling","risk-modeling"],["Fraud Detection Systems","fraud-detection"],["Credit Scoring Models","credit-scoring"],["Portfolio Optimization","portfolio-optimization"],["Crypto Trading Bots","crypto-bots"],["Financial Data Pipelines","financial-pipelines"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a",label:"Infra",items:[["Distributed Systems","distributed-systems"],["Microservices Architecture","microservices"],["Container Orchestration","container-orchestration"],["Message Queues","message-queues"],["Load Testing","load-testing"],["Monitoring / Observability","monitoring"],["CI/CD Pipeline Scripting","cicd"],["Package / Library Development","package-dev"],["Compiler / Interpreter Building","compiler-building"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a",label:"AI Frontier",items:[["Multi-Agent Systems","multi-agent"],["AI Agents with Tool-Use","ai-agents"],["RAG Systems","rag"],["Vector Databases","vector-db"],["Fine-tuning LLMs","llm-finetuning"],["Model Quantization / Optimization","quantization"],["MLOps","mlops"],["Federated Learning","federated-learning"],["Explainable AI","xai"],["Synthetic Data Generation","synthetic-data"],["AI Safety / Alignment","ai-safety"],["Prompt Engineering Frameworks","prompt-eng"],["Voice Cloning / Synthesis","voice-cloning"],["Emotion Detection","emotion-detection"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a\ud83c\udf0a",label:"Research",items:[["Genomics / DNA Analysis","genomics"],["Drug Discovery","drug-discovery"],["Neuroscience Data Analysis","neuroscience"],["Medical Imaging","medical-imaging"],["Epidemiology Modeling","epidemiology"],["Materials Science Simulation","materials-science"],["Weather Prediction Models","weather-prediction"],["Autonomous Vehicle Perception","autonomous-driving"],["SLAM / Localization","slam"],["Satellite Image Analysis","satellite-imagery"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a\ud83c\udf0a",label:"Abyss",items:[["Python C-Extensions","c-extensions"],["Build Your Own ML Framework","own-ml-framework"],["GPU Programming","gpu-programming"],["Parallel / Distributed Computing","parallel-computing"],["OS Scripting / Tooling","os-tooling"],["Malware Analysis / Reverse Engineering","malware-analysis"],["Digital Forensics Tooling","forensics"],["Embedded Systems Firmware","embedded-firmware"],["Simulation Engines","simulation-engines"],["Build Your Own Database Engine","own-db-engine"],["Build Your Own Web Framework","own-web-framework"],["Search Engine Building","search-engine"],["Programming Language / DSL","own-language"]]},
+  {icon:"\ud83e\udd16",label:"Frontier",items:[["Python for AI Research","agi-research"]]},
+];
+
+/* ------------- layout ------------- */
+const MAIN_W=196, MAIN_H=52, CH_W=182, CH_H=42, COL=290, YGAP=54, SECGAP=78;
+const nodes=[]; // {title, x,y,w,h,kind,detail}
+let y=0;
+const sectionYs=[];
+SECTIONS.forEach(sec=>{
+  const k=Math.max(sec.left.length, sec.right.length, 1);
+  const spread=(k-1)*YGAP;
+  const secH=Math.max(MAIN_H, spread);
+  const cy=y+secH/2;
+  nodes.push({title:sec.main,x:-MAIN_W/2,y:cy-MAIN_H/2,w:MAIN_W,h:MAIN_H,kind:"main",rec:!!sec.rec});
+  const place=(list,side,dx)=>{ list.forEach((t,i)=>{
+    const cxX = side==="right" ? dx : -dx-CH_W;
+    const cyy = cy - spread/2 + (i*YGAP) + (k-1-list.length)*0; // stack from top-ish
+    const yy = cy - ((list.length-1)*YGAP)/2 + i*YGAP;
+    nodes.push({title:t,x:cxX,y:yy-CH_H/2,w:CH_W,h:CH_H,kind:"child",side});
+  });};
+  place(sec.right,"right",COL);
+  place(sec.left,"left",COL);
+  y += secH + SECGAP;
+  sectionYs.push({main:sec.main, end:y-SECGAP, callout:sec.callout});
+});
+
+/* bounds */
+let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+nodes.forEach(n=>{minX=Math.min(minX,n.x);maxX=Math.max(maxX,n.x+n.w);minY=Math.min(minY,n.y);maxY=Math.max(maxY,n.y+n.h);});
+const PAD=60, W=(maxX-minX)+PAD*2, H=(maxY-minY)+PAD*2;
+const OX=-minX+PAD, OY=-minY+PAD;
+
+const canvas=document.getElementById("canvas");
+canvas.style.width=W+"px"; canvas.style.height=H+"px";
+const svg=document.getElementById("wires");
+svg.setAttribute("width",W); svg.setAttribute("height",H);
+
+function elbow(x1,y1,x2,y2){
+  const mx=(x1+x2)/2;
+  return `M ${x1} ${y1} H ${mx} V ${y2} H ${x2}`;
+}
+
+/* draw nodes + wires */
+const byTitle={};
+nodes.forEach(n=>{ byTitle[n.title]=n; });
+nodes.forEach(n=>{
+  const d=document.createElement("div");
+  d.className="node "+(n.kind==="main"?"main":"child");
+  d.style.left=(n.x+OX)+"px"; d.style.top=(n.y+OY)+"px";
+  d.style.width=n.w+"px";
+  d.innerHTML='<div class="n-t">'+n.title+'</div>'+(DETAIL[n.title]&&DETAIL[n.title].sub?'<div class="n-s">'+DETAIL[n.title].sub+'</div>':'');
+  if(n.rec) d.insertAdjacentHTML("afterbegin",'<span class="rec"></span>');
+  d.insertAdjacentHTML("beforeend",'<span class="chk"></span>');
+  canvas.appendChild(d);
+  n._el=d;
+  // wire from main to children
+});
+SECTIONS.forEach(sec=>{
+  const m=byTitle[sec.main];
+  [...sec.right].forEach(t=>{const c=byTitle[t]; if(c) addWire(m.x+m.w,m.y+m.h/2,c.x,c.y+c.h/2);});
+  [...sec.left].forEach(t=>{const c=byTitle[t]; if(c) addWire(m.x,m.y+m.h/2,c.x+c.w,c.y+c.h/2);});
+});
+// vertical spine connectors between main nodes
+for(let i=0;i<SECTIONS.length-1;i++){
+  const a=byTitle[SECTIONS[i].main], b=byTitle[SECTIONS[i+1].main];
+  addWire(a.x+a.w/2,a.y+a.h,b.x+b.w/2,b.y);
+}
+function addWire(x1,y1,x2,y2){
+  const p=document.createElementNS("http://www.w3.org/2000/svg","path");
+  p.setAttribute("d",elbow(x1+OX,y1+OY,x2+OX,y2+OY));
+  p.setAttribute("class","wire");
+  svg.appendChild(p);
+}
+// callouts
+sectionYs.forEach(s=>{ if(!s.callout) return; const sec=SECTIONS.find(x=>x.main===s.main); const k=Math.max(sec.left.length,sec.right.length,1);
+  const co=document.createElement("div"); co.className="callout"; co.textContent=s.callout;
+  const cw=380; co.style.width=cw+"px";
+  const cnode=byTitle[s.main];
+  co.style.left=(-cw/2+OX)+"px"; co.style.top=(s.end+OY+6)+"px";
+  canvas.appendChild(co);
+});
+
+/* click + check + panel */
+document.querySelectorAll(".node").forEach(el=>{
+  const title=el.querySelector(".n-t").textContent;
+  el.addEventListener("click",(e)=>{
+    if(e.target.classList.contains("chk")){ el.classList.toggle("done"); return; }
+    openPanel(title);
+    document.querySelectorAll(".node").forEach(o=>o.style.outline="");
+    el.style.outline="3px solid rgba(139,92,246,.5)";
+  });
+  if(localStorage.getItem("rm:"+title)==="1") el.classList.add("done");
+  el.addEventListener("click",e=>{ if(e.target.classList.contains("chk")){ localStorage.setItem("rm:"+title, el.classList.contains("done")?"1":"0"); }});
+});
+
+function openPanel(title){
+  const d=DETAIL[title]||{};
+  document.getElementById("p-title").textContent=title;
+  document.getElementById("p-sub").textContent=d.sub||"Topic";
+  const chips=document.getElementById("p-chips"); chips.innerHTML="";
+  [["cat",d.cat],["level",d.level],["time",d.time]].forEach(([k,v])=>{
+    if(!v) return; const c=document.createElement("span"); c.className="chip "+k; c.textContent=v; chips.appendChild(c);
+  });
+  const b=document.getElementById("p-body"); b.innerHTML="";
+  const sec=(h,node)=>{const s=document.createElement("div");s.className="sec";const t=document.createElement("h3");t.textContent=h;s.appendChild(t);s.appendChild(node);b.appendChild(s);};
+  const list=(arr,cls)=>{const ul=document.createElement("ul");ul.className="li "+(cls||"");arr.forEach(x=>{const li=document.createElement("li");li.textContent=x;ul.appendChild(li);});return ul;};
+  const pEl=document.createElement("p");
+  if(d.why){pEl.className="why";pEl.textContent=d.why;sec("Overview",pEl.cloneNode(true));}
+  if(d.prereq) sec("Prerequisites",list(d.prereq,"pr"));
+  if(d.learn) sec("What you'll learn",list(d.learn));
+  if(d.tools){const t=document.createElement("div");t.className="tags";d.tools.forEach(x=>{const sp=document.createElement("span");sp.className="tag";sp.textContent=x;t.appendChild(sp);});sec("Tools & technologies",t);}
+  if(d.practice) sec("Hands-on practice",list(d.practice));
+  if(d.resources){const r=document.createElement("div");r.className="res";d.resources.forEach(x=>{
+    const a=document.createElement("a");a.href=x.u;a.target="_blank";a.rel="noopener";
+    a.innerHTML=x.t+'<span>↗</span>';r.appendChild(a);});sec("Resources",r);}
+  if(d.can){const c=document.createElement("div");c.className="can";c.textContent=d.can;sec("What you can do afterwards",c);}
+  const p=document.getElementById("panel");p.classList.add("open");p.setAttribute("aria-hidden","false");
+}
+document.getElementById("p-close").addEventListener("click",()=>{
+  const p=document.getElementById("panel");p.classList.remove("open");p.setAttribute("aria-hidden","true");});
+
+/* ------------- left sidebar: all learning paths ------------- */
+const CURRENT_SLUG="cloud-computing";
+const BUILT=new Set(["agi-research", "ai-agents", "ai-safety", "algo-trading", "api-building", "astronomy", "audio-processing", "automation", "autonomous-driving", "bioinformatics", "blockchain", "c-extensions", "cgi-animation", "chatbots", "cicd", "climate-modeling", "cloud-computing", "comp-chemistry", "compiler-building", "computer-vision", "container-orchestration", "credit-scoring", "crypto-bots", "cryptography", "cybersecurity", "data-science", "data-viz", "database-ops", "deep-learning", "devops-scripting", "distributed-systems", "drones", "drug-discovery", "embedded-firmware", "emotion-detection", "epidemiology", "etl-pipelines", "excel-automation", "fea", "federated-learning", "financial-pipelines", "fluid-dynamics", "forensics", "fraud-detection", "game-dev", "genai-finetuning", "genomics", "gis", "gpu-programming", "gui-apps", "image-generation", "iot", "llm-finetuning", "load-testing", "machine-learning", "malware-analysis", "materials-science", "medical-imaging", "message-queues", "microservices", "mlops", "monitoring", "multi-agent", "network-programming", "neuroscience", "nlp", "numerical-methods", "os-tooling", "own-db-engine", "own-language", "own-ml-framework", "own-web-framework", "package-dev", "parallel-computing", "physics-sims", "portfolio-optimization", "prompt-eng", "quant-finance", "quantization", "quantum-computing", "rag", "recommendation-systems", "reinforcement-learning", "risk-modeling", "robotics", "satellite-imagery", "search-engine", "simulation-engines", "slam", "speech", "synthetic-data", "testing-qa", "time-series", "vector-db", "video-processing", "voice-cloning", "weather-prediction", "web-dev", "web-scraping", "xai"]);
+const side=document.getElementById("side");
+const sidebarItems=[];
+{
+  const inp=document.createElement("input"); inp.className="search"; inp.placeholder="Search 100 paths…";
+  side.appendChild(inp);
+  PATH_CATS.forEach(cat=>{
+    const hd=document.createElement("h5"); hd.innerHTML=cat.icon+" "+cat.label; side.appendChild(hd);
+    cat.items.forEach(([name,slug])=>{
+      const isCur=slug===CURRENT_SLUG, built=BUILT.has(slug), navigable=built&&!isCur;
+      const el=document.createElement(navigable?"a":"span");
+      el.className="p-item"+(isCur?" active":built?"":" soon");
+      if(navigable) el.href="./"+slug+"-roadmap.html";
+      const nm=document.createElement("span"); nm.textContent=name;
+      const bd=document.createElement("em"); bd.textContent=isCur?"now":built?"open":"soon";
+      el.appendChild(nm); el.appendChild(bd);
+      el.dataset.q=(name+" "+slug).toLowerCase();
+      el.dataset.cat=cat.label;
+      side.appendChild(el); sidebarItems.push(el);
+    });
+  });
+  inp.addEventListener("input",()=>{
+    const q=inp.value.trim().toLowerCase();
+    sidebarItems.forEach(el=>{ el.style.display = !q || el.dataset.q.includes(q) ? "" : "none"; });
+    side.querySelectorAll("h5").forEach(hd=>{
+      let any=false, n=hd.nextElementSibling;
+      while(n && n.tagName!=="H5"){ if(n.style.display!=="none") any=true; n=n.nextElementSibling; }
+      hd.style.display=any?"":"none";
+    });
+  });
+}
+document.getElementById("sideToggle").addEventListener("click",()=>document.body.classList.toggle("no-side"));
+</script>
+</body>
+</html>

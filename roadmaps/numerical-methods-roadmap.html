@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Numerical Methods — Roadmap</title>
+<style>
+  :root{
+    --bg:#fafafa; --ink:#18181b; --mut:#71717a; --line:#e4e4e7;
+    --yellow:#fde047; --yellow-bd:#52525b; --yellow-deep:#facc15;
+    --rec:#8b5cf6; --alt:#22c55e; --opt:#a1a1aa;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%;color:var(--ink);
+    font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  /* top nav */
+  .nav{position:sticky;top:0;height:52px;background:#fff;border-bottom:1px solid var(--line);
+    display:flex;align-items:center;gap:12px;padding:0 18px;z-index:50}
+  .nav .brand{font-weight:800;letter-spacing:-.02em}
+  .nav .brand span{color:var(--rec)}
+  .nav .title{color:var(--mut);font-size:14px}
+
+  /* diagram flows with the page; wide trees scroll horizontally */
+  .diagram-wrap{overflow-x:auto;background-color:var(--bg);
+    background-image:radial-gradient(#d4d4d8 1.1px, transparent 1.1px);
+    background-size:22px 22px;padding:26px 30px 70px}
+  .canvas{position:relative;margin:0 auto}
+  svg.wires{position:absolute;top:0;left:0;overflow:visible;pointer-events:none}
+  .wire{fill:none;stroke:#a1a1aa;stroke-width:1.6;stroke-dasharray:5 5}
+
+  .node{position:absolute;background:var(--yellow);border:1.6px solid var(--yellow-bd);
+    border-radius:7px;padding:9px 12px;text-align:center;cursor:pointer;user-select:none;
+    box-shadow:0 2px 0 rgba(0,0,0,.16);transition:box-shadow .1s,transform .1s}
+  .node:hover{box-shadow:0 2px 0 rgba(0,0,0,.16),0 0 0 3px rgba(139,92,246,.25)}
+  .node.main{background:var(--yellow-deep);font-weight:800;font-size:15px}
+  .node .n-t{font-weight:600;font-size:13.5px;line-height:1.25}
+  .node.main .n-t{font-weight:800}
+  .node .n-s{font-size:11px;color:#3f3f46;margin-top:2px;font-weight:500;opacity:.85}
+  .node .rec{position:absolute;top:-7px;left:-7px;width:12px;height:12px;border-radius:50%;
+    background:var(--rec);border:2px solid #fff}
+  .node .chk{position:absolute;top:-8px;right:-8px;width:18px;height:18px;border-radius:50%;
+    background:#fff;border:1.6px solid var(--yellow-bd);display:flex;align-items:center;
+    justify-content:center;font-size:11px;color:#fff;font-weight:800}
+  .node.done .chk{background:var(--alt);border-color:var(--alt);color:#fff}
+  .node.done .chk::after{content:"✓"}
+  .callout{position:absolute;background:#fff;border:1.6px solid var(--yellow-bd);border-radius:8px;
+    padding:11px 16px;text-align:center;font-size:13px;font-weight:600;box-shadow:0 2px 0 rgba(0,0,0,.12)}
+
+  /* legend */
+  .legend{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 16px;
+    max-width:720px;margin:18px auto 0;box-shadow:0 4px 14px rgba(0,0,0,.05);
+    display:flex;flex-wrap:wrap;align-items:center;gap:8px 22px}
+  .legend h4{margin:0;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);width:100%}
+  .legend .row{display:flex;align-items:center;gap:8px;font-size:13px;margin:0;color:#3f3f46}
+  .legend .d{width:11px;height:11px;border-radius:50%}
+  .legend .hint{font-size:11.5px;color:var(--mut);width:100%}
+
+  /* layout + left sidebar */
+  .layout{display:flex;align-items:flex-start}
+  .main{flex:1;min-width:0}
+  .side{width:272px;flex:none;position:sticky;top:52px;height:calc(100vh - 52px);overflow:auto;
+    border-right:1px solid var(--line);background:#fcfcfd;padding:14px 12px 40px}
+  body.no-side .side{display:none}
+  .side .search{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;margin-bottom:8px;outline:none}
+  .side .search:focus{border-color:var(--rec)}
+  .side h5{margin:14px 6px 6px;font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);display:flex;align-items:center;gap:6px}
+  .side a.p-item,.side span.p-item{display:flex;align-items:center;justify-content:space-between;gap:8px;
+    font-size:13px;text-decoration:none;color:#3f3f46;padding:6px 9px;border-radius:7px;cursor:pointer}
+  .side a.p-item:hover{background:#f4f4f5}
+  .side .p-item.active{background:#fef9c3;color:#713f12;font-weight:600;border:1px solid #fde047}
+  .side .p-item.soon{color:#b6b6bd;cursor:default}
+  .side .p-item em{font-style:normal;font-size:9.5px;border:1px solid var(--line);border-radius:999px;padding:1px 6px;color:var(--mut);background:#fff}
+  .side .p-item.active em{border-color:#fde047;background:#fffbeb;color:#92400e}
+  .nav .spacer{flex:1}
+  .nav .btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 11px;font-size:13px;cursor:pointer}
+  .nav .btn:hover{background:#f4f4f5}
+  /* when embedded in the PySchool app iframe, the app provides the chrome */
+  body.embedded .nav{display:none}
+  body.embedded .side{top:0;height:100vh}
+  body.embedded .panel{top:0;height:100%}
+
+  /* panel */
+  .panel{position:fixed;top:52px;right:0;height:calc(100% - 52px);width:min(420px,92vw);background:#fff;
+    border-left:1px solid var(--line);box-shadow:-14px 0 40px rgba(0,0,0,.1);z-index:40;
+    transform:translateX(103%);transition:transform .2s ease;display:flex;flex-direction:column}
+  .panel.open{transform:none}
+  .panel .head{padding:16px 20px 14px;border-bottom:1px solid #f1f1f3;display:flex;justify-content:space-between;gap:12px}
+  .panel h2{margin:0 0 6px;font-size:19px;line-height:1.25}
+  .panel .sub{color:var(--mut);font-size:12.5px;margin-bottom:9px}
+  .panel .close{background:none;border:1px solid var(--line);color:var(--mut);border-radius:8px;width:30px;height:30px;cursor:pointer;flex:none}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{font-size:11px;font-weight:600;border-radius:999px;padding:3px 9px;border:1px solid transparent}
+  .chip.cat{background:#eef2ff;color:#3730a3;border-color:#c7d2fe}
+  .chip.level{background:#ecfdf5;color:#065f46;border-color:#a7f3d0}
+  .chip.time{background:#fffbeb;color:#92400e;border-color:#fde68a}
+  .panel .body{padding:16px 20px 40px;overflow:auto}
+  .sec{margin-bottom:18px}
+  .sec h3{margin:0 0 8px;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--rec)}
+  .why{font-size:13.5px;color:#374151;line-height:1.55;margin:0}
+  ul.li{margin:0;padding-left:18px} ul.li li{font-size:13px;color:#374151;margin:3px 0}
+  ul.li.pr li::marker{color:var(--mut)}
+  .can{background:#faf5ff;border:1px solid #e9d5ff;color:#5b21b6;border-radius:9px;padding:11px 13px;font-size:13px}
+  .tags{display:flex;flex-wrap:wrap;gap:6px}
+  .tag{background:#f4f4f5;border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:12px;color:#3f3f46}
+  .res{display:flex;flex-direction:column;gap:6px}
+  .res a{display:flex;align-items:center;gap:8px;font-size:13px;color:#2563eb;text-decoration:none;
+    border:1px solid #e5e7eb;border-radius:8px;padding:8px 11px;background:#fafafa}
+  .res a:hover{background:#f0f6ff;border-color:#bfdbfe}
+  .res a span{color:var(--mut);margin-left:auto;font-size:11px}
+</style>
+</head>
+<body>
+<div class="nav">
+  <div class="brand">Py<span>School</span></div>
+  <div class="title">/ Numerical Methods</div>
+  <div class="spacer"></div>
+  <button class="btn" id="sideToggle">☰ All paths</button>
+</div>
+
+<div class="layout">
+<nav class="side" id="side"></nav>
+<div class="main">
+
+<div class="legend">
+  <h4>Numerical Methods</h4>
+  <div class="row"><span class="d" style="background:var(--rec)"></span>Recommended</div>
+  <div class="row"><span class="d" style="background:var(--alt)"></span>Alternative option</div>
+  <div class="row"><span class="d" style="background:var(--opt)"></span>Order not strict</div>
+  <div class="hint">Click a topic for details · click the ✓ to mark it done · Ctrl +/− to zoom the whole page</div>
+</div>
+
+<div class="diagram-wrap">
+  <div class="canvas" id="canvas">
+    <svg class="wires" id="wires"></svg>
+  </div>
+</div>
+
+</div>
+</div>
+
+<aside class="panel" id="panel" aria-hidden="true">
+  <div class="head">
+    <div><h2 id="p-title">Select a topic</h2><div class="sub" id="p-sub"></div><div class="chips" id="p-chips"></div></div>
+    <button class="close" id="p-close">✕</button>
+  </div>
+  <div class="body" id="p-body"></div>
+</aside>
+
+<script>
+/* embedded inside the PySchool app? then let the app own the top bar */
+if(window.self!==window.top) document.body.classList.add("embedded");
+/* ------------- content ------------- */
+const SECTIONS = [
+  {main:"Numerical Foundations", rec:true, left:[], right:["Floating Point & Errors","Scientific Python"],
+   callout:"At this point you understand numerical accuracy and tooling."},
+  {main:"Linear Algebra", rec:true, left:["Matrix Computations"], right:["Linear Systems","Eigenvalues & SVD"],
+   callout:"At this point you can solve linear problems numerically."},
+  {main:"Calculus & Equations", left:["Numerical Differentiation"], right:["Root Finding","Numerical Integration"],
+   callout:"At this point you can differentiate, integrate and solve equations."},
+  {main:"Differential Equations", left:["ODE Solvers"], right:["Finite Difference Methods","PDE Solvers"],
+   callout:"At this point you can solve ODEs and PDEs."},
+  {main:"Optimisation Methods", left:["Unconstrained Optimisation"], right:["Constrained Optimisation","Least Squares & Fitting"],
+   callout:"At this point you can optimise and fit models."},
+  {main:"Stability & Performance", left:["Stability & Conditioning"], right:["Sparse & Iterative Methods","Performance & JIT"],
+   callout:"At this point your methods are stable and fast."},
+  {main:"Applications & Practice", left:["Interpolation & Approximation"], right:["Applied Modelling","Research & Libraries"],
+   callout:"At this point you can apply numerical methods in practice."}
+];
+const DETAIL = {
+  "Numerical Foundations":{sub:"Start here · weeks 1–2",cat:"Foundations",level:"Beginner",time:"~2 weeks",
+    why:"Numerical methods trade exact answers for computable ones. Understanding floating point and the tooling is the base.",
+    learn:["Floating point and rounding","Error and conditioning","Scientific Python stack"],
+    tools:["NumPy","SciPy"],
+    practice:["Demonstrate floating-point error"],
+    resources:[{t:"Numerical Recipes",u:"http://numerical.recipes/"}],
+    can:"Understand numerical computation."},
+  "Floating Point & Errors":{cat:"Foundations",level:"Beginner",time:"~1 week",prereq:["None — start here"],
+    why:"Rounding, cancellation and conditioning explain why naive formulas fail.",
+    learn:["IEEE floating point","Round-off and cancellation","Error propagation"],
+    tools:["NumPy"],
+    practice:["Show catastrophic cancellation"],
+    resources:[{t:"What Every Computer Scientist Should Know About Floating-Point",u:"https://docs.oracle.com/cd/E19957-01/806-3568/ncg_goldberg.html"}],
+    can:"Reason about numerical error."},
+  "Scientific Python":{cat:"Foundations",level:"Beginner",time:"~1 week",prereq:["Floating Point & Errors"],
+    why:"NumPy and SciPy provide the arrays and solvers that make methods practical.",
+    learn:["NumPy arrays","SciPy submodules","Vectorisation"],
+    tools:["NumPy","SciPy"],
+    practice:["Solve a problem with SciPy"],
+    resources:[{t:"SciPy lecture notes",u:"https://scipy-lectures.org/"}],
+    can:"Use the scientific Python stack."},
+
+  "Linear Algebra":{sub:"Weeks 2–5",cat:"LinearAlgebra",level:"Intermediate",time:"~3 weeks",prereq:["Numerical Foundations"],
+    why:"Most numerical problems reduce to linear algebra; it is the most important tool in the field.",
+    learn:["Matrix operations","Linear system solving","Eigen and singular value decomposition"],
+    tools:["NumPy","SciPy"],
+    practice:["Solve and decompose linear systems"],
+    resources:[{t:"MIT 18.06 Linear Algebra",u:"https://ocw.mit.edu/courses/18-06-linear-algebra-spring-2010/"}],
+    can:"Solve linear algebra problems."},
+  "Matrix Computations":{cat:"LinearAlgebra",level:"Intermediate",time:"~1 week",prereq:["Scientific Python"],
+    why:"Matrix factorisations (LU, QR, Cholesky) are the internal machinery of every solver.",
+    learn:["Matrix factorisations","Numerical stability of factorisations","Matrix norms"],
+    tools:["SciPy"],
+    practice:["Compare factorisations for a system"],
+    resources:[{t:"SciPy: linalg",u:"https://docs.scipy.org/doc/scipy/reference/linalg.html"}],
+    can:"Factorise matrices."},
+  "Linear Systems":{cat:"LinearAlgebra",level:"Intermediate",time:"~1 week",prereq:["Matrix Computations"],
+    why:"Solving Ax=b robustly, directly or iteratively, is a constant task.",
+    learn:["Direct solvers","Conditioning","Residuals"],
+    tools:["SciPy"],
+    practice:["Solve large linear systems"],
+    resources:[{t:"SciPy: linalg",u:"https://docs.scipy.org/doc/scipy/reference/linalg.html"}],
+    can:"Solve linear systems."},
+  "Eigenvalues & SVD":{cat:"LinearAlgebra",level:"Advanced",time:"~1 week",prereq:["Matrix Computations"],
+    why:"Eigenvalues, SVD and PCA are fundamental to analysis, stability and data science.",
+    learn:["Eigenvalue problems","Singular value decomposition","PCA"],
+    tools:["NumPy"],
+    practice:["Compute a PCA with SVD"],
+    resources:[{t:"MIT 18.06",u:"https://ocw.mit.edu/courses/18-06-linear-algebra-spring-2010/"}],
+    can:"Use eigen and SVD methods."},
+
+  "Calculus & Equations":{sub:"Weeks 4–8",cat:"Calculus",level:"Intermediate",time:"~4 weeks",prereq:["Linear Algebra"],
+    why:"Differentiation, integration and root finding are the everyday operations numerical methods provide.",
+    learn:["Numerical differentiation","Root finding","Numerical integration"],
+    tools:["SciPy"],
+    practice:["Approximate derivatives and integrals"],
+    resources:[{t:"SciPy lecture notes",u:"https://scipy-lectures.org/"}],
+    can:"Differentiate, integrate and solve."},
+  "Numerical Differentiation":{cat:"Calculus",level:"Intermediate",time:"~1 week",prereq:["Scientific Python"],
+    why:"Finite differences approximate derivatives, with accuracy limited by round-off.",
+    learn:["Finite differences","Step-size trade-off","Automatic differentiation intro"],
+    tools:["NumPy"],
+    practice:["Compare finite-difference accuracy"],
+    resources:[{t:"SciPy lecture notes",u:"https://scipy-lectures.org/"}],
+    can:"Differentiate numerically."},
+  "Root Finding":{cat:"Calculus",level:"Intermediate",time:"~1 week",prereq:["Scientific Python"],
+    why:"Solving f(x)=0 underlies optimisation, simulation and engineering.",
+    learn:["Bisection and Newton's method","Secant and fixed-point","Convergence"],
+    tools:["SciPy"],
+    practice:["Find roots with Newton's method"],
+    resources:[{t:"SciPy: optimize",u:"https://docs.scipy.org/doc/scipy/reference/optimize.html"}],
+    can:"Find roots of equations."},
+  "Numerical Integration":{cat:"Calculus",level:"Intermediate",time:"~1–2 weeks",prereq:["Numerical Differentiation"],
+    why:"Quadrature approximates integrals, from simple trapezoids to adaptive methods.",
+    learn:["Trapezoid and Simpson","Gaussian quadrature","Monte Carlo integration"],
+    tools:["SciPy"],
+    practice:["Integrate a function several ways"],
+    resources:[{t:"SciPy: integrate",u:"https://docs.scipy.org/doc/scipy/reference/integrate.html"}],
+    can:"Integrate numerically."},
+
+  "Differential Equations":{sub:"Weeks 7–12",cat:"DiffEq",level:"Advanced",time:"~5 weeks",prereq:["Calculus & Equations"],
+    why:"Differential equations model the physical world; solving them numerically is the heart of simulation.",
+    learn:["ODE solvers","Finite differences","PDEs"],
+    tools:["SciPy","FEniCS"],
+    practice:["Solve ODEs and a PDE"],
+    resources:[{t:"SciPy: integrate",u:"https://docs.scipy.org/doc/scipy/reference/integrate.html"}],
+    can:"Solve differential equations."},
+  "ODE Solvers":{cat:"DiffEq",level:"Advanced",time:"~2 weeks",prereq:["Numerical Integration"],
+    why:"Runge-Kutta, multistep and stiff solvers each suit different problems.",
+    learn:["Runge-Kutta methods","Stiff solvers","Adaptive stepping"],
+    tools:["SciPy"],
+    practice:["Solve a stiff ODE system"],
+    resources:[{t:"SciPy: solve_ivp",u:"https://docs.scipy.org/doc/scipy/reference/generated/scipy.integrate.solve_ivp.html"}],
+    can:"Solve ODEs."},
+  "Finite Difference Methods":{cat:"DiffEq",level:"Advanced",time:"~1–2 weeks",prereq:["ODE Solvers"],
+    why:"Discretising derivatives on a grid is the simplest way to solve PDEs.",
+    learn:["Grid discretisation","Explicit vs implicit schemes","Boundary conditions"],
+    tools:["NumPy"],
+    practice:["Solve a diffusion equation"],
+    resources:[{t:"SciPy lecture notes",u:"https://scipy-lectures.org/"}],
+    can:"Use finite differences."},
+  "PDE Solvers":{cat:"DiffEq",level:"Advanced",time:"~1–2 weeks",prereq:["Finite Difference Methods"],
+    why:"Finite element and spectral methods solve PDEs in engineering and physics.",
+    learn:["Finite element method","Spectral methods","Meshing"],
+    tools:["FEniCS"],
+    practice:["Solve a PDE with FEM"],
+    resources:[{t:"FEniCS docs",u:"https://fenicsproject.org/"}],
+    can:"Solve PDEs."},
+
+  "Optimisation Methods":{sub:"Weeks 11–15",cat:"Optimisation",level:"Advanced",time:"~4 weeks",prereq:["Differential Equations"],
+    why:"Optimisation is everywhere: fitting models, training ML and engineering design.",
+    learn:["Unconstrained and constrained methods","Least squares","Gradient methods"],
+    tools:["SciPy","cvxpy"],
+    practice:["Optimise and fit a model"],
+    resources:[{t:"SciPy: optimize",u:"https://docs.scipy.org/doc/scipy/reference/optimize.html"}],
+    can:"Solve optimisation problems."},
+  "Unconstrained Optimisation":{cat:"Optimisation",level:"Advanced",time:"~1–2 weeks",prereq:["ODE Solvers"],
+    why:"Gradient descent, Newton and quasi-Newton methods find minima numerically.",
+    learn:["Gradient methods","Newton and BFGS","Line search"],
+    tools:["SciPy"],
+    practice:["Minimise a function several ways"],
+    resources:[{t:"SciPy: optimize",u:"https://docs.scipy.org/doc/scipy/reference/optimize.html"}],
+    can:"Optimise unconstrained problems."},
+  "Constrained Optimisation":{cat:"Optimisation",level:"Advanced",time:"~1 week",prereq:["Unconstrained Optimisation"],
+    why:"Real problems have constraints; Lagrange multipliers and convex methods handle them.",
+    learn:["Equality and inequality constraints","Lagrange multipliers","Convex optimisation"],
+    tools:["cvxpy"],
+    practice:["Solve a constrained problem"],
+    resources:[{t:"CVXPY docs",u:"https://www.cvxpy.org/"}],
+    can:"Optimise with constraints."},
+  "Least Squares & Fitting":{cat:"Optimisation",level:"Advanced",time:"~1 week",prereq:["Eigenvalues & SVD"],
+    why:"Fitting models to data is the most common numerical task in science and ML.",
+    learn:["Linear and non-linear least squares","Regularisation","Curve fitting"],
+    tools:["SciPy","scikit-learn"],
+    practice:["Fit a model to noisy data"],
+    resources:[{t:"scikit-learn docs",u:"https://scikit-learn.org/stable/"}],
+    can:"Fit models to data."},
+
+  "Stability & Performance":{sub:"Weeks 14–18",cat:"Performance",level:"Advanced",time:"~4 weeks",prereq:["Optimisation Methods"],
+    why:"Numerically sound and fast methods are what make large problems tractable.",
+    learn:["Conditioning and stability","Sparse and iterative methods","Performance optimisation"],
+    tools:["SciPy","Numba"],
+    practice:["Stabilise and speed up a solver"],
+    resources:[{t:"SciPy lecture notes",u:"https://scipy-lectures.org/"}],
+    can:"Write stable, fast methods."},
+  "Stability & Conditioning":{cat:"Performance",level:"Advanced",time:"~1–2 weeks",prereq:["Linear Systems"],
+    why:"A method that works on paper can be numerically useless if ill-conditioned.",
+    learn:["Condition number","Stability analysis","Preconditioning intro"],
+    tools:["SciPy"],
+    practice:["Diagnose an ill-conditioned problem"],
+    resources:[{t:"Numerical Recipes",u:"http://numerical.recipes/"}],
+    can:"Analyse stability."},
+  "Sparse & Iterative Methods":{cat:"Performance",level:"Advanced",time:"~1 week",prereq:["Linear Systems"],
+    why:"Large sparse systems need iterative solvers (CG, GMRES), not dense factorisations.",
+    learn:["Sparse matrices","Conjugate gradient","Krylov methods"],
+    tools:["SciPy","scikit-sparse"],
+    practice:["Solve a sparse system iteratively"],
+    resources:[{t:"SciPy: sparse",u:"https://docs.scipy.org/doc/scipy/reference/sparse.html"}],
+    can:"Use sparse methods."},
+  "Performance & JIT":{cat:"Performance",level:"Advanced",time:"~1 week",prereq:["Sparse & Iterative Methods"],
+    why:"Vectorisation, JIT and parallelism make numerical code fast enough to be useful.",
+    learn:["Vectorisation","Numba and JIT","Parallel and GPU computing"],
+    tools:["Numba","CuPy"],
+    practice:["Speed up a solver with JIT"],
+    resources:[{t:"Numba docs",u:"https://numba.pydata.org/"}],
+    can:"Optimise numerical performance."},
+
+  "Applications & Practice":{sub:"Months 7+",cat:"Applications",level:"Advanced",time:"ongoing",prereq:["Stability & Performance"],
+    why:"The practical payoff is applying methods to real models, using strong libraries and doing research.",
+    learn:["Interpolation and approximation","Applied modelling","Libraries and research"],
+    tools:["SciPy","FEniCS"],
+    practice:["Model a real problem end to end"],
+    resources:[{t:"Numerical Recipes",u:"http://numerical.recipes/"}],
+    can:"Apply numerical methods."},
+  "Interpolation & Approximation":{cat:"Applications",level:"Advanced",time:"~1–2 weeks",prereq:["Performance & JIT"],
+    why:"Fitting curves and approximating functions underlies graphics, data and simulation.",
+    learn:["Polynomial interpolation","Splines","Chebyshev approximation"],
+    tools:["SciPy"],
+    practice:["Interpolate a function with splines"],
+    resources:[{t:"SciPy: interpolate",u:"https://docs.scipy.org/doc/scipy/reference/interpolate.html"}],
+    can:"Interpolate and approximate."},
+  "Applied Modelling":{cat:"Applications",level:"Advanced",time:"~2 weeks",prereq:["Interpolation & Approximation"],
+    why:"Turning a physical or financial problem into solvable numerics is the real skill.",
+    learn:["Problem formulation","Model validation","Uncertainty"],
+    tools:["SciPy"],
+    practice:["Build and validate a numerical model"],
+    resources:[{t:"SciPy lecture notes",u:"https://scipy-lectures.org/"}],
+    can:"Model real systems."},
+  "Research & Libraries":{cat:"Applications",level:"Advanced",time:"ongoing",prereq:["Applied Modelling"],
+    why:"Numerical computing is a research field and a mature library ecosystem worth knowing.",
+    learn:["Key libraries","Research areas","Reproducibility"],
+    tools:["SciPy","PETSc"],
+    practice:["Reproduce a numerical study"],
+    resources:[{t:"SIAM",u:"https://www.siam.org/"}],
+    can:"Work in numerical computing."}
+};
+
+
+
+/* all learning paths (from catalog), grouped by depth */
+const PATH_CATS = [
+  {icon:"\ud83c\udf0a",label:"Surface",items:[["Web Development","web-dev"],["Data Science / Analysis","data-science"],["Automation / Scripting","automation"],["Machine Learning","machine-learning"],["Web Scraping","web-scraping"],["Game Development","game-dev"],["GUI Applications","gui-apps"],["API Building","api-building"],["Chatbots","chatbots"],["Excel Automation","excel-automation"]]},
+  {icon:"\ud83c\udf0a",label:"Below Surface",items:[["Deep Learning","deep-learning"],["Computer Vision","computer-vision"],["NLP (Natural Language Processing)","nlp"],["Data Visualization","data-viz"],["Cloud Computing","cloud-computing"],["DevOps Scripting","devops-scripting"],["Testing / QA Automation","testing-qa"],["Database Operations","database-ops"],["ETL Pipelines","etl-pipelines"],["Recommendation Systems","recommendation-systems"]]},
+  {icon:"\ud83c\udf0a",label:"Mid-Level",items:[["Reinforcement Learning","reinforcement-learning"],["Generative AI / LLM Fine-tuning","genai-finetuning"],["Time Series Forecasting","time-series"],["Computer Graphics / Animation","cgi-animation"],["Cybersecurity / Pentesting","cybersecurity"],["Network Programming","network-programming"],["Cryptography Implementation","cryptography"],["Blockchain Scripting","blockchain"],["IoT Programming","iot"],["Robotics","robotics"],["Drone Programming","drones"],["Audio Processing","audio-processing"],["Video Processing","video-processing"],["Image Generation","image-generation"],["Speech Recognition / Synthesis","speech"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a",label:"Scientific",items:[["Bioinformatics","bioinformatics"],["Computational Chemistry","comp-chemistry"],["Physics Simulations","physics-sims"],["Astronomy Data","astronomy"],["Geospatial / GIS","gis"],["Climate Modeling","climate-modeling"],["Quantum Computing","quantum-computing"],["Numerical Methods","numerical-methods"],["Finite Element Analysis","fea"],["Fluid Dynamics Simulation","fluid-dynamics"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a",label:"Finance",items:[["Algorithmic Trading","algo-trading"],["Quantitative Finance","quant-finance"],["Risk Modeling","risk-modeling"],["Fraud Detection Systems","fraud-detection"],["Credit Scoring Models","credit-scoring"],["Portfolio Optimization","portfolio-optimization"],["Crypto Trading Bots","crypto-bots"],["Financial Data Pipelines","financial-pipelines"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a",label:"Infra",items:[["Distributed Systems","distributed-systems"],["Microservices Architecture","microservices"],["Container Orchestration","container-orchestration"],["Message Queues","message-queues"],["Load Testing","load-testing"],["Monitoring / Observability","monitoring"],["CI/CD Pipeline Scripting","cicd"],["Package / Library Development","package-dev"],["Compiler / Interpreter Building","compiler-building"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a",label:"AI Frontier",items:[["Multi-Agent Systems","multi-agent"],["AI Agents with Tool-Use","ai-agents"],["RAG Systems","rag"],["Vector Databases","vector-db"],["Fine-tuning LLMs","llm-finetuning"],["Model Quantization / Optimization","quantization"],["MLOps","mlops"],["Federated Learning","federated-learning"],["Explainable AI","xai"],["Synthetic Data Generation","synthetic-data"],["AI Safety / Alignment","ai-safety"],["Prompt Engineering Frameworks","prompt-eng"],["Voice Cloning / Synthesis","voice-cloning"],["Emotion Detection","emotion-detection"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a\ud83c\udf0a",label:"Research",items:[["Genomics / DNA Analysis","genomics"],["Drug Discovery","drug-discovery"],["Neuroscience Data Analysis","neuroscience"],["Medical Imaging","medical-imaging"],["Epidemiology Modeling","epidemiology"],["Materials Science Simulation","materials-science"],["Weather Prediction Models","weather-prediction"],["Autonomous Vehicle Perception","autonomous-driving"],["SLAM / Localization","slam"],["Satellite Image Analysis","satellite-imagery"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a\ud83c\udf0a",label:"Abyss",items:[["Python C-Extensions","c-extensions"],["Build Your Own ML Framework","own-ml-framework"],["GPU Programming","gpu-programming"],["Parallel / Distributed Computing","parallel-computing"],["OS Scripting / Tooling","os-tooling"],["Malware Analysis / Reverse Engineering","malware-analysis"],["Digital Forensics Tooling","forensics"],["Embedded Systems Firmware","embedded-firmware"],["Simulation Engines","simulation-engines"],["Build Your Own Database Engine","own-db-engine"],["Build Your Own Web Framework","own-web-framework"],["Search Engine Building","search-engine"],["Programming Language / DSL","own-language"]]},
+  {icon:"\ud83e\udd16",label:"Frontier",items:[["Python for AI Research","agi-research"]]},
+];
+
+/* ------------- layout ------------- */
+const MAIN_W=196, MAIN_H=52, CH_W=182, CH_H=42, COL=290, YGAP=54, SECGAP=78;
+const nodes=[]; // {title, x,y,w,h,kind,detail}
+let y=0;
+const sectionYs=[];
+SECTIONS.forEach(sec=>{
+  const k=Math.max(sec.left.length, sec.right.length, 1);
+  const spread=(k-1)*YGAP;
+  const secH=Math.max(MAIN_H, spread);
+  const cy=y+secH/2;
+  nodes.push({title:sec.main,x:-MAIN_W/2,y:cy-MAIN_H/2,w:MAIN_W,h:MAIN_H,kind:"main",rec:!!sec.rec});
+  const place=(list,side,dx)=>{ list.forEach((t,i)=>{
+    const cxX = side==="right" ? dx : -dx-CH_W;
+    const cyy = cy - spread/2 + (i*YGAP) + (k-1-list.length)*0; // stack from top-ish
+    const yy = cy - ((list.length-1)*YGAP)/2 + i*YGAP;
+    nodes.push({title:t,x:cxX,y:yy-CH_H/2,w:CH_W,h:CH_H,kind:"child",side});
+  });};
+  place(sec.right,"right",COL);
+  place(sec.left,"left",COL);
+  y += secH + SECGAP;
+  sectionYs.push({main:sec.main, end:y-SECGAP, callout:sec.callout});
+});
+
+/* bounds */
+let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+nodes.forEach(n=>{minX=Math.min(minX,n.x);maxX=Math.max(maxX,n.x+n.w);minY=Math.min(minY,n.y);maxY=Math.max(maxY,n.y+n.h);});
+const PAD=60, W=(maxX-minX)+PAD*2, H=(maxY-minY)+PAD*2;
+const OX=-minX+PAD, OY=-minY+PAD;
+
+const canvas=document.getElementById("canvas");
+canvas.style.width=W+"px"; canvas.style.height=H+"px";
+const svg=document.getElementById("wires");
+svg.setAttribute("width",W); svg.setAttribute("height",H);
+
+function elbow(x1,y1,x2,y2){
+  const mx=(x1+x2)/2;
+  return `M ${x1} ${y1} H ${mx} V ${y2} H ${x2}`;
+}
+
+/* draw nodes + wires */
+const byTitle={};
+nodes.forEach(n=>{ byTitle[n.title]=n; });
+nodes.forEach(n=>{
+  const d=document.createElement("div");
+  d.className="node "+(n.kind==="main"?"main":"child");
+  d.style.left=(n.x+OX)+"px"; d.style.top=(n.y+OY)+"px";
+  d.style.width=n.w+"px";
+  d.innerHTML='<div class="n-t">'+n.title+'</div>'+(DETAIL[n.title]&&DETAIL[n.title].sub?'<div class="n-s">'+DETAIL[n.title].sub+'</div>':'');
+  if(n.rec) d.insertAdjacentHTML("afterbegin",'<span class="rec"></span>');
+  d.insertAdjacentHTML("beforeend",'<span class="chk"></span>');
+  canvas.appendChild(d);
+  n._el=d;
+  // wire from main to children
+});
+SECTIONS.forEach(sec=>{
+  const m=byTitle[sec.main];
+  [...sec.right].forEach(t=>{const c=byTitle[t]; if(c) addWire(m.x+m.w,m.y+m.h/2,c.x,c.y+c.h/2);});
+  [...sec.left].forEach(t=>{const c=byTitle[t]; if(c) addWire(m.x,m.y+m.h/2,c.x+c.w,c.y+c.h/2);});
+});
+// vertical spine connectors between main nodes
+for(let i=0;i<SECTIONS.length-1;i++){
+  const a=byTitle[SECTIONS[i].main], b=byTitle[SECTIONS[i+1].main];
+  addWire(a.x+a.w/2,a.y+a.h,b.x+b.w/2,b.y);
+}
+function addWire(x1,y1,x2,y2){
+  const p=document.createElementNS("http://www.w3.org/2000/svg","path");
+  p.setAttribute("d",elbow(x1+OX,y1+OY,x2+OX,y2+OY));
+  p.setAttribute("class","wire");
+  svg.appendChild(p);
+}
+// callouts
+sectionYs.forEach(s=>{ if(!s.callout) return; const sec=SECTIONS.find(x=>x.main===s.main); const k=Math.max(sec.left.length,sec.right.length,1);
+  const co=document.createElement("div"); co.className="callout"; co.textContent=s.callout;
+  const cw=380; co.style.width=cw+"px";
+  const cnode=byTitle[s.main];
+  co.style.left=(-cw/2+OX)+"px"; co.style.top=(s.end+OY+6)+"px";
+  canvas.appendChild(co);
+});
+
+/* click + check + panel */
+document.querySelectorAll(".node").forEach(el=>{
+  const title=el.querySelector(".n-t").textContent;
+  el.addEventListener("click",(e)=>{
+    if(e.target.classList.contains("chk")){ el.classList.toggle("done"); return; }
+    openPanel(title);
+    document.querySelectorAll(".node").forEach(o=>o.style.outline="");
+    el.style.outline="3px solid rgba(139,92,246,.5)";
+  });
+  if(localStorage.getItem("rm:"+title)==="1") el.classList.add("done");
+  el.addEventListener("click",e=>{ if(e.target.classList.contains("chk")){ localStorage.setItem("rm:"+title, el.classList.contains("done")?"1":"0"); }});
+});
+
+function openPanel(title){
+  const d=DETAIL[title]||{};
+  document.getElementById("p-title").textContent=title;
+  document.getElementById("p-sub").textContent=d.sub||"Topic";
+  const chips=document.getElementById("p-chips"); chips.innerHTML="";
+  [["cat",d.cat],["level",d.level],["time",d.time]].forEach(([k,v])=>{
+    if(!v) return; const c=document.createElement("span"); c.className="chip "+k; c.textContent=v; chips.appendChild(c);
+  });
+  const b=document.getElementById("p-body"); b.innerHTML="";
+  const sec=(h,node)=>{const s=document.createElement("div");s.className="sec";const t=document.createElement("h3");t.textContent=h;s.appendChild(t);s.appendChild(node);b.appendChild(s);};
+  const list=(arr,cls)=>{const ul=document.createElement("ul");ul.className="li "+(cls||"");arr.forEach(x=>{const li=document.createElement("li");li.textContent=x;ul.appendChild(li);});return ul;};
+  const pEl=document.createElement("p");
+  if(d.why){pEl.className="why";pEl.textContent=d.why;sec("Overview",pEl.cloneNode(true));}
+  if(d.prereq) sec("Prerequisites",list(d.prereq,"pr"));
+  if(d.learn) sec("What you'll learn",list(d.learn));
+  if(d.tools){const t=document.createElement("div");t.className="tags";d.tools.forEach(x=>{const sp=document.createElement("span");sp.className="tag";sp.textContent=x;t.appendChild(sp);});sec("Tools & technologies",t);}
+  if(d.practice) sec("Hands-on practice",list(d.practice));
+  if(d.resources){const r=document.createElement("div");r.className="res";d.resources.forEach(x=>{
+    const a=document.createElement("a");a.href=x.u;a.target="_blank";a.rel="noopener";
+    a.innerHTML=x.t+'<span>↗</span>';r.appendChild(a);});sec("Resources",r);}
+  if(d.can){const c=document.createElement("div");c.className="can";c.textContent=d.can;sec("What you can do afterwards",c);}
+  const p=document.getElementById("panel");p.classList.add("open");p.setAttribute("aria-hidden","false");
+}
+document.getElementById("p-close").addEventListener("click",()=>{
+  const p=document.getElementById("panel");p.classList.remove("open");p.setAttribute("aria-hidden","true");});
+
+/* ------------- left sidebar: all learning paths ------------- */
+const CURRENT_SLUG="numerical-methods";
+const BUILT=new Set(["agi-research", "ai-agents", "ai-safety", "algo-trading", "api-building", "astronomy", "audio-processing", "automation", "autonomous-driving", "bioinformatics", "blockchain", "c-extensions", "cgi-animation", "chatbots", "cicd", "climate-modeling", "cloud-computing", "comp-chemistry", "compiler-building", "computer-vision", "container-orchestration", "credit-scoring", "crypto-bots", "cryptography", "cybersecurity", "data-science", "data-viz", "database-ops", "deep-learning", "devops-scripting", "distributed-systems", "drones", "drug-discovery", "embedded-firmware", "emotion-detection", "epidemiology", "etl-pipelines", "excel-automation", "fea", "federated-learning", "financial-pipelines", "fluid-dynamics", "forensics", "fraud-detection", "game-dev", "genai-finetuning", "genomics", "gis", "gpu-programming", "gui-apps", "image-generation", "iot", "llm-finetuning", "load-testing", "machine-learning", "malware-analysis", "materials-science", "medical-imaging", "message-queues", "microservices", "mlops", "monitoring", "multi-agent", "network-programming", "neuroscience", "nlp", "numerical-methods", "os-tooling", "own-db-engine", "own-language", "own-ml-framework", "own-web-framework", "package-dev", "parallel-computing", "physics-sims", "portfolio-optimization", "prompt-eng", "quant-finance", "quantization", "quantum-computing", "rag", "recommendation-systems", "reinforcement-learning", "risk-modeling", "robotics", "satellite-imagery", "search-engine", "simulation-engines", "slam", "speech", "synthetic-data", "testing-qa", "time-series", "vector-db", "video-processing", "voice-cloning", "weather-prediction", "web-dev", "web-scraping", "xai"]);
+const side=document.getElementById("side");
+const sidebarItems=[];
+{
+  const inp=document.createElement("input"); inp.className="search"; inp.placeholder="Search 100 paths…";
+  side.appendChild(inp);
+  PATH_CATS.forEach(cat=>{
+    const hd=document.createElement("h5"); hd.innerHTML=cat.icon+" "+cat.label; side.appendChild(hd);
+    cat.items.forEach(([name,slug])=>{
+      const isCur=slug===CURRENT_SLUG, built=BUILT.has(slug), navigable=built&&!isCur;
+      const el=document.createElement(navigable?"a":"span");
+      el.className="p-item"+(isCur?" active":built?"":" soon");
+      if(navigable) el.href="./"+slug+"-roadmap.html";
+      const nm=document.createElement("span"); nm.textContent=name;
+      const bd=document.createElement("em"); bd.textContent=isCur?"now":built?"open":"soon";
+      el.appendChild(nm); el.appendChild(bd);
+      el.dataset.q=(name+" "+slug).toLowerCase();
+      el.dataset.cat=cat.label;
+      side.appendChild(el); sidebarItems.push(el);
+    });
+  });
+  inp.addEventListener("input",()=>{
+    const q=inp.value.trim().toLowerCase();
+    sidebarItems.forEach(el=>{ el.style.display = !q || el.dataset.q.includes(q) ? "" : "none"; });
+    side.querySelectorAll("h5").forEach(hd=>{
+      let any=false, n=hd.nextElementSibling;
+      while(n && n.tagName!=="H5"){ if(n.style.display!=="none") any=true; n=n.nextElementSibling; }
+      hd.style.display=any?"":"none";
+    });
+  });
+}
+document.getElementById("sideToggle").addEventListener("click",()=>document.body.classList.toggle("no-side"));
+</script>
+</body>
+</html>

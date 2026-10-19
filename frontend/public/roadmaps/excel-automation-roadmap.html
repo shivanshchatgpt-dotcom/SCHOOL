@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Excel Automation — Roadmap</title>
+<style>
+  :root{
+    --bg:#fafafa; --ink:#18181b; --mut:#71717a; --line:#e4e4e7;
+    --yellow:#fde047; --yellow-bd:#52525b; --yellow-deep:#facc15;
+    --rec:#8b5cf6; --alt:#22c55e; --opt:#a1a1aa;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%;color:var(--ink);
+    font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  /* top nav */
+  .nav{position:sticky;top:0;height:52px;background:#fff;border-bottom:1px solid var(--line);
+    display:flex;align-items:center;gap:12px;padding:0 18px;z-index:50}
+  .nav .brand{font-weight:800;letter-spacing:-.02em}
+  .nav .brand span{color:var(--rec)}
+  .nav .title{color:var(--mut);font-size:14px}
+
+  /* diagram flows with the page; wide trees scroll horizontally */
+  .diagram-wrap{overflow-x:auto;background-color:var(--bg);
+    background-image:radial-gradient(#d4d4d8 1.1px, transparent 1.1px);
+    background-size:22px 22px;padding:26px 30px 70px}
+  .canvas{position:relative;margin:0 auto}
+  svg.wires{position:absolute;top:0;left:0;overflow:visible;pointer-events:none}
+  .wire{fill:none;stroke:#a1a1aa;stroke-width:1.6;stroke-dasharray:5 5}
+
+  .node{position:absolute;background:var(--yellow);border:1.6px solid var(--yellow-bd);
+    border-radius:7px;padding:9px 12px;text-align:center;cursor:pointer;user-select:none;
+    box-shadow:0 2px 0 rgba(0,0,0,.16);transition:box-shadow .1s,transform .1s}
+  .node:hover{box-shadow:0 2px 0 rgba(0,0,0,.16),0 0 0 3px rgba(139,92,246,.25)}
+  .node.main{background:var(--yellow-deep);font-weight:800;font-size:15px}
+  .node .n-t{font-weight:600;font-size:13.5px;line-height:1.25}
+  .node.main .n-t{font-weight:800}
+  .node .n-s{font-size:11px;color:#3f3f46;margin-top:2px;font-weight:500;opacity:.85}
+  .node .rec{position:absolute;top:-7px;left:-7px;width:12px;height:12px;border-radius:50%;
+    background:var(--rec);border:2px solid #fff}
+  .node .chk{position:absolute;top:-8px;right:-8px;width:18px;height:18px;border-radius:50%;
+    background:#fff;border:1.6px solid var(--yellow-bd);display:flex;align-items:center;
+    justify-content:center;font-size:11px;color:#fff;font-weight:800}
+  .node.done .chk{background:var(--alt);border-color:var(--alt);color:#fff}
+  .node.done .chk::after{content:"✓"}
+  .callout{position:absolute;background:#fff;border:1.6px solid var(--yellow-bd);border-radius:8px;
+    padding:11px 16px;text-align:center;font-size:13px;font-weight:600;box-shadow:0 2px 0 rgba(0,0,0,.12)}
+
+  /* legend */
+  .legend{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 16px;
+    max-width:720px;margin:18px auto 0;box-shadow:0 4px 14px rgba(0,0,0,.05);
+    display:flex;flex-wrap:wrap;align-items:center;gap:8px 22px}
+  .legend h4{margin:0;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);width:100%}
+  .legend .row{display:flex;align-items:center;gap:8px;font-size:13px;margin:0;color:#3f3f46}
+  .legend .d{width:11px;height:11px;border-radius:50%}
+  .legend .hint{font-size:11.5px;color:var(--mut);width:100%}
+
+  /* layout + left sidebar */
+  .layout{display:flex;align-items:flex-start}
+  .main{flex:1;min-width:0}
+  .side{width:272px;flex:none;position:sticky;top:52px;height:calc(100vh - 52px);overflow:auto;
+    border-right:1px solid var(--line);background:#fcfcfd;padding:14px 12px 40px}
+  body.no-side .side{display:none}
+  .side .search{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;margin-bottom:8px;outline:none}
+  .side .search:focus{border-color:var(--rec)}
+  .side h5{margin:14px 6px 6px;font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);display:flex;align-items:center;gap:6px}
+  .side a.p-item,.side span.p-item{display:flex;align-items:center;justify-content:space-between;gap:8px;
+    font-size:13px;text-decoration:none;color:#3f3f46;padding:6px 9px;border-radius:7px;cursor:pointer}
+  .side a.p-item:hover{background:#f4f4f5}
+  .side .p-item.active{background:#fef9c3;color:#713f12;font-weight:600;border:1px solid #fde047}
+  .side .p-item.soon{color:#b6b6bd;cursor:default}
+  .side .p-item em{font-style:normal;font-size:9.5px;border:1px solid var(--line);border-radius:999px;padding:1px 6px;color:var(--mut);background:#fff}
+  .side .p-item.active em{border-color:#fde047;background:#fffbeb;color:#92400e}
+  .nav .spacer{flex:1}
+  .nav .btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 11px;font-size:13px;cursor:pointer}
+  .nav .btn:hover{background:#f4f4f5}
+  /* when embedded in the PySchool app iframe, the app provides the chrome */
+  body.embedded .nav{display:none}
+  body.embedded .side{top:0;height:100vh}
+  body.embedded .panel{top:0;height:100%}
+
+  /* panel */
+  .panel{position:fixed;top:52px;right:0;height:calc(100% - 52px);width:min(420px,92vw);background:#fff;
+    border-left:1px solid var(--line);box-shadow:-14px 0 40px rgba(0,0,0,.1);z-index:40;
+    transform:translateX(103%);transition:transform .2s ease;display:flex;flex-direction:column}
+  .panel.open{transform:none}
+  .panel .head{padding:16px 20px 14px;border-bottom:1px solid #f1f1f3;display:flex;justify-content:space-between;gap:12px}
+  .panel h2{margin:0 0 6px;font-size:19px;line-height:1.25}
+  .panel .sub{color:var(--mut);font-size:12.5px;margin-bottom:9px}
+  .panel .close{background:none;border:1px solid var(--line);color:var(--mut);border-radius:8px;width:30px;height:30px;cursor:pointer;flex:none}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{font-size:11px;font-weight:600;border-radius:999px;padding:3px 9px;border:1px solid transparent}
+  .chip.cat{background:#eef2ff;color:#3730a3;border-color:#c7d2fe}
+  .chip.level{background:#ecfdf5;color:#065f46;border-color:#a7f3d0}
+  .chip.time{background:#fffbeb;color:#92400e;border-color:#fde68a}
+  .panel .body{padding:16px 20px 40px;overflow:auto}
+  .sec{margin-bottom:18px}
+  .sec h3{margin:0 0 8px;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--rec)}
+  .why{font-size:13.5px;color:#374151;line-height:1.55;margin:0}
+  ul.li{margin:0;padding-left:18px} ul.li li{font-size:13px;color:#374151;margin:3px 0}
+  ul.li.pr li::marker{color:var(--mut)}
+  .can{background:#faf5ff;border:1px solid #e9d5ff;color:#5b21b6;border-radius:9px;padding:11px 13px;font-size:13px}
+  .tags{display:flex;flex-wrap:wrap;gap:6px}
+  .tag{background:#f4f4f5;border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:12px;color:#3f3f46}
+  .res{display:flex;flex-direction:column;gap:6px}
+  .res a{display:flex;align-items:center;gap:8px;font-size:13px;color:#2563eb;text-decoration:none;
+    border:1px solid #e5e7eb;border-radius:8px;padding:8px 11px;background:#fafafa}
+  .res a:hover{background:#f0f6ff;border-color:#bfdbfe}
+  .res a span{color:var(--mut);margin-left:auto;font-size:11px}
+</style>
+</head>
+<body>
+<div class="nav">
+  <div class="brand">Py<span>School</span></div>
+  <div class="title">/ Excel Automation</div>
+  <div class="spacer"></div>
+  <button class="btn" id="sideToggle">☰ All paths</button>
+</div>
+
+<div class="layout">
+<nav class="side" id="side"></nav>
+<div class="main">
+
+<div class="legend">
+  <h4>Excel Automation</h4>
+  <div class="row"><span class="d" style="background:var(--rec)"></span>Recommended</div>
+  <div class="row"><span class="d" style="background:var(--alt)"></span>Alternative option</div>
+  <div class="row"><span class="d" style="background:var(--opt)"></span>Order not strict</div>
+  <div class="hint">Click a topic for details · click the ✓ to mark it done · Ctrl +/− to zoom the whole page</div>
+</div>
+
+<div class="diagram-wrap">
+  <div class="canvas" id="canvas">
+    <svg class="wires" id="wires"></svg>
+  </div>
+</div>
+
+</div>
+</div>
+
+<aside class="panel" id="panel" aria-hidden="true">
+  <div class="head">
+    <div><h2 id="p-title">Select a topic</h2><div class="sub" id="p-sub"></div><div class="chips" id="p-chips"></div></div>
+    <button class="close" id="p-close">✕</button>
+  </div>
+  <div class="body" id="p-body"></div>
+</aside>
+
+<script>
+/* embedded inside the PySchool app? then let the app own the top bar */
+if(window.self!==window.top) document.body.classList.add("embedded");
+/* ------------- content ------------- */
+const SECTIONS = [
+  {main:"Python & Spreadsheet Foundations", rec:true, left:[], right:["Python & pandas","Spreadsheet Basics"],
+   callout:"At this point you can read any spreadsheet into Python and understand its structure."},
+  {main:"Reading & Writing Excel", rec:true, left:["Reading Workbooks"], right:["Writing & Formatting","Formulas & Calculations"],
+   callout:"At this point you can generate real, shareable Excel files from Python."},
+  {main:"Data Cleaning & Transformation", left:["Cleaning Messy Sheets"], right:["Merging & Reshaping","Validation & Checks"],
+   callout:"At this point you can turn raw exports into trustworthy reports."},
+  {main:"Reporting & Formatting", left:["Styling & Templates"], right:["Charts & Pivot Tables","Conditional Formatting"],
+   callout:"At this point your output looks like something a business would send to a client."},
+  {main:"Formulas, Macros & Interop", left:["When to Use VBA"], right:["Formula Generation","Macros & xlsm"],
+   callout:"At this point you handle tricky real-world workbooks and can fall back to VBA when needed."},
+  {main:"Automating Workflows", left:["Combining Multiple Files"], right:["Email & Distribution","Scheduling Reports"],
+   callout:"At this point your reports arrive automatically without anyone opening Excel."},
+  {main:"Scale, BI & Alternatives", left:["Google Sheets API"], right:["Power Query & BI","Performance & Large Files"],
+   callout:"At this point you know when to move beyond Excel entirely."}
+];
+const DETAIL = {
+  "Python & Spreadsheet Foundations":{sub:"Start here · weeks 1–3",cat:"Foundations",level:"Beginner",time:"~3 weeks",
+    why:"Excel automation is Python plus spreadsheet knowledge. You need to be comfortable with pandas and understand how Excel stores rows, sheets and types before automating anything.",
+    learn:["Python fundamentals for data work","pandas DataFrames","Workbook / worksheet / cell structure","Excel data types and dates"],
+    tools:["Python 3","pandas","Jupyter"],
+    practice:["Load an Excel file and summarise it in a notebook"],
+    resources:[{t:"pandas: IO tools",u:"https://pandas.pydata.org/docs/user_guide/io.html"},{t:"openpyxl documentation",u:"https://openpyxl.readthedocs.io/"}],
+    can:"Read and understand any spreadsheet in Python."},
+  "Python & pandas":{cat:"Foundations",level:"Beginner",time:"~2 weeks",prereq:["None — start here"],
+    why:"pandas is the fastest way to read, analyse and write tabular data — the backbone of every Excel automation job.",
+    learn:["DataFrames and Series","Selecting and filtering","Grouping and aggregation"],
+    tools:["pandas"],
+    practice:["Summarise a sales workbook by month and product"],
+    resources:[{t:"pandas: 10 minutes to pandas",u:"https://pandas.pydata.org/docs/user_guide/10min.html"}],
+    can:"Manipulate tabular data fluently."},
+  "Spreadsheet Basics":{cat:"Foundations",level:"Beginner",time:"~1 week",prereq:["Python & pandas"],
+    why:"Knowing how Excel actually stores data — merged cells, formulas, types — explains every strange bug you will hit.",
+    learn:["Rows, columns, sheets and ranges","Formulas vs values","Dates, text and numbers"],
+    tools:["Excel / LibreOffice"],
+    practice:["Identify every data-type problem in a messy workbook"],
+    resources:[{t:"Microsoft: Excel help",u:"https://support.microsoft.com/en-us/excel"}],
+    can:"Reason about spreadsheets the way Excel does."},
+
+  "Reading & Writing Excel":{sub:"Weeks 2–5",cat:"Excel IO",level:"Beginner",time:"~3 weeks",prereq:["Python & Spreadsheet Foundations"],
+    why:"The core loop of Excel automation: read data in, transform it, write a clean workbook out. openpyxl and pandas cover almost all of it.",
+    learn:["Reading .xlsx/.xls/.csv","Selecting sheets and ranges","Writing values and formulas","Formatting cells, rows and columns","Saving workbooks"],
+    tools:["openpyxl","pandas","XlsxWriter"],
+    practice:["Read three sheets and write one consolidated formatted report"],
+    resources:[{t:"openpyxl: tutorial",u:"https://openpyxl.readthedocs.io/en/stable/tutorial.html"},{t:"XlsxWriter documentation",u:"https://xlsxwriter.readthedocs.io/"}],
+    can:"Generate real, shareable Excel files from Python."},
+  "Reading Workbooks":{cat:"Excel IO",level:"Beginner",time:"~1 week",prereq:["Spreadsheet Basics"],
+    why:"Reading correctly — headers, sheet names, hidden rows, types — is where most automation projects succeed or fail.",
+    learn:["read_excel and openpyxl options","Header rows and dtypes","Reading multiple sheets"],
+    tools:["pandas","openpyxl"],
+    practice:["Read a multi-sheet workbook with messy headers"],
+    resources:[{t:"pandas: read_excel",u:"https://pandas.pydata.org/docs/reference/api/pandas.read_excel.html"}],
+    can:"Load any workbook reliably."},
+  "Writing & Formatting":{cat:"Excel IO",level:"Beginner",time:"~1 week",prereq:["Reading Workbooks"],
+    why:"Good formatting is what makes automated output usable and trusted by non-technical colleagues.",
+    learn:["Writing DataFrames to sheets","Column widths and number formats","Bold headers and borders"],
+    tools:["openpyxl","XlsxWriter"],
+    practice:["Produce a formatted report with a title and summary row"],
+    resources:[{t:"openpyxl: styling",u:"https://openpyxl.readthedocs.io/en/stable/styles.html"}],
+    can:"Write clean, presentable workbooks."},
+  "Formulas & Calculations":{cat:"Excel IO",level:"Intermediate",time:"~1 week",prereq:["Writing & Formatting"],
+    why:"Sometimes you want live formulas in the file rather than Python-computed values, so users can adjust assumptions.",
+    learn:["Writing formulas as strings","Absolute vs relative references","Recalculation caveats"],
+    tools:["openpyxl"],
+    practice:["Write a sheet where totals are live SUM formulas"],
+    resources:[{t:"openpyxl: formulas",u:"https://openpyxl.readthedocs.io/en/stable/"}],
+    can:"Embed live formulas that users can edit."},
+
+  "Data Cleaning & Transformation":{sub:"Weeks 4–8",cat:"Data",level:"Intermediate",time:"~4 weeks",prereq:["Reading & Writing Excel"],
+    why:"Real Excel exports are messy: merged cells, inconsistent dates, duplicates. Cleaning and reshaping is where most of the work and value is.",
+    learn:["Fixing types and dates","Handling merged/blank cells","Joining and reshaping data","Validating results before writing"],
+    tools:["pandas","openpyxl"],
+    practice:["Clean a monthly export into a standard report shape","Combine data from several workbooks"],
+    resources:[{t:"pandas: reshaping",u:"https://pandas.pydata.org/docs/user_guide/reshaping.html"}],
+    can:"Turn raw exports into trustworthy reports."},
+  "Cleaning Messy Sheets":{cat:"Data",level:"Intermediate",time:"~2 weeks",prereq:["Reading Workbooks"],
+    why:"Merged cells, footnotes and text-numbers break automation unless you handle them explicitly.",
+    learn:["Unmerging and forward-filling","Text vs number coercion","Removing footers and totals rows"],
+    tools:["pandas","openpyxl"],
+    practice:["Clean a report with merged headers and total rows"],
+    resources:[{t:"pandas: missing data",u:"https://pandas.pydata.org/docs/user_guide/missing_data.html"}],
+    can:"Normalise genuinely messy spreadsheets."},
+  "Merging & Reshaping":{cat:"Data",level:"Intermediate",time:"~1 week",prereq:["Cleaning Messy Sheets"],
+    why:"Business data is spread across files and needs joining into one consistent table.",
+    learn:["Merging DataFrames","Pivot and melt","Concatenating workbooks"],
+    tools:["pandas"],
+    practice:["Join customers, orders and products into one sheet"],
+    resources:[{t:"pandas: merge",u:"https://pandas.pydata.org/docs/user_guide/merging.html"}],
+    can:"Combine data from many sources."},
+  "Validation & Checks":{cat:"Data",level:"Intermediate",time:"~1 week",prereq:["Merging & Reshaping"],
+    why:"Automated reports must be correct; sanity checks catch silent errors before they reach a client.",
+    learn:["Row counts and totals reconciliation","Rule-based checks","Failing loudly on bad data"],
+    tools:["pandas"],
+    practice:["Add assertions that reconcile your output to source totals"],
+    resources:[{t:"pandas: comparisons",u:"https://pandas.pydata.org/docs/user_guide/basics.html"}],
+    can:"Trust your automated output."},
+
+  "Reporting & Formatting":{sub:"Weeks 7–11",cat:"Reporting",level:"Intermediate",time:"~3 weeks",prereq:["Data Cleaning & Transformation"],
+    why:"Turning clean data into a polished, charted report is what makes automation visibly valuable to a business.",
+    learn:["Templates and reusable styles","Charts and pivot tables","Conditional formatting","Print/PDF layout"],
+    tools:["openpyxl","XlsxWriter"],
+    practice:["Build a monthly report with charts and highlights"],
+    resources:[{t:"XlsxWriter: charts",u:"https://xlsxwriter.readthedocs.io/chart.html"}],
+    can:"Produce client-ready Excel reports automatically."},
+  "Styling & Templates":{cat:"Reporting",level:"Intermediate",time:"~1 week",prereq:["Writing & Formatting"],
+    why:"Reusing a template means every automated report looks consistent and on-brand.",
+    learn:["Loading a template workbook","Named styles","Keeping formulas in templates"],
+    tools:["openpyxl"],
+    practice:["Fill a branded template with fresh data each run"],
+    resources:[{t:"openpyxl: styles",u:"https://openpyxl.readthedocs.io/en/stable/styles.html"}],
+    can:"Generate consistent, on-brand reports."},
+  "Charts & Pivot Tables":{cat:"Reporting",level:"Intermediate",time:"~1 week",prereq:["Styling & Templates"],
+    why:"Charts and pivots make numbers readable at a glance, which is the whole point of a report.",
+    learn:["Native Excel charts","Pivot tables from pandas","Embedding images and sparklines"],
+    tools:["XlsxWriter","pandas"],
+    practice:["Add a bar chart and a pivot summary to a report"],
+    resources:[{t:"pandas: pivot tables",u:"https://pandas.pydata.org/docs/user_guide/reshaping.html#pivot-tables"}],
+    can:"Present data visually inside Excel."},
+  "Conditional Formatting":{cat:"Reporting",level:"Intermediate",time:"~1 week",prereq:["Styling & Templates"],
+    why:"Highlighting the important rows draws attention where it is needed, without manual work.",
+    learn:["Cell rules and colour scales","Data bars and icon sets","Formula-based rules"],
+    tools:["openpyxl"],
+    practice:["Highlight rows that breach a threshold"],
+    resources:[{t:"openpyxl: conditional formatting",u:"https://openpyxl.readthedocs.io/en/stable/formatting.html"}],
+    can:"Make important values stand out automatically."},
+
+  "Formulas, Macros & Interop":{sub:"Weeks 10–14",cat:"Formulas",level:"Advanced",time:"~3 weeks",prereq:["Reporting & Formatting"],
+    why:"Real companies have macro-enabled workbooks and formula-driven models you must work with, not around. Knowing when to use VBA and how to interoperate saves whole days.",
+    learn:["Writing formulas programmatically","Handling .xlsm files","Running VBA via COM/xlwings","When a pure-Python approach is better"],
+    tools:["openpyxl","xlwings"],
+    practice:["Automate a macro-enabled workbook end to end"],
+    resources:[{t:"xlwings documentation",u:"https://docs.xlwings.org/"}],
+    can:"Handle real business workbooks and macros."},
+  "When to Use VBA":{cat:"Formulas",level:"Advanced",time:"~2 days",prereq:["Formulas & Calculations"],
+    why:"VBA is powerful but brittle; knowing when Python is the better tool keeps your automations maintainable.",
+    learn:["VBA's strengths and limits","Maintenance and versioning problems","Python vs VBA trade-offs"],
+    tools:["Excel VBA"],
+    practice:["Decide and justify Python vs VBA for a given task"],
+    resources:[{t:"Microsoft: Office VBA",u:"https://learn.microsoft.com/en-us/office/vba/api/overview/excel"}],
+    can:"Choose the right automation tool."},
+  "Formula Generation":{cat:"Formulas",level:"Advanced",time:"~1 week",prereq:["Formulas & Calculations"],
+    why:"Generated formulas (VLOOKUP/XLOOKUP, SUMIFS, dynamic arrays) let the workbook stay live and editable.",
+    learn:["Building formula strings safely","VLOOKUP/XLOOKUP and SUMIFS","Escaping and locale issues"],
+    tools:["openpyxl"],
+    practice:["Generate a sheet driven entirely by XLOOKUP formulas"],
+    resources:[{t:"Microsoft: XLOOKUP",u:"https://support.microsoft.com/en-us/excel"}],
+    can:"Write dynamic, live formulas from Python."},
+  "Macros & xlsm":{cat:"Formulas",level:"Advanced",time:"~1 week",prereq:["When to Use VBA"],
+    why:"Some critical workbooks only run via macros; automating them requires controlling Excel itself.",
+    learn:["Preserving macros when saving","Driving Excel with xlwings","Headless vs interactive runs"],
+    tools:["xlwings","win32com"],
+    practice:["Refresh data and run a macro in an .xlsm file"],
+    resources:[{t:"xlwings documentation",u:"https://docs.xlwings.org/"}],
+    can:"Automate macro-driven workbooks."},
+
+  "Automating Workflows":{sub:"Weeks 13–17",cat:"Workflow",level:"Advanced",time:"~3 weeks",prereq:["Formulas, Macros & Interop"],
+    why:"The payoff of Excel automation is a report that builds and arrives by itself. Combining files, emailing, and scheduling turn a script into a system.",
+    learn:["Batch-processing folders of files","Emailing reports automatically","Scheduling with cron/Task Scheduler","Handling failures unattended"],
+    tools:["smtplib","cron","pandas"],
+    practice:["Build a job that runs nightly and emails a summary"],
+    resources:[{t:"Python: smtplib",u:"https://docs.python.org/3/library/smtplib.html"}],
+    can:"Deliver reports automatically without manual work."},
+  "Combining Multiple Files":{cat:"Workflow",level:"Advanced",time:"~1 week",prereq:["Merging & Reshaping"],
+    why:"Businesses accumulate one file per day/week/month; consolidating them is a classic automation win.",
+    learn:["Globbing and iterating files","Appending with source labels","Handling inconsistent schemas"],
+    tools:["pandas","pathlib"],
+    practice:["Consolidate a folder of monthly files into one workbook"],
+    resources:[{t:"Python: pathlib",u:"https://docs.python.org/3/library/pathlib.html"}],
+    can:"Collapse many files into one report."},
+  "Email & Distribution":{cat:"Workflow",level:"Advanced",time:"~1 week",prereq:["Writing & Formatting"],
+    why:"A report nobody receives is not a report; sending it with the right subject and attachment is the last mile.",
+    learn:["Sending email with attachments","HTML email bodies","Multiple recipients and BCC"],
+    tools:["smtplib","email"],
+    practice:["Email a formatted workbook to a distribution list"],
+    resources:[{t:"Python: email examples",u:"https://docs.python.org/3/library/email.examples.html"}],
+    can:"Distribute reports automatically."},
+  "Scheduling Reports":{cat:"Workflow",level:"Advanced",time:"~1 week",prereq:["Email & Distribution"],
+    why:"Scheduling is what turns a manual chore into an unattended, dependable process.",
+    learn:["cron / systemd / Task Scheduler","Logging scheduled runs","Alerting on failure"],
+    tools:["cron"],
+    practice:["Schedule a weekly report with failure alerts"],
+    resources:[{t:"crontab(5) manual",u:"https://man7.org/linux/man-pages/man5/crontab.5.html"}],
+    can:"Run reports on a dependable schedule."},
+
+  "Scale, BI & Alternatives":{sub:"Weeks 16–20",cat:"Scale",level:"Advanced",time:"~3 weeks",prereq:["Automating Workflows"],
+    why:"Excel has limits. Knowing when to move to Google Sheets, a database or a BI tool is what keeps your solutions appropriate as data grows.",
+    learn:["Google Sheets automation","Power Query and Power BI basics","Handling very large files","When a database is the right answer"],
+    tools:["gspread","Power BI","PostgreSQL"],
+    practice:["Migrate a slow Excel process to a faster approach and compare"],
+    resources:[{t:"Google Sheets API",u:"https://developers.google.com/sheets/api/guides/concepts"},{t:"Microsoft: Power Query",u:"https://learn.microsoft.com/en-us/power-query/"}],
+    can:"Choose the right tool as data and needs grow."},
+  "Google Sheets API":{cat:"Scale",level:"Advanced",time:"~1 week",prereq:["Reading Workbooks"],
+    why:"Cloud spreadsheets enable shared, live automation that desktop files cannot.",
+    learn:["Auth and service accounts","Reading and updating ranges","gspread basics"],
+    tools:["gspread"],
+    practice:["Sync a DataFrame into a shared Google Sheet"],
+    resources:[{t:"gspread documentation",u:"https://docs.gspread.org/"}],
+    can:"Automate cloud spreadsheets."},
+  "Power Query & BI":{cat:"Scale",level:"Advanced",time:"~1 week",prereq:["Data Cleaning & Transformation"],
+    why:"For recurring reporting, purpose-built BI and query tools are often faster and more robust than Python scripts.",
+    learn:["Power Query transformations","Power BI dashboards","When BI beats a script"],
+    tools:["Power Query","Power BI"],
+    practice:["Build a dashboard from a cleaned dataset"],
+    resources:[{t:"Microsoft: Power Query",u:"https://learn.microsoft.com/en-us/power-query/"}],
+    can:"Pick the right reporting platform."},
+  "Performance & Large Files":{cat:"Scale",level:"Advanced",time:"~1 week",prereq:["Validation & Checks"],
+    why:"Excel and pandas both struggle with very large files; knowing the limits avoids broken, slow processes.",
+    learn:["Chunked reading","Read-only and write-only modes","Moving data to a database"],
+    tools:["pandas","openpyxl","SQLite"],
+    practice:["Process a file too large to open normally"],
+    resources:[{t:"pandas: scaling to large datasets",u:"https://pandas.pydata.org/docs/user_guide/scale.html"}],
+    can:"Handle large datasets without melting."}
+};
+
+
+
+/* all learning paths (from catalog), grouped by depth */
+const PATH_CATS = [
+  {icon:"\ud83c\udf0a",label:"Surface",items:[["Web Development","web-dev"],["Data Science / Analysis","data-science"],["Automation / Scripting","automation"],["Machine Learning","machine-learning"],["Web Scraping","web-scraping"],["Game Development","game-dev"],["GUI Applications","gui-apps"],["API Building","api-building"],["Chatbots","chatbots"],["Excel Automation","excel-automation"]]},
+  {icon:"\ud83c\udf0a",label:"Below Surface",items:[["Deep Learning","deep-learning"],["Computer Vision","computer-vision"],["NLP (Natural Language Processing)","nlp"],["Data Visualization","data-viz"],["Cloud Computing","cloud-computing"],["DevOps Scripting","devops-scripting"],["Testing / QA Automation","testing-qa"],["Database Operations","database-ops"],["ETL Pipelines","etl-pipelines"],["Recommendation Systems","recommendation-systems"]]},
+  {icon:"\ud83c\udf0a",label:"Mid-Level",items:[["Reinforcement Learning","reinforcement-learning"],["Generative AI / LLM Fine-tuning","genai-finetuning"],["Time Series Forecasting","time-series"],["Computer Graphics / Animation","cgi-animation"],["Cybersecurity / Pentesting","cybersecurity"],["Network Programming","network-programming"],["Cryptography Implementation","cryptography"],["Blockchain Scripting","blockchain"],["IoT Programming","iot"],["Robotics","robotics"],["Drone Programming","drones"],["Audio Processing","audio-processing"],["Video Processing","video-processing"],["Image Generation","image-generation"],["Speech Recognition / Synthesis","speech"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a",label:"Scientific",items:[["Bioinformatics","bioinformatics"],["Computational Chemistry","comp-chemistry"],["Physics Simulations","physics-sims"],["Astronomy Data","astronomy"],["Geospatial / GIS","gis"],["Climate Modeling","climate-modeling"],["Quantum Computing","quantum-computing"],["Numerical Methods","numerical-methods"],["Finite Element Analysis","fea"],["Fluid Dynamics Simulation","fluid-dynamics"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a",label:"Finance",items:[["Algorithmic Trading","algo-trading"],["Quantitative Finance","quant-finance"],["Risk Modeling","risk-modeling"],["Fraud Detection Systems","fraud-detection"],["Credit Scoring Models","credit-scoring"],["Portfolio Optimization","portfolio-optimization"],["Crypto Trading Bots","crypto-bots"],["Financial Data Pipelines","financial-pipelines"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a",label:"Infra",items:[["Distributed Systems","distributed-systems"],["Microservices Architecture","microservices"],["Container Orchestration","container-orchestration"],["Message Queues","message-queues"],["Load Testing","load-testing"],["Monitoring / Observability","monitoring"],["CI/CD Pipeline Scripting","cicd"],["Package / Library Development","package-dev"],["Compiler / Interpreter Building","compiler-building"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a",label:"AI Frontier",items:[["Multi-Agent Systems","multi-agent"],["AI Agents with Tool-Use","ai-agents"],["RAG Systems","rag"],["Vector Databases","vector-db"],["Fine-tuning LLMs","llm-finetuning"],["Model Quantization / Optimization","quantization"],["MLOps","mlops"],["Federated Learning","federated-learning"],["Explainable AI","xai"],["Synthetic Data Generation","synthetic-data"],["AI Safety / Alignment","ai-safety"],["Prompt Engineering Frameworks","prompt-eng"],["Voice Cloning / Synthesis","voice-cloning"],["Emotion Detection","emotion-detection"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a\ud83c\udf0a",label:"Research",items:[["Genomics / DNA Analysis","genomics"],["Drug Discovery","drug-discovery"],["Neuroscience Data Analysis","neuroscience"],["Medical Imaging","medical-imaging"],["Epidemiology Modeling","epidemiology"],["Materials Science Simulation","materials-science"],["Weather Prediction Models","weather-prediction"],["Autonomous Vehicle Perception","autonomous-driving"],["SLAM / Localization","slam"],["Satellite Image Analysis","satellite-imagery"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a\ud83c\udf0a",label:"Abyss",items:[["Python C-Extensions","c-extensions"],["Build Your Own ML Framework","own-ml-framework"],["GPU Programming","gpu-programming"],["Parallel / Distributed Computing","parallel-computing"],["OS Scripting / Tooling","os-tooling"],["Malware Analysis / Reverse Engineering","malware-analysis"],["Digital Forensics Tooling","forensics"],["Embedded Systems Firmware","embedded-firmware"],["Simulation Engines","simulation-engines"],["Build Your Own Database Engine","own-db-engine"],["Build Your Own Web Framework","own-web-framework"],["Search Engine Building","search-engine"],["Programming Language / DSL","own-language"]]},
+  {icon:"\ud83e\udd16",label:"Frontier",items:[["Python for AI Research","agi-research"]]},
+];
+
+/* ------------- layout ------------- */
+const MAIN_W=196, MAIN_H=52, CH_W=182, CH_H=42, COL=290, YGAP=54, SECGAP=78;
+const nodes=[]; // {title, x,y,w,h,kind,detail}
+let y=0;
+const sectionYs=[];
+SECTIONS.forEach(sec=>{
+  const k=Math.max(sec.left.length, sec.right.length, 1);
+  const spread=(k-1)*YGAP;
+  const secH=Math.max(MAIN_H, spread);
+  const cy=y+secH/2;
+  nodes.push({title:sec.main,x:-MAIN_W/2,y:cy-MAIN_H/2,w:MAIN_W,h:MAIN_H,kind:"main",rec:!!sec.rec});
+  const place=(list,side,dx)=>{ list.forEach((t,i)=>{
+    const cxX = side==="right" ? dx : -dx-CH_W;
+    const cyy = cy - spread/2 + (i*YGAP) + (k-1-list.length)*0; // stack from top-ish
+    const yy = cy - ((list.length-1)*YGAP)/2 + i*YGAP;
+    nodes.push({title:t,x:cxX,y:yy-CH_H/2,w:CH_W,h:CH_H,kind:"child",side});
+  });};
+  place(sec.right,"right",COL);
+  place(sec.left,"left",COL);
+  y += secH + SECGAP;
+  sectionYs.push({main:sec.main, end:y-SECGAP, callout:sec.callout});
+});
+
+/* bounds */
+let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+nodes.forEach(n=>{minX=Math.min(minX,n.x);maxX=Math.max(maxX,n.x+n.w);minY=Math.min(minY,n.y);maxY=Math.max(maxY,n.y+n.h);});
+const PAD=60, W=(maxX-minX)+PAD*2, H=(maxY-minY)+PAD*2;
+const OX=-minX+PAD, OY=-minY+PAD;
+
+const canvas=document.getElementById("canvas");
+canvas.style.width=W+"px"; canvas.style.height=H+"px";
+const svg=document.getElementById("wires");
+svg.setAttribute("width",W); svg.setAttribute("height",H);
+
+function elbow(x1,y1,x2,y2){
+  const mx=(x1+x2)/2;
+  return `M ${x1} ${y1} H ${mx} V ${y2} H ${x2}`;
+}
+
+/* draw nodes + wires */
+const byTitle={};
+nodes.forEach(n=>{ byTitle[n.title]=n; });
+nodes.forEach(n=>{
+  const d=document.createElement("div");
+  d.className="node "+(n.kind==="main"?"main":"child");
+  d.style.left=(n.x+OX)+"px"; d.style.top=(n.y+OY)+"px";
+  d.style.width=n.w+"px";
+  d.innerHTML='<div class="n-t">'+n.title+'</div>'+(DETAIL[n.title]&&DETAIL[n.title].sub?'<div class="n-s">'+DETAIL[n.title].sub+'</div>':'');
+  if(n.rec) d.insertAdjacentHTML("afterbegin",'<span class="rec"></span>');
+  d.insertAdjacentHTML("beforeend",'<span class="chk"></span>');
+  canvas.appendChild(d);
+  n._el=d;
+  // wire from main to children
+});
+SECTIONS.forEach(sec=>{
+  const m=byTitle[sec.main];
+  [...sec.right].forEach(t=>{const c=byTitle[t]; if(c) addWire(m.x+m.w,m.y+m.h/2,c.x,c.y+c.h/2);});
+  [...sec.left].forEach(t=>{const c=byTitle[t]; if(c) addWire(m.x,m.y+m.h/2,c.x+c.w,c.y+c.h/2);});
+});
+// vertical spine connectors between main nodes
+for(let i=0;i<SECTIONS.length-1;i++){
+  const a=byTitle[SECTIONS[i].main], b=byTitle[SECTIONS[i+1].main];
+  addWire(a.x+a.w/2,a.y+a.h,b.x+b.w/2,b.y);
+}
+function addWire(x1,y1,x2,y2){
+  const p=document.createElementNS("http://www.w3.org/2000/svg","path");
+  p.setAttribute("d",elbow(x1+OX,y1+OY,x2+OX,y2+OY));
+  p.setAttribute("class","wire");
+  svg.appendChild(p);
+}
+// callouts
+sectionYs.forEach(s=>{ if(!s.callout) return; const sec=SECTIONS.find(x=>x.main===s.main); const k=Math.max(sec.left.length,sec.right.length,1);
+  const co=document.createElement("div"); co.className="callout"; co.textContent=s.callout;
+  const cw=380; co.style.width=cw+"px";
+  const cnode=byTitle[s.main];
+  co.style.left=(-cw/2+OX)+"px"; co.style.top=(s.end+OY+6)+"px";
+  canvas.appendChild(co);
+});
+
+/* click + check + panel */
+document.querySelectorAll(".node").forEach(el=>{
+  const title=el.querySelector(".n-t").textContent;
+  el.addEventListener("click",(e)=>{
+    if(e.target.classList.contains("chk")){ el.classList.toggle("done"); return; }
+    openPanel(title);
+    document.querySelectorAll(".node").forEach(o=>o.style.outline="");
+    el.style.outline="3px solid rgba(139,92,246,.5)";
+  });
+  if(localStorage.getItem("rm:"+title)==="1") el.classList.add("done");
+  el.addEventListener("click",e=>{ if(e.target.classList.contains("chk")){ localStorage.setItem("rm:"+title, el.classList.contains("done")?"1":"0"); }});
+});
+
+function openPanel(title){
+  const d=DETAIL[title]||{};
+  document.getElementById("p-title").textContent=title;
+  document.getElementById("p-sub").textContent=d.sub||"Topic";
+  const chips=document.getElementById("p-chips"); chips.innerHTML="";
+  [["cat",d.cat],["level",d.level],["time",d.time]].forEach(([k,v])=>{
+    if(!v) return; const c=document.createElement("span"); c.className="chip "+k; c.textContent=v; chips.appendChild(c);
+  });
+  const b=document.getElementById("p-body"); b.innerHTML="";
+  const sec=(h,node)=>{const s=document.createElement("div");s.className="sec";const t=document.createElement("h3");t.textContent=h;s.appendChild(t);s.appendChild(node);b.appendChild(s);};
+  const list=(arr,cls)=>{const ul=document.createElement("ul");ul.className="li "+(cls||"");arr.forEach(x=>{const li=document.createElement("li");li.textContent=x;ul.appendChild(li);});return ul;};
+  const pEl=document.createElement("p");
+  if(d.why){pEl.className="why";pEl.textContent=d.why;sec("Overview",pEl.cloneNode(true));}
+  if(d.prereq) sec("Prerequisites",list(d.prereq,"pr"));
+  if(d.learn) sec("What you'll learn",list(d.learn));
+  if(d.tools){const t=document.createElement("div");t.className="tags";d.tools.forEach(x=>{const sp=document.createElement("span");sp.className="tag";sp.textContent=x;t.appendChild(sp);});sec("Tools & technologies",t);}
+  if(d.practice) sec("Hands-on practice",list(d.practice));
+  if(d.resources){const r=document.createElement("div");r.className="res";d.resources.forEach(x=>{
+    const a=document.createElement("a");a.href=x.u;a.target="_blank";a.rel="noopener";
+    a.innerHTML=x.t+'<span>↗</span>';r.appendChild(a);});sec("Resources",r);}
+  if(d.can){const c=document.createElement("div");c.className="can";c.textContent=d.can;sec("What you can do afterwards",c);}
+  const p=document.getElementById("panel");p.classList.add("open");p.setAttribute("aria-hidden","false");
+}
+document.getElementById("p-close").addEventListener("click",()=>{
+  const p=document.getElementById("panel");p.classList.remove("open");p.setAttribute("aria-hidden","true");});
+
+/* ------------- left sidebar: all learning paths ------------- */
+const CURRENT_SLUG="excel-automation";
+const BUILT=new Set(["agi-research", "ai-agents", "ai-safety", "algo-trading", "api-building", "astronomy", "audio-processing", "automation", "autonomous-driving", "bioinformatics", "blockchain", "c-extensions", "cgi-animation", "chatbots", "cicd", "climate-modeling", "cloud-computing", "comp-chemistry", "compiler-building", "computer-vision", "container-orchestration", "credit-scoring", "crypto-bots", "cryptography", "cybersecurity", "data-science", "data-viz", "database-ops", "deep-learning", "devops-scripting", "distributed-systems", "drones", "drug-discovery", "embedded-firmware", "emotion-detection", "epidemiology", "etl-pipelines", "excel-automation", "fea", "federated-learning", "financial-pipelines", "fluid-dynamics", "forensics", "fraud-detection", "game-dev", "genai-finetuning", "genomics", "gis", "gpu-programming", "gui-apps", "image-generation", "iot", "llm-finetuning", "load-testing", "machine-learning", "malware-analysis", "materials-science", "medical-imaging", "message-queues", "microservices", "mlops", "monitoring", "multi-agent", "network-programming", "neuroscience", "nlp", "numerical-methods", "os-tooling", "own-db-engine", "own-language", "own-ml-framework", "own-web-framework", "package-dev", "parallel-computing", "physics-sims", "portfolio-optimization", "prompt-eng", "quant-finance", "quantization", "quantum-computing", "rag", "recommendation-systems", "reinforcement-learning", "risk-modeling", "robotics", "satellite-imagery", "search-engine", "simulation-engines", "slam", "speech", "synthetic-data", "testing-qa", "time-series", "vector-db", "video-processing", "voice-cloning", "weather-prediction", "web-dev", "web-scraping", "xai"]);
+const side=document.getElementById("side");
+const sidebarItems=[];
+{
+  const inp=document.createElement("input"); inp.className="search"; inp.placeholder="Search 100 paths…";
+  side.appendChild(inp);
+  PATH_CATS.forEach(cat=>{
+    const hd=document.createElement("h5"); hd.innerHTML=cat.icon+" "+cat.label; side.appendChild(hd);
+    cat.items.forEach(([name,slug])=>{
+      const isCur=slug===CURRENT_SLUG, built=BUILT.has(slug), navigable=built&&!isCur;
+      const el=document.createElement(navigable?"a":"span");
+      el.className="p-item"+(isCur?" active":built?"":" soon");
+      if(navigable) el.href="./"+slug+"-roadmap.html";
+      const nm=document.createElement("span"); nm.textContent=name;
+      const bd=document.createElement("em"); bd.textContent=isCur?"now":built?"open":"soon";
+      el.appendChild(nm); el.appendChild(bd);
+      el.dataset.q=(name+" "+slug).toLowerCase();
+      el.dataset.cat=cat.label;
+      side.appendChild(el); sidebarItems.push(el);
+    });
+  });
+  inp.addEventListener("input",()=>{
+    const q=inp.value.trim().toLowerCase();
+    sidebarItems.forEach(el=>{ el.style.display = !q || el.dataset.q.includes(q) ? "" : "none"; });
+    side.querySelectorAll("h5").forEach(hd=>{
+      let any=false, n=hd.nextElementSibling;
+      while(n && n.tagName!=="H5"){ if(n.style.display!=="none") any=true; n=n.nextElementSibling; }
+      hd.style.display=any?"":"none";
+    });
+  });
+}
+document.getElementById("sideToggle").addEventListener("click",()=>document.body.classList.toggle("no-side"));
+</script>
+</body>
+</html>

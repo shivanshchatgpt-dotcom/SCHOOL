@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Time Series Forecasting — Roadmap</title>
+<style>
+  :root{
+    --bg:#fafafa; --ink:#18181b; --mut:#71717a; --line:#e4e4e7;
+    --yellow:#fde047; --yellow-bd:#52525b; --yellow-deep:#facc15;
+    --rec:#8b5cf6; --alt:#22c55e; --opt:#a1a1aa;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%;color:var(--ink);
+    font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  /* top nav */
+  .nav{position:sticky;top:0;height:52px;background:#fff;border-bottom:1px solid var(--line);
+    display:flex;align-items:center;gap:12px;padding:0 18px;z-index:50}
+  .nav .brand{font-weight:800;letter-spacing:-.02em}
+  .nav .brand span{color:var(--rec)}
+  .nav .title{color:var(--mut);font-size:14px}
+
+  /* diagram flows with the page; wide trees scroll horizontally */
+  .diagram-wrap{overflow-x:auto;background-color:var(--bg);
+    background-image:radial-gradient(#d4d4d8 1.1px, transparent 1.1px);
+    background-size:22px 22px;padding:26px 30px 70px}
+  .canvas{position:relative;margin:0 auto}
+  svg.wires{position:absolute;top:0;left:0;overflow:visible;pointer-events:none}
+  .wire{fill:none;stroke:#a1a1aa;stroke-width:1.6;stroke-dasharray:5 5}
+
+  .node{position:absolute;background:var(--yellow);border:1.6px solid var(--yellow-bd);
+    border-radius:7px;padding:9px 12px;text-align:center;cursor:pointer;user-select:none;
+    box-shadow:0 2px 0 rgba(0,0,0,.16);transition:box-shadow .1s,transform .1s}
+  .node:hover{box-shadow:0 2px 0 rgba(0,0,0,.16),0 0 0 3px rgba(139,92,246,.25)}
+  .node.main{background:var(--yellow-deep);font-weight:800;font-size:15px}
+  .node .n-t{font-weight:600;font-size:13.5px;line-height:1.25}
+  .node.main .n-t{font-weight:800}
+  .node .n-s{font-size:11px;color:#3f3f46;margin-top:2px;font-weight:500;opacity:.85}
+  .node .rec{position:absolute;top:-7px;left:-7px;width:12px;height:12px;border-radius:50%;
+    background:var(--rec);border:2px solid #fff}
+  .node .chk{position:absolute;top:-8px;right:-8px;width:18px;height:18px;border-radius:50%;
+    background:#fff;border:1.6px solid var(--yellow-bd);display:flex;align-items:center;
+    justify-content:center;font-size:11px;color:#fff;font-weight:800}
+  .node.done .chk{background:var(--alt);border-color:var(--alt);color:#fff}
+  .node.done .chk::after{content:"✓"}
+  .callout{position:absolute;background:#fff;border:1.6px solid var(--yellow-bd);border-radius:8px;
+    padding:11px 16px;text-align:center;font-size:13px;font-weight:600;box-shadow:0 2px 0 rgba(0,0,0,.12)}
+
+  /* legend */
+  .legend{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 16px;
+    max-width:720px;margin:18px auto 0;box-shadow:0 4px 14px rgba(0,0,0,.05);
+    display:flex;flex-wrap:wrap;align-items:center;gap:8px 22px}
+  .legend h4{margin:0;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);width:100%}
+  .legend .row{display:flex;align-items:center;gap:8px;font-size:13px;margin:0;color:#3f3f46}
+  .legend .d{width:11px;height:11px;border-radius:50%}
+  .legend .hint{font-size:11.5px;color:var(--mut);width:100%}
+
+  /* layout + left sidebar */
+  .layout{display:flex;align-items:flex-start}
+  .main{flex:1;min-width:0}
+  .side{width:272px;flex:none;position:sticky;top:52px;height:calc(100vh - 52px);overflow:auto;
+    border-right:1px solid var(--line);background:#fcfcfd;padding:14px 12px 40px}
+  body.no-side .side{display:none}
+  .side .search{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;margin-bottom:8px;outline:none}
+  .side .search:focus{border-color:var(--rec)}
+  .side h5{margin:14px 6px 6px;font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);display:flex;align-items:center;gap:6px}
+  .side a.p-item,.side span.p-item{display:flex;align-items:center;justify-content:space-between;gap:8px;
+    font-size:13px;text-decoration:none;color:#3f3f46;padding:6px 9px;border-radius:7px;cursor:pointer}
+  .side a.p-item:hover{background:#f4f4f5}
+  .side .p-item.active{background:#fef9c3;color:#713f12;font-weight:600;border:1px solid #fde047}
+  .side .p-item.soon{color:#b6b6bd;cursor:default}
+  .side .p-item em{font-style:normal;font-size:9.5px;border:1px solid var(--line);border-radius:999px;padding:1px 6px;color:var(--mut);background:#fff}
+  .side .p-item.active em{border-color:#fde047;background:#fffbeb;color:#92400e}
+  .nav .spacer{flex:1}
+  .nav .btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 11px;font-size:13px;cursor:pointer}
+  .nav .btn:hover{background:#f4f4f5}
+  /* when embedded in the PySchool app iframe, the app provides the chrome */
+  body.embedded .nav{display:none}
+  body.embedded .side{top:0;height:100vh}
+  body.embedded .panel{top:0;height:100%}
+
+  /* panel */
+  .panel{position:fixed;top:52px;right:0;height:calc(100% - 52px);width:min(420px,92vw);background:#fff;
+    border-left:1px solid var(--line);box-shadow:-14px 0 40px rgba(0,0,0,.1);z-index:40;
+    transform:translateX(103%);transition:transform .2s ease;display:flex;flex-direction:column}
+  .panel.open{transform:none}
+  .panel .head{padding:16px 20px 14px;border-bottom:1px solid #f1f1f3;display:flex;justify-content:space-between;gap:12px}
+  .panel h2{margin:0 0 6px;font-size:19px;line-height:1.25}
+  .panel .sub{color:var(--mut);font-size:12.5px;margin-bottom:9px}
+  .panel .close{background:none;border:1px solid var(--line);color:var(--mut);border-radius:8px;width:30px;height:30px;cursor:pointer;flex:none}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{font-size:11px;font-weight:600;border-radius:999px;padding:3px 9px;border:1px solid transparent}
+  .chip.cat{background:#eef2ff;color:#3730a3;border-color:#c7d2fe}
+  .chip.level{background:#ecfdf5;color:#065f46;border-color:#a7f3d0}
+  .chip.time{background:#fffbeb;color:#92400e;border-color:#fde68a}
+  .panel .body{padding:16px 20px 40px;overflow:auto}
+  .sec{margin-bottom:18px}
+  .sec h3{margin:0 0 8px;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--rec)}
+  .why{font-size:13.5px;color:#374151;line-height:1.55;margin:0}
+  ul.li{margin:0;padding-left:18px} ul.li li{font-size:13px;color:#374151;margin:3px 0}
+  ul.li.pr li::marker{color:var(--mut)}
+  .can{background:#faf5ff;border:1px solid #e9d5ff;color:#5b21b6;border-radius:9px;padding:11px 13px;font-size:13px}
+  .tags{display:flex;flex-wrap:wrap;gap:6px}
+  .tag{background:#f4f4f5;border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:12px;color:#3f3f46}
+  .res{display:flex;flex-direction:column;gap:6px}
+  .res a{display:flex;align-items:center;gap:8px;font-size:13px;color:#2563eb;text-decoration:none;
+    border:1px solid #e5e7eb;border-radius:8px;padding:8px 11px;background:#fafafa}
+  .res a:hover{background:#f0f6ff;border-color:#bfdbfe}
+  .res a span{color:var(--mut);margin-left:auto;font-size:11px}
+</style>
+</head>
+<body>
+<div class="nav">
+  <div class="brand">Py<span>School</span></div>
+  <div class="title">/ Time Series Forecasting</div>
+  <div class="spacer"></div>
+  <button class="btn" id="sideToggle">☰ All paths</button>
+</div>
+
+<div class="layout">
+<nav class="side" id="side"></nav>
+<div class="main">
+
+<div class="legend">
+  <h4>Time Series Forecasting</h4>
+  <div class="row"><span class="d" style="background:var(--rec)"></span>Recommended</div>
+  <div class="row"><span class="d" style="background:var(--alt)"></span>Alternative option</div>
+  <div class="row"><span class="d" style="background:var(--opt)"></span>Order not strict</div>
+  <div class="hint">Click a topic for details · click the ✓ to mark it done · Ctrl +/− to zoom the whole page</div>
+</div>
+
+<div class="diagram-wrap">
+  <div class="canvas" id="canvas">
+    <svg class="wires" id="wires"></svg>
+  </div>
+</div>
+
+</div>
+</div>
+
+<aside class="panel" id="panel" aria-hidden="true">
+  <div class="head">
+    <div><h2 id="p-title">Select a topic</h2><div class="sub" id="p-sub"></div><div class="chips" id="p-chips"></div></div>
+    <button class="close" id="p-close">✕</button>
+  </div>
+  <div class="body" id="p-body"></div>
+</aside>
+
+<script>
+/* embedded inside the PySchool app? then let the app own the top bar */
+if(window.self!==window.top) document.body.classList.add("embedded");
+/* ------------- content ------------- */
+const SECTIONS = [
+  {main:"Time Series Foundations", rec:true, left:[], right:["Time Series Data","Stationarity & Decomposition"],
+   callout:"At this point you understand what makes time series different."},
+  {main:"Classical Forecasting", rec:true, left:["Moving Averages & Smoothing"], right:["ARIMA & SARIMA","Seasonality & Holidays"],
+   callout:"At this point you can forecast with proven statistical models."},
+  {main:"Feature-Based ML", left:["Lag & Rolling Features"], right:["Gradient Boosting Forecasts","Feature Pipelines"],
+   callout:"At this point you can beat naive baselines with ML."},
+  {main:"Deep Learning Forecasting", left:["RNN & LSTM Forecasters"], right:["Temporal CNNs","Transformers for Time Series"],
+   callout:"At this point you can model complex temporal patterns."},
+  {main:"Evaluation & Validation", left:["Backtesting"], right:["Error Metrics","Baselines & Uncertainty"],
+   callout:"At this point you evaluate forecasts honestly."},
+  {main:"Production Forecasting", left:["Automated Forecasting"], right:["Hierarchical & Multivariate","Anomaly Detection"],
+   callout:"At this point you run forecasting pipelines in production."},
+  {main:"Specialised Domains", left:["Probabilistic Forecasting"], right:["Real-World Systems","Scaling & MLOps"],
+   callout:"At this point you can forecast at scale across domains."}
+];
+const DETAIL = {
+  "Time Series Foundations":{sub:"Start here · weeks 1–2",cat:"Foundations",level:"Beginner",time:"~2 weeks",
+    why:"Time series breaks the independence assumption of normal ML: order, trend and seasonality all matter. Getting the concepts right first saves months of wrong models.",
+    learn:["Why time order matters","Trend, seasonality, noise","Train/test splits for time"],
+    tools:["pandas","statsmodels"],
+    practice:["Decompose a real series into its components"],
+    resources:[{t:"Forecasting: Principles and Practice",u:"https://otexts.com/fpp3/"}],
+    can:"Understand time series structure."},
+  "Time Series Data":{cat:"Foundations",level:"Beginner",time:"~1 week",prereq:["None — start here"],
+    why:"Resampling, missing values and irregular timestamps are the everyday reality of time-series data.",
+    learn:["Datetime indexes","Resampling and frequency","Missing data handling"],
+    tools:["pandas"],
+    practice:["Resample and clean an irregular series"],
+    resources:[{t:"pandas: time series",u:"https://pandas.pydata.org/docs/user_guide/timeseries.html"}],
+    can:"Prepare time-series data."},
+  "Stationarity & Decomposition":{cat:"Foundations",level:"Beginner",time:"~1 week",prereq:["Time Series Data"],
+    why:"Many classical models require stationarity; decomposition reveals the structure you must model.",
+    learn:["Stationarity and tests","Trend and seasonal decomposition","Differencing"],
+    tools:["statsmodels"],
+    practice:["Test and difference a series to stationarity"],
+    resources:[{t:"Forecasting: Principles and Practice",u:"https://otexts.com/fpp3/"}],
+    can:"Diagnose series structure."},
+
+  "Classical Forecasting":{sub:"Weeks 2–5",cat:"Classical",level:"Beginner",time:"~3 weeks",prereq:["Time Series Foundations"],
+    why:"ARIMA and exponential smoothing are fast, interpretable and hard to beat on many series — always the first serious baseline.",
+    learn:["Smoothing methods","ARIMA family","Seasonality handling"],
+    tools:["statsmodels","pmdarima"],
+    practice:["Fit ARIMA and seasonal models to a real series"],
+    resources:[{t:"Forecasting: Principles and Practice",u:"https://otexts.com/fpp3/"}],
+    can:"Forecast with statistical models."},
+  "Moving Averages & Smoothing":{cat:"Classical",level:"Beginner",time:"~1 week",prereq:["Stationarity & Decomposition"],
+    why:"Smoothing is simple, robust and often the baseline to beat.",
+    learn:["Moving averages","Exponential smoothing","Holt-Winters"],
+    tools:["statsmodels"],
+    practice:["Compare simple and Holt-Winters forecasts"],
+    resources:[{t:"Statsmodels: exponential smoothing",u:"https://www.statsmodels.org/stable/examples/notebooks/generated/exponential_smoothing.html"}],
+    can:"Smooth and forecast simple series."},
+  "ARIMA & SARIMA":{cat:"Classical",level:"Intermediate",time:"~1–2 weeks",prereq:["Moving Averages & Smoothing"],
+    why:"ARIMA models autocorrelation directly and is the workhorse of classical forecasting.",
+    learn:["AR, MA and differencing","Order selection (p,d,q)","Seasonal SARIMA"],
+    tools:["statsmodels","pmdarima"],
+    practice:["Auto-select and validate an ARIMA model"],
+    resources:[{t:"Statsmodels: ARIMA",u:"https://www.statsmodels.org/stable/generated/statsmodels.tsa.arima.model.ARIMA.html"}],
+    can:"Build ARIMA forecasts."},
+  "Seasonality & Holidays":{cat:"Classical",level:"Intermediate",time:"~1 week",prereq:["ARIMA & SARIMA"],
+    why:"Ignoring seasonality and holidays produces forecasts that are wrong exactly when it matters.",
+    learn:["Seasonal periods","Holiday and event effects","Fourier features"],
+    tools:["statsmodels","holidays"],
+    practice:["Model weekly and yearly seasonality together"],
+    resources:[{t:"Prophet docs",u:"https://facebook.github.io/prophet/"}],
+    can:"Capture seasonal effects."},
+
+  "Feature-Based ML":{sub:"Weeks 4–8",cat:"ML",level:"Intermediate",time:"~4 weeks",prereq:["Classical Forecasting"],
+    why:"Framing forecasting as supervised learning with lag features unlocks the full ML toolbox and often wins.",
+    learn:["Lag and rolling features","Gradient boosting for forecasting","Leakage-safe pipelines"],
+    tools:["scikit-learn","LightGBM"],
+    practice:["Beat ARIMA with a gradient-boosted model"],
+    resources:[{t:"scikit-learn: docs",u:"https://scikit-learn.org/stable/"}],
+    can:"Build ML forecasting models."},
+  "Lag & Rolling Features":{cat:"ML",level:"Intermediate",time:"~1–2 weeks",prereq:["Stationarity & Decomposition"],
+    why:"Lags, rolling statistics and calendar features turn a series into a supervised dataset.",
+    learn:["Lag features","Rolling and expanding windows","Calendar features"],
+    tools:["pandas"],
+    practice:["Engineer a feature set without leakage"],
+    resources:[{t:"Forecasting: Principles and Practice",u:"https://otexts.com/fpp3/"}],
+    can:"Engineer forecasting features."},
+  "Gradient Boosting Forecasts":{cat:"ML",level:"Intermediate",time:"~1–2 weeks",prereq:["Lag & Rolling Features"],
+    why:"Trees handle non-linearity and mixed features extremely well on tabular time series.",
+    learn:["Direct vs recursive forecasting","Feature importance","Hyperparameter tuning"],
+    tools:["LightGBM","XGBoost"],
+    practice:["Tune and validate a boosted forecaster"],
+    resources:[{t:"LightGBM docs",u:"https://lightgbm.readthedocs.io/"}],
+    can:"Forecast with gradient boosting."},
+  "Feature Pipelines":{cat:"ML",level:"Intermediate",time:"~1 week",prereq:["Lag & Rolling Features"],
+    why:"Leakage is the number-one forecasting bug; disciplined pipelines prevent it.",
+    learn:["Time-aware splitting","Preventing leakage","Reproducible feature code"],
+    tools:["scikit-learn"],
+    practice:["Build a leakage-free feature pipeline"],
+    resources:[{t:"scikit-learn: pipelines",u:"https://scikit-learn.org/stable/modules/compose.html"}],
+    can:"Build safe feature pipelines."},
+
+  "Deep Learning Forecasting":{sub:"Weeks 7–12",cat:"Deep",level:"Advanced",time:"~5 weeks",prereq:["Feature-Based ML"],
+    why:"When series are long, many and complex, neural forecasters model global patterns across thousands of series at once.",
+    learn:["Sequence models","Temporal convolutions","Attention for time series"],
+    tools:["PyTorch","NeuralForecast"],
+    practice:["Train a global deep forecaster on many series"],
+    resources:[{t:"Nixtla: NeuralForecast",u:"https://nixtlaverse.nixtla.io/neuralforecast/"}],
+    can:"Build deep forecasting models."},
+  "RNN & LSTM Forecasters":{cat:"Deep",level:"Advanced",time:"~1–2 weeks",prereq:["Feature Pipelines"],
+    why:"Recurrent models were the first effective deep forecasters and remain a useful baseline.",
+    learn:["Sequence windows","LSTM and GRU","Training considerations"],
+    tools:["PyTorch"],
+    practice:["Train an LSTM forecaster"],
+    resources:[{t:"PyTorch: RNN tutorials",u:"https://pytorch.org/tutorials/"}],
+    can:"Forecast with RNNs."},
+  "Temporal CNNs":{cat:"Deep",level:"Advanced",time:"~1 week",prereq:["RNN & LSTM Forecasters"],
+    why:"Causal convolutions forecast long sequences in parallel and train faster than RNNs.",
+    learn:["Causal and dilated convolutions","Receptive fields","TCN architectures"],
+    tools:["PyTorch"],
+    practice:["Train a temporal CNN forecaster"],
+    resources:[{t:"NeuralForecast docs",u:"https://nixtlaverse.nixtla.io/neuralforecast/"}],
+    can:"Forecast with temporal CNNs."},
+  "Transformers for Time Series":{cat:"Deep",level:"Advanced",time:"~1–2 weeks",prereq:["Temporal CNNs"],
+    why:"Transformer forecasters (Informer, PatchTST) handle long horizons and multiple series at scale.",
+    learn:["Attention for sequences","Patch-based models","Long-horizon forecasting"],
+    tools:["PyTorch"],
+    practice:["Train a transformer forecaster"],
+    resources:[{t:"Nixtla: NeuralForecast",u:"https://nixtlaverse.nixtla.io/neuralforecast/"}],
+    can:"Use transformers for forecasting."},
+
+  "Evaluation & Validation":{sub:"Weeks 11–15",cat:"Evaluation",level:"Advanced",time:"~3 weeks",prereq:["Deep Learning Forecasting"],
+    why:"Forecasting is easy to evaluate wrongly. Backtesting, the right metrics and baselines decide whether a model is real.",
+    learn:["Rolling-origin backtesting","Forecast error metrics","Uncertainty and intervals"],
+    tools:["sktime","utilsforecast"],
+    practice:["Backtest several models on one series"],
+    resources:[{t:"Forecasting: Principles and Practice",u:"https://otexts.com/fpp3/"}],
+    can:"Evaluate forecasts honestly."},
+  "Backtesting":{cat:"Evaluation",level:"Advanced",time:"~1–2 weeks",prereq:["Feature Pipelines"],
+    why:"A single train/test split is luck; rolling backtests simulate real deployment.",
+    learn:["Rolling and expanding origins","Cross-validation for time","Multi-horizon evaluation"],
+    tools:["sktime"],
+    practice:["Implement a rolling-origin backtest"],
+    resources:[{t:"sktime docs",u:"https://www.sktime.net/"}],
+    can:"Validate forecasts properly."},
+  "Error Metrics":{cat:"Evaluation",level:"Intermediate",time:"~1 week",prereq:["Gradient Boosting Forecasts"],
+    why:"MAE, RMSE, MAPE, MASE each tell a different story; choosing wrong hides failures.",
+    learn:["Scale-dependent metrics","Percentage metrics","Scaled metrics (MASE)"],
+    tools:["utilsforecast"],
+    practice:["Compare metrics across models"],
+    resources:[{t:"Forecasting: Principles and Practice",u:"https://otexts.com/fpp3/"}],
+    can:"Measure forecast accuracy."},
+  "Baselines & Uncertainty":{cat:"Evaluation",level:"Advanced",time:"~1 week",prereq:["Backtesting"],
+    why:"Naive baselines and prediction intervals are what make a forecast useful for decisions.",
+    learn:["Naive and seasonal naive","Prediction intervals","Conformal prediction"],
+    tools:["statsmodels"],
+    practice:["Beat the naive baseline with intervals"],
+    resources:[{t:"Forecasting: Principles and Practice",u:"https://otexts.com/fpp3/"}],
+    can:"Provide forecasts with uncertainty."},
+
+  "Production Forecasting":{sub:"Weeks 14–18",cat:"Production",level:"Advanced",time:"~4 weeks",prereq:["Evaluation & Validation"],
+    why:"Forecasting at scale means thousands of series, automated pipelines and detection of anomalies — an engineering problem as much as a modelling one.",
+    learn:["Automated model selection","Hierarchical and multivariate series","Anomaly detection"],
+    tools:["Nixtla","Airflow"],
+    practice:["Build a pipeline that forecasts many series daily"],
+    resources:[{t:"Nixtla docs",u:"https://nixtlaverse.nixtla.io/"}],
+    can:"Run production forecasting."},
+  "Automated Forecasting":{cat:"Production",level:"Advanced",time:"~1–2 weeks",prereq:["Backtesting"],
+    why:"Manually tuning thousands of series does not scale; automation selects and updates models.",
+    learn:["Auto model selection","Global models","Retraining schedules"],
+    tools:["Nixtla","AutoARIMA"],
+    practice:["Forecast a thousand series automatically"],
+    resources:[{t:"Nixtla: StatsForecast",u:"https://nixtlaverse.nixtla.io/statsforecast/"}],
+    can:"Automate forecasting at scale."},
+  "Hierarchical & Multivariate":{cat:"Production",level:"Advanced",time:"~1 week",prereq:["Automated Forecasting"],
+    why:"Forecasts must sum correctly across levels (store → region → total) and series often move together.",
+    learn:["Hierarchical reconciliation","Multivariate models","Cross-series learning"],
+    tools:["Nixtla"],
+    practice:["Reconcile forecasts across a hierarchy"],
+    resources:[{t:"Nixtla: HierarchicalForecast",u:"https://nixtlaverse.nixtla.io/hierarchicalforecast/"}],
+    can:"Forecast hierarchies coherently."},
+  "Anomaly Detection":{cat:"Production",level:"Advanced",time:"~1 week",prereq:["Error Metrics"],
+    why:"Forecast residuals reveal anomalies — a key production use of time-series models.",
+    learn:["Residual-based detection","Thresholds and alarms","Seasonal anomalies"],
+    tools:["statsmodels"],
+    practice:["Detect anomalies in a series via residuals"],
+    resources:[{t:"scikit-learn: novelty detection",u:"https://scikit-learn.org/stable/modules/outlier_detection.html"}],
+    can:"Detect time-series anomalies."},
+
+  "Specialised Domains":{sub:"Months 7+",cat:"Domain",level:"Advanced",time:"ongoing",prereq:["Production Forecasting"],
+    why:"Senior forecasting work is domain-specific: probabilistic forecasts, demand planning, and running it all reliably.",
+    learn:["Probabilistic forecasting","Domain systems","Forecasting MLOps"],
+    tools:["Nixtla","PyTorch"],
+    practice:["Own a forecasting system end to end"],
+    resources:[{t:"Forecasting: Principles and Practice",u:"https://otexts.com/fpp3/"}],
+    can:"Forecast across domains."},
+  "Probabilistic Forecasting":{cat:"Domain",level:"Advanced",time:"~2 weeks",prereq:["Baselines & Uncertainty"],
+    why:"Decisions need distributions, not point estimates — stock levels and capacity depend on the whole range.",
+    learn:["Quantile forecasting","Distributional models","Conformal methods"],
+    tools:["Nixtla","PyTorch"],
+    practice:["Produce calibrated quantile forecasts"],
+    resources:[{t:"Nixtla: probabilistic forecasting",u:"https://nixtlaverse.nixtla.io/"}],
+    can:"Forecast distributions."},
+  "Real-World Systems":{cat:"Domain",level:"Advanced",time:"~2 weeks",prereq:["Hierarchical & Multivariate"],
+    why:"Demand planning, energy load and finance each have quirks that generic tutorials miss.",
+    learn:["Demand planning","Energy and load forecasting","Financial forecasting"],
+    tools:["Nixtla"],
+    practice:["Adapt a pipeline to a specific domain"],
+    resources:[{t:"Forecasting: Principles and Practice",u:"https://otexts.com/fpp3/"}],
+    can:"Apply forecasting in a domain."},
+  "Scaling & MLOps":{cat:"Domain",level:"Advanced",time:"ongoing",prereq:["Automated Forecasting"],
+    why:"Forecasting models drift as the world changes; monitoring and retraining keep them useful.",
+    learn:["Drift monitoring","Automated retraining","Deployment and serving"],
+    tools:["MLflow","Airflow"],
+    practice:["Monitor drift and retrain automatically"],
+    resources:[{t:"MLflow docs",u:"https://mlflow.org/docs/latest/index.html"}],
+    can:"Operate forecasting models."}
+};
+
+
+
+/* all learning paths (from catalog), grouped by depth */
+const PATH_CATS = [
+  {icon:"\ud83c\udf0a",label:"Surface",items:[["Web Development","web-dev"],["Data Science / Analysis","data-science"],["Automation / Scripting","automation"],["Machine Learning","machine-learning"],["Web Scraping","web-scraping"],["Game Development","game-dev"],["GUI Applications","gui-apps"],["API Building","api-building"],["Chatbots","chatbots"],["Excel Automation","excel-automation"]]},
+  {icon:"\ud83c\udf0a",label:"Below Surface",items:[["Deep Learning","deep-learning"],["Computer Vision","computer-vision"],["NLP (Natural Language Processing)","nlp"],["Data Visualization","data-viz"],["Cloud Computing","cloud-computing"],["DevOps Scripting","devops-scripting"],["Testing / QA Automation","testing-qa"],["Database Operations","database-ops"],["ETL Pipelines","etl-pipelines"],["Recommendation Systems","recommendation-systems"]]},
+  {icon:"\ud83c\udf0a",label:"Mid-Level",items:[["Reinforcement Learning","reinforcement-learning"],["Generative AI / LLM Fine-tuning","genai-finetuning"],["Time Series Forecasting","time-series"],["Computer Graphics / Animation","cgi-animation"],["Cybersecurity / Pentesting","cybersecurity"],["Network Programming","network-programming"],["Cryptography Implementation","cryptography"],["Blockchain Scripting","blockchain"],["IoT Programming","iot"],["Robotics","robotics"],["Drone Programming","drones"],["Audio Processing","audio-processing"],["Video Processing","video-processing"],["Image Generation","image-generation"],["Speech Recognition / Synthesis","speech"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a",label:"Scientific",items:[["Bioinformatics","bioinformatics"],["Computational Chemistry","comp-chemistry"],["Physics Simulations","physics-sims"],["Astronomy Data","astronomy"],["Geospatial / GIS","gis"],["Climate Modeling","climate-modeling"],["Quantum Computing","quantum-computing"],["Numerical Methods","numerical-methods"],["Finite Element Analysis","fea"],["Fluid Dynamics Simulation","fluid-dynamics"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a",label:"Finance",items:[["Algorithmic Trading","algo-trading"],["Quantitative Finance","quant-finance"],["Risk Modeling","risk-modeling"],["Fraud Detection Systems","fraud-detection"],["Credit Scoring Models","credit-scoring"],["Portfolio Optimization","portfolio-optimization"],["Crypto Trading Bots","crypto-bots"],["Financial Data Pipelines","financial-pipelines"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a",label:"Infra",items:[["Distributed Systems","distributed-systems"],["Microservices Architecture","microservices"],["Container Orchestration","container-orchestration"],["Message Queues","message-queues"],["Load Testing","load-testing"],["Monitoring / Observability","monitoring"],["CI/CD Pipeline Scripting","cicd"],["Package / Library Development","package-dev"],["Compiler / Interpreter Building","compiler-building"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a",label:"AI Frontier",items:[["Multi-Agent Systems","multi-agent"],["AI Agents with Tool-Use","ai-agents"],["RAG Systems","rag"],["Vector Databases","vector-db"],["Fine-tuning LLMs","llm-finetuning"],["Model Quantization / Optimization","quantization"],["MLOps","mlops"],["Federated Learning","federated-learning"],["Explainable AI","xai"],["Synthetic Data Generation","synthetic-data"],["AI Safety / Alignment","ai-safety"],["Prompt Engineering Frameworks","prompt-eng"],["Voice Cloning / Synthesis","voice-cloning"],["Emotion Detection","emotion-detection"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a\ud83c\udf0a",label:"Research",items:[["Genomics / DNA Analysis","genomics"],["Drug Discovery","drug-discovery"],["Neuroscience Data Analysis","neuroscience"],["Medical Imaging","medical-imaging"],["Epidemiology Modeling","epidemiology"],["Materials Science Simulation","materials-science"],["Weather Prediction Models","weather-prediction"],["Autonomous Vehicle Perception","autonomous-driving"],["SLAM / Localization","slam"],["Satellite Image Analysis","satellite-imagery"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a\ud83c\udf0a",label:"Abyss",items:[["Python C-Extensions","c-extensions"],["Build Your Own ML Framework","own-ml-framework"],["GPU Programming","gpu-programming"],["Parallel / Distributed Computing","parallel-computing"],["OS Scripting / Tooling","os-tooling"],["Malware Analysis / Reverse Engineering","malware-analysis"],["Digital Forensics Tooling","forensics"],["Embedded Systems Firmware","embedded-firmware"],["Simulation Engines","simulation-engines"],["Build Your Own Database Engine","own-db-engine"],["Build Your Own Web Framework","own-web-framework"],["Search Engine Building","search-engine"],["Programming Language / DSL","own-language"]]},
+  {icon:"\ud83e\udd16",label:"Frontier",items:[["Python for AI Research","agi-research"]]},
+];
+
+/* ------------- layout ------------- */
+const MAIN_W=196, MAIN_H=52, CH_W=182, CH_H=42, COL=290, YGAP=54, SECGAP=78;
+const nodes=[]; // {title, x,y,w,h,kind,detail}
+let y=0;
+const sectionYs=[];
+SECTIONS.forEach(sec=>{
+  const k=Math.max(sec.left.length, sec.right.length, 1);
+  const spread=(k-1)*YGAP;
+  const secH=Math.max(MAIN_H, spread);
+  const cy=y+secH/2;
+  nodes.push({title:sec.main,x:-MAIN_W/2,y:cy-MAIN_H/2,w:MAIN_W,h:MAIN_H,kind:"main",rec:!!sec.rec});
+  const place=(list,side,dx)=>{ list.forEach((t,i)=>{
+    const cxX = side==="right" ? dx : -dx-CH_W;
+    const cyy = cy - spread/2 + (i*YGAP) + (k-1-list.length)*0; // stack from top-ish
+    const yy = cy - ((list.length-1)*YGAP)/2 + i*YGAP;
+    nodes.push({title:t,x:cxX,y:yy-CH_H/2,w:CH_W,h:CH_H,kind:"child",side});
+  });};
+  place(sec.right,"right",COL);
+  place(sec.left,"left",COL);
+  y += secH + SECGAP;
+  sectionYs.push({main:sec.main, end:y-SECGAP, callout:sec.callout});
+});
+
+/* bounds */
+let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+nodes.forEach(n=>{minX=Math.min(minX,n.x);maxX=Math.max(maxX,n.x+n.w);minY=Math.min(minY,n.y);maxY=Math.max(maxY,n.y+n.h);});
+const PAD=60, W=(maxX-minX)+PAD*2, H=(maxY-minY)+PAD*2;
+const OX=-minX+PAD, OY=-minY+PAD;
+
+const canvas=document.getElementById("canvas");
+canvas.style.width=W+"px"; canvas.style.height=H+"px";
+const svg=document.getElementById("wires");
+svg.setAttribute("width",W); svg.setAttribute("height",H);
+
+function elbow(x1,y1,x2,y2){
+  const mx=(x1+x2)/2;
+  return `M ${x1} ${y1} H ${mx} V ${y2} H ${x2}`;
+}
+
+/* draw nodes + wires */
+const byTitle={};
+nodes.forEach(n=>{ byTitle[n.title]=n; });
+nodes.forEach(n=>{
+  const d=document.createElement("div");
+  d.className="node "+(n.kind==="main"?"main":"child");
+  d.style.left=(n.x+OX)+"px"; d.style.top=(n.y+OY)+"px";
+  d.style.width=n.w+"px";
+  d.innerHTML='<div class="n-t">'+n.title+'</div>'+(DETAIL[n.title]&&DETAIL[n.title].sub?'<div class="n-s">'+DETAIL[n.title].sub+'</div>':'');
+  if(n.rec) d.insertAdjacentHTML("afterbegin",'<span class="rec"></span>');
+  d.insertAdjacentHTML("beforeend",'<span class="chk"></span>');
+  canvas.appendChild(d);
+  n._el=d;
+  // wire from main to children
+});
+SECTIONS.forEach(sec=>{
+  const m=byTitle[sec.main];
+  [...sec.right].forEach(t=>{const c=byTitle[t]; if(c) addWire(m.x+m.w,m.y+m.h/2,c.x,c.y+c.h/2);});
+  [...sec.left].forEach(t=>{const c=byTitle[t]; if(c) addWire(m.x,m.y+m.h/2,c.x+c.w,c.y+c.h/2);});
+});
+// vertical spine connectors between main nodes
+for(let i=0;i<SECTIONS.length-1;i++){
+  const a=byTitle[SECTIONS[i].main], b=byTitle[SECTIONS[i+1].main];
+  addWire(a.x+a.w/2,a.y+a.h,b.x+b.w/2,b.y);
+}
+function addWire(x1,y1,x2,y2){
+  const p=document.createElementNS("http://www.w3.org/2000/svg","path");
+  p.setAttribute("d",elbow(x1+OX,y1+OY,x2+OX,y2+OY));
+  p.setAttribute("class","wire");
+  svg.appendChild(p);
+}
+// callouts
+sectionYs.forEach(s=>{ if(!s.callout) return; const sec=SECTIONS.find(x=>x.main===s.main); const k=Math.max(sec.left.length,sec.right.length,1);
+  const co=document.createElement("div"); co.className="callout"; co.textContent=s.callout;
+  const cw=380; co.style.width=cw+"px";
+  const cnode=byTitle[s.main];
+  co.style.left=(-cw/2+OX)+"px"; co.style.top=(s.end+OY+6)+"px";
+  canvas.appendChild(co);
+});
+
+/* click + check + panel */
+document.querySelectorAll(".node").forEach(el=>{
+  const title=el.querySelector(".n-t").textContent;
+  el.addEventListener("click",(e)=>{
+    if(e.target.classList.contains("chk")){ el.classList.toggle("done"); return; }
+    openPanel(title);
+    document.querySelectorAll(".node").forEach(o=>o.style.outline="");
+    el.style.outline="3px solid rgba(139,92,246,.5)";
+  });
+  if(localStorage.getItem("rm:"+title)==="1") el.classList.add("done");
+  el.addEventListener("click",e=>{ if(e.target.classList.contains("chk")){ localStorage.setItem("rm:"+title, el.classList.contains("done")?"1":"0"); }});
+});
+
+function openPanel(title){
+  const d=DETAIL[title]||{};
+  document.getElementById("p-title").textContent=title;
+  document.getElementById("p-sub").textContent=d.sub||"Topic";
+  const chips=document.getElementById("p-chips"); chips.innerHTML="";
+  [["cat",d.cat],["level",d.level],["time",d.time]].forEach(([k,v])=>{
+    if(!v) return; const c=document.createElement("span"); c.className="chip "+k; c.textContent=v; chips.appendChild(c);
+  });
+  const b=document.getElementById("p-body"); b.innerHTML="";
+  const sec=(h,node)=>{const s=document.createElement("div");s.className="sec";const t=document.createElement("h3");t.textContent=h;s.appendChild(t);s.appendChild(node);b.appendChild(s);};
+  const list=(arr,cls)=>{const ul=document.createElement("ul");ul.className="li "+(cls||"");arr.forEach(x=>{const li=document.createElement("li");li.textContent=x;ul.appendChild(li);});return ul;};
+  const pEl=document.createElement("p");
+  if(d.why){pEl.className="why";pEl.textContent=d.why;sec("Overview",pEl.cloneNode(true));}
+  if(d.prereq) sec("Prerequisites",list(d.prereq,"pr"));
+  if(d.learn) sec("What you'll learn",list(d.learn));
+  if(d.tools){const t=document.createElement("div");t.className="tags";d.tools.forEach(x=>{const sp=document.createElement("span");sp.className="tag";sp.textContent=x;t.appendChild(sp);});sec("Tools & technologies",t);}
+  if(d.practice) sec("Hands-on practice",list(d.practice));
+  if(d.resources){const r=document.createElement("div");r.className="res";d.resources.forEach(x=>{
+    const a=document.createElement("a");a.href=x.u;a.target="_blank";a.rel="noopener";
+    a.innerHTML=x.t+'<span>↗</span>';r.appendChild(a);});sec("Resources",r);}
+  if(d.can){const c=document.createElement("div");c.className="can";c.textContent=d.can;sec("What you can do afterwards",c);}
+  const p=document.getElementById("panel");p.classList.add("open");p.setAttribute("aria-hidden","false");
+}
+document.getElementById("p-close").addEventListener("click",()=>{
+  const p=document.getElementById("panel");p.classList.remove("open");p.setAttribute("aria-hidden","true");});
+
+/* ------------- left sidebar: all learning paths ------------- */
+const CURRENT_SLUG="time-series";
+const BUILT=new Set(["agi-research", "ai-agents", "ai-safety", "algo-trading", "api-building", "astronomy", "audio-processing", "automation", "autonomous-driving", "bioinformatics", "blockchain", "c-extensions", "cgi-animation", "chatbots", "cicd", "climate-modeling", "cloud-computing", "comp-chemistry", "compiler-building", "computer-vision", "container-orchestration", "credit-scoring", "crypto-bots", "cryptography", "cybersecurity", "data-science", "data-viz", "database-ops", "deep-learning", "devops-scripting", "distributed-systems", "drones", "drug-discovery", "embedded-firmware", "emotion-detection", "epidemiology", "etl-pipelines", "excel-automation", "fea", "federated-learning", "financial-pipelines", "fluid-dynamics", "forensics", "fraud-detection", "game-dev", "genai-finetuning", "genomics", "gis", "gpu-programming", "gui-apps", "image-generation", "iot", "llm-finetuning", "load-testing", "machine-learning", "malware-analysis", "materials-science", "medical-imaging", "message-queues", "microservices", "mlops", "monitoring", "multi-agent", "network-programming", "neuroscience", "nlp", "numerical-methods", "os-tooling", "own-db-engine", "own-language", "own-ml-framework", "own-web-framework", "package-dev", "parallel-computing", "physics-sims", "portfolio-optimization", "prompt-eng", "quant-finance", "quantization", "quantum-computing", "rag", "recommendation-systems", "reinforcement-learning", "risk-modeling", "robotics", "satellite-imagery", "search-engine", "simulation-engines", "slam", "speech", "synthetic-data", "testing-qa", "time-series", "vector-db", "video-processing", "voice-cloning", "weather-prediction", "web-dev", "web-scraping", "xai"]);
+const side=document.getElementById("side");
+const sidebarItems=[];
+{
+  const inp=document.createElement("input"); inp.className="search"; inp.placeholder="Search 100 paths…";
+  side.appendChild(inp);
+  PATH_CATS.forEach(cat=>{
+    const hd=document.createElement("h5"); hd.innerHTML=cat.icon+" "+cat.label; side.appendChild(hd);
+    cat.items.forEach(([name,slug])=>{
+      const isCur=slug===CURRENT_SLUG, built=BUILT.has(slug), navigable=built&&!isCur;
+      const el=document.createElement(navigable?"a":"span");
+      el.className="p-item"+(isCur?" active":built?"":" soon");
+      if(navigable) el.href="./"+slug+"-roadmap.html";
+      const nm=document.createElement("span"); nm.textContent=name;
+      const bd=document.createElement("em"); bd.textContent=isCur?"now":built?"open":"soon";
+      el.appendChild(nm); el.appendChild(bd);
+      el.dataset.q=(name+" "+slug).toLowerCase();
+      el.dataset.cat=cat.label;
+      side.appendChild(el); sidebarItems.push(el);
+    });
+  });
+  inp.addEventListener("input",()=>{
+    const q=inp.value.trim().toLowerCase();
+    sidebarItems.forEach(el=>{ el.style.display = !q || el.dataset.q.includes(q) ? "" : "none"; });
+    side.querySelectorAll("h5").forEach(hd=>{
+      let any=false, n=hd.nextElementSibling;
+      while(n && n.tagName!=="H5"){ if(n.style.display!=="none") any=true; n=n.nextElementSibling; }
+      hd.style.display=any?"":"none";
+    });
+  });
+}
+document.getElementById("sideToggle").addEventListener("click",()=>document.body.classList.toggle("no-side"));
+</script>
+</body>
+</html>

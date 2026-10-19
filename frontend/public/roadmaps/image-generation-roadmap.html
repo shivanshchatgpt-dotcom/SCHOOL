@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Image Generation — Roadmap</title>
+<style>
+  :root{
+    --bg:#fafafa; --ink:#18181b; --mut:#71717a; --line:#e4e4e7;
+    --yellow:#fde047; --yellow-bd:#52525b; --yellow-deep:#facc15;
+    --rec:#8b5cf6; --alt:#22c55e; --opt:#a1a1aa;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%;color:var(--ink);
+    font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  /* top nav */
+  .nav{position:sticky;top:0;height:52px;background:#fff;border-bottom:1px solid var(--line);
+    display:flex;align-items:center;gap:12px;padding:0 18px;z-index:50}
+  .nav .brand{font-weight:800;letter-spacing:-.02em}
+  .nav .brand span{color:var(--rec)}
+  .nav .title{color:var(--mut);font-size:14px}
+
+  /* diagram flows with the page; wide trees scroll horizontally */
+  .diagram-wrap{overflow-x:auto;background-color:var(--bg);
+    background-image:radial-gradient(#d4d4d8 1.1px, transparent 1.1px);
+    background-size:22px 22px;padding:26px 30px 70px}
+  .canvas{position:relative;margin:0 auto}
+  svg.wires{position:absolute;top:0;left:0;overflow:visible;pointer-events:none}
+  .wire{fill:none;stroke:#a1a1aa;stroke-width:1.6;stroke-dasharray:5 5}
+
+  .node{position:absolute;background:var(--yellow);border:1.6px solid var(--yellow-bd);
+    border-radius:7px;padding:9px 12px;text-align:center;cursor:pointer;user-select:none;
+    box-shadow:0 2px 0 rgba(0,0,0,.16);transition:box-shadow .1s,transform .1s}
+  .node:hover{box-shadow:0 2px 0 rgba(0,0,0,.16),0 0 0 3px rgba(139,92,246,.25)}
+  .node.main{background:var(--yellow-deep);font-weight:800;font-size:15px}
+  .node .n-t{font-weight:600;font-size:13.5px;line-height:1.25}
+  .node.main .n-t{font-weight:800}
+  .node .n-s{font-size:11px;color:#3f3f46;margin-top:2px;font-weight:500;opacity:.85}
+  .node .rec{position:absolute;top:-7px;left:-7px;width:12px;height:12px;border-radius:50%;
+    background:var(--rec);border:2px solid #fff}
+  .node .chk{position:absolute;top:-8px;right:-8px;width:18px;height:18px;border-radius:50%;
+    background:#fff;border:1.6px solid var(--yellow-bd);display:flex;align-items:center;
+    justify-content:center;font-size:11px;color:#fff;font-weight:800}
+  .node.done .chk{background:var(--alt);border-color:var(--alt);color:#fff}
+  .node.done .chk::after{content:"✓"}
+  .callout{position:absolute;background:#fff;border:1.6px solid var(--yellow-bd);border-radius:8px;
+    padding:11px 16px;text-align:center;font-size:13px;font-weight:600;box-shadow:0 2px 0 rgba(0,0,0,.12)}
+
+  /* legend */
+  .legend{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 16px;
+    max-width:720px;margin:18px auto 0;box-shadow:0 4px 14px rgba(0,0,0,.05);
+    display:flex;flex-wrap:wrap;align-items:center;gap:8px 22px}
+  .legend h4{margin:0;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);width:100%}
+  .legend .row{display:flex;align-items:center;gap:8px;font-size:13px;margin:0;color:#3f3f46}
+  .legend .d{width:11px;height:11px;border-radius:50%}
+  .legend .hint{font-size:11.5px;color:var(--mut);width:100%}
+
+  /* layout + left sidebar */
+  .layout{display:flex;align-items:flex-start}
+  .main{flex:1;min-width:0}
+  .side{width:272px;flex:none;position:sticky;top:52px;height:calc(100vh - 52px);overflow:auto;
+    border-right:1px solid var(--line);background:#fcfcfd;padding:14px 12px 40px}
+  body.no-side .side{display:none}
+  .side .search{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;margin-bottom:8px;outline:none}
+  .side .search:focus{border-color:var(--rec)}
+  .side h5{margin:14px 6px 6px;font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);display:flex;align-items:center;gap:6px}
+  .side a.p-item,.side span.p-item{display:flex;align-items:center;justify-content:space-between;gap:8px;
+    font-size:13px;text-decoration:none;color:#3f3f46;padding:6px 9px;border-radius:7px;cursor:pointer}
+  .side a.p-item:hover{background:#f4f4f5}
+  .side .p-item.active{background:#fef9c3;color:#713f12;font-weight:600;border:1px solid #fde047}
+  .side .p-item.soon{color:#b6b6bd;cursor:default}
+  .side .p-item em{font-style:normal;font-size:9.5px;border:1px solid var(--line);border-radius:999px;padding:1px 6px;color:var(--mut);background:#fff}
+  .side .p-item.active em{border-color:#fde047;background:#fffbeb;color:#92400e}
+  .nav .spacer{flex:1}
+  .nav .btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 11px;font-size:13px;cursor:pointer}
+  .nav .btn:hover{background:#f4f4f5}
+  /* when embedded in the PySchool app iframe, the app provides the chrome */
+  body.embedded .nav{display:none}
+  body.embedded .side{top:0;height:100vh}
+  body.embedded .panel{top:0;height:100%}
+
+  /* panel */
+  .panel{position:fixed;top:52px;right:0;height:calc(100% - 52px);width:min(420px,92vw);background:#fff;
+    border-left:1px solid var(--line);box-shadow:-14px 0 40px rgba(0,0,0,.1);z-index:40;
+    transform:translateX(103%);transition:transform .2s ease;display:flex;flex-direction:column}
+  .panel.open{transform:none}
+  .panel .head{padding:16px 20px 14px;border-bottom:1px solid #f1f1f3;display:flex;justify-content:space-between;gap:12px}
+  .panel h2{margin:0 0 6px;font-size:19px;line-height:1.25}
+  .panel .sub{color:var(--mut);font-size:12.5px;margin-bottom:9px}
+  .panel .close{background:none;border:1px solid var(--line);color:var(--mut);border-radius:8px;width:30px;height:30px;cursor:pointer;flex:none}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{font-size:11px;font-weight:600;border-radius:999px;padding:3px 9px;border:1px solid transparent}
+  .chip.cat{background:#eef2ff;color:#3730a3;border-color:#c7d2fe}
+  .chip.level{background:#ecfdf5;color:#065f46;border-color:#a7f3d0}
+  .chip.time{background:#fffbeb;color:#92400e;border-color:#fde68a}
+  .panel .body{padding:16px 20px 40px;overflow:auto}
+  .sec{margin-bottom:18px}
+  .sec h3{margin:0 0 8px;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--rec)}
+  .why{font-size:13.5px;color:#374151;line-height:1.55;margin:0}
+  ul.li{margin:0;padding-left:18px} ul.li li{font-size:13px;color:#374151;margin:3px 0}
+  ul.li.pr li::marker{color:var(--mut)}
+  .can{background:#faf5ff;border:1px solid #e9d5ff;color:#5b21b6;border-radius:9px;padding:11px 13px;font-size:13px}
+  .tags{display:flex;flex-wrap:wrap;gap:6px}
+  .tag{background:#f4f4f5;border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:12px;color:#3f3f46}
+  .res{display:flex;flex-direction:column;gap:6px}
+  .res a{display:flex;align-items:center;gap:8px;font-size:13px;color:#2563eb;text-decoration:none;
+    border:1px solid #e5e7eb;border-radius:8px;padding:8px 11px;background:#fafafa}
+  .res a:hover{background:#f0f6ff;border-color:#bfdbfe}
+  .res a span{color:var(--mut);margin-left:auto;font-size:11px}
+</style>
+</head>
+<body>
+<div class="nav">
+  <div class="brand">Py<span>School</span></div>
+  <div class="title">/ Image Generation</div>
+  <div class="spacer"></div>
+  <button class="btn" id="sideToggle">☰ All paths</button>
+</div>
+
+<div class="layout">
+<nav class="side" id="side"></nav>
+<div class="main">
+
+<div class="legend">
+  <h4>Image Generation</h4>
+  <div class="row"><span class="d" style="background:var(--rec)"></span>Recommended</div>
+  <div class="row"><span class="d" style="background:var(--alt)"></span>Alternative option</div>
+  <div class="row"><span class="d" style="background:var(--opt)"></span>Order not strict</div>
+  <div class="hint">Click a topic for details · click the ✓ to mark it done · Ctrl +/− to zoom the whole page</div>
+</div>
+
+<div class="diagram-wrap">
+  <div class="canvas" id="canvas">
+    <svg class="wires" id="wires"></svg>
+  </div>
+</div>
+
+</div>
+</div>
+
+<aside class="panel" id="panel" aria-hidden="true">
+  <div class="head">
+    <div><h2 id="p-title">Select a topic</h2><div class="sub" id="p-sub"></div><div class="chips" id="p-chips"></div></div>
+    <button class="close" id="p-close">✕</button>
+  </div>
+  <div class="body" id="p-body"></div>
+</aside>
+
+<script>
+/* embedded inside the PySchool app? then let the app own the top bar */
+if(window.self!==window.top) document.body.classList.add("embedded");
+/* ------------- content ------------- */
+const SECTIONS = [
+  {main:"Generative Foundations", rec:true, left:[], right:["How Image Generation Works","Math & Latents"],
+   callout:"At this point you understand how models generate images."},
+  {main:"Classic Generative Models", rec:true, left:["VAEs"], right:["GANs","Autoregressive Models"],
+   callout:"At this point you know the pre-diffusion generation landscape."},
+  {main:"Diffusion Models", left:["Diffusion Fundamentals"], right:["Denoising & Sampling","Conditioning & Guidance"],
+   callout:"At this point you understand how diffusion generates images."},
+  {main:"Latent & Efficient Diffusion", left:["Latent Diffusion & Stable Diffusion"], right:["Samplers & Schedulers","LoRA & Image Fine-Tuning"],
+   callout:"At this point you can run and customise Stable Diffusion."},
+  {main:"Control & Editing", left:["ControlNet & Conditioning"], right:["Inpainting & Editing","Image-to-Image"],
+   callout:"At this point you can precisely control and edit generations."},
+  {main:"Training & Tooling", left:["Training Pipelines"], right:["Datasets & Captioning","Evaluating Generation"],
+   callout:"At this point you can train and evaluate your own models."},
+  {main:"Applications & Production", left:["Text-to-Image Apps"], right:["Commercial & Ethics","Video & 3D Generation"],
+   callout:"At this point you can ship image-generation products."}
+];
+const DETAIL = {
+  "Generative Foundations":{sub:"Start here · weeks 1–3",cat:"Foundations",level:"Intermediate",time:"~3 weeks",
+    why:"Image generation is deep learning that models a distribution over images. Understanding the goal, the latent space and the maths is the base.",
+    learn:["What generative models do","Latent spaces","Sampling and probability"],
+    tools:["PyTorch","Python"],
+    practice:["Generate an image with a pretrained model"],
+    resources:[{t:"Hugging Face: diffusion course",u:"https://huggingface.co/learn/diffusion-course"}],
+    can:"Understand image generation."},
+  "How Image Generation Works":{cat:"Foundations",level:"Intermediate",time:"~1–2 weeks",prereq:["None — start here"],
+    why:"Knowing what it means to learn a distribution frames every model that follows.",
+    learn:["Distributions over images","Likelihood vs sampling","Latent representations"],
+    tools:["PyTorch"],
+    practice:["Sample from a simple generative model"],
+    resources:[{t:"Hugging Face: diffusion course",u:"https://huggingface.co/learn/diffusion-course"}],
+    can:"Explain generative modelling."},
+  "Math & Latents":{cat:"Foundations",level:"Intermediate",time:"~1–2 weeks",prereq:["How Image Generation Works"],
+    why:"Latents, noise schedules and gradients are the vocabulary of modern generation.",
+    learn:["Latent variables","Gaussian noise and schedules","Gradients and optimisation"],
+    tools:["NumPy","PyTorch"],
+    practice:["Visualise a latent space"],
+    resources:[{t:"Hugging Face: diffusion course",u:"https://huggingface.co/learn/diffusion-course"}],
+    can:"Reason about latent models."},
+
+  "Classic Generative Models":{sub:"Weeks 3–6",cat:"Classic",level:"Advanced",time:"~3 weeks",prereq:["Generative Foundations"],
+    why:"VAEs, GANs and autoregressive models are the ancestors of diffusion; understanding them explains why diffusion won.",
+    learn:["Variational autoencoders","Generative adversarial networks","Autoregressive image models"],
+    tools:["PyTorch"],
+    practice:["Train a small GAN or VAE"],
+    resources:[{t:"PyTorch: examples",u:"https://pytorch.org/examples/"}],
+    can:"Use classic generative models."},
+  "VAEs":{cat:"Classic",level:"Advanced",time:"~1 week",prereq:["Math & Latents"],
+    why:"VAEs learn smooth latent spaces and are the encoder inside latent diffusion.",
+    learn:["Encoder-decoder structure","KL divergence and reconstructions","Latent interpolation"],
+    tools:["PyTorch"],
+    practice:["Train a VAE on a small image set"],
+    resources:[{t:"PyTorch: VAE example",u:"https://pytorch.org/examples/"}],
+    can:"Build VAEs."},
+  "GANs":{cat:"Classic",level:"Advanced",time:"~1 week",prereq:["Math & Latents"],
+    why:"GANs produce sharp images via adversarial training, with notoriously unstable dynamics.",
+    learn:["Generator and discriminator","Adversarial loss","Training instability"],
+    tools:["PyTorch"],
+    practice:["Train and sample from a GAN"],
+    resources:[{t:"PyTorch: DCGAN example",u:"https://pytorch.org/examples/"}],
+    can:"Build GANs."},
+  "Autoregressive Models":{cat:"Classic",level:"Advanced",time:"~1 week",prereq:["Math & Latents"],
+    why:"Modelling images pixel or token by token underpins many modern multimodal systems.",
+    learn:["Autoregressive likelihood","Pixel and token models","Sampling order"],
+    tools:["PyTorch"],
+    practice:["Train a small autoregressive image model"],
+    resources:[{t:"PyTorch: examples",u:"https://pytorch.org/examples/"}],
+    can:"Build autoregressive models."},
+
+  "Diffusion Models":{sub:"Weeks 5–9",cat:"Diffusion",level:"Advanced",time:"~4 weeks",prereq:["Classic Generative Models"],
+    why:"Diffusion is the technique behind modern image generation: learn to reverse noise, then sample from noise.",
+    learn:["Forward and reverse diffusion","Denoising","Conditioning and guidance"],
+    tools:["PyTorch","diffusers"],
+    practice:["Implement a minimal diffusion model"],
+    resources:[{t:"Hugging Face: diffusion course",u:"https://huggingface.co/learn/diffusion-course"}],
+    can:"Understand diffusion."},
+  "Diffusion Fundamentals":{cat:"Diffusion",level:"Advanced",time:"~1–2 weeks",prereq:["VAEs"],
+    why:"The forward noising process and the learned reverse process are the core idea.",
+    learn:["Noising schedule","Reverse denoising","Training objective"],
+    tools:["PyTorch"],
+    practice:["Implement forward and reverse steps"],
+    resources:[{t:"DDPM paper",u:"https://arxiv.org/abs/2006.11239"}],
+    can:"Implement diffusion basics."},
+  "Denoising & Sampling":{cat:"Diffusion",level:"Advanced",time:"~1–2 weeks",prereq:["Diffusion Fundamentals"],
+    why:"How you sample from the model determines speed and quality.",
+    learn:["DDPM and DDIM sampling","Few-step samplers","Noise schedules"],
+    tools:["diffusers"],
+    practice:["Compare samplers on the same prompt"],
+    resources:[{t:"Hugging Face: diffusion course",u:"https://huggingface.co/learn/diffusion-course"}],
+    can:"Sample efficiently."},
+  "Conditioning & Guidance":{cat:"Diffusion",level:"Advanced",time:"~1 week",prereq:["Diffusion Fundamentals"],
+    why:"Text conditioning and classifier-free guidance are what make generation controllable.",
+    learn:["Text conditioning","Classifier-free guidance","Guidance scale effects"],
+    tools:["diffusers"],
+    practice:["Generate images from text prompts"],
+    resources:[{t:"Hugging Face: diffusion course",u:"https://huggingface.co/learn/diffusion-course"}],
+    can:"Condition and guide generation."},
+
+  "Latent & Efficient Diffusion":{sub:"Weeks 8–12",cat:"Latent",level:"Advanced",time:"~4 weeks",prereq:["Diffusion Models"],
+    why:"Latent diffusion (Stable Diffusion) made high-resolution generation practical, and LoRA made customisation cheap.",
+    learn:["Latent diffusion","Samplers and schedulers","LoRA fine-tuning"],
+    tools:["diffusers","Stable Diffusion"],
+    practice:["Train a LoRA for a custom style"],
+    resources:[{t:"Stable Diffusion docs",u:"https://huggingface.co/docs/diffusers"}],
+    can:"Run and customise Stable Diffusion."},
+  "Latent Diffusion & Stable Diffusion":{cat:"Latent",level:"Advanced",time:"~1–2 weeks",prereq:["Denoising & Sampling"],
+    why:"Diffusing in a compressed latent space is what makes generation fast and affordable.",
+    learn:["VAE latents","Text encoders (CLIP)","Stable Diffusion architecture"],
+    tools:["diffusers"],
+    practice:["Run Stable Diffusion from Python"],
+    resources:[{t:"Stable Diffusion paper",u:"https://arxiv.org/abs/2112.10752"}],
+    can:"Use latent diffusion."},
+  "Samplers & Schedulers":{cat:"Latent",level:"Advanced",time:"~1 week",prereq:["Latent Diffusion & Stable Diffusion"],
+    why:"Scheduler choice trades speed against quality, and different schedulers suit different tasks.",
+    learn:["Euler, DPM, LMS samplers","Steps and scheduling","Speed vs quality"],
+    tools:["diffusers"],
+    practice:["Benchmark schedulers"],
+    resources:[{t:"Hugging Face: schedulers",u:"https://huggingface.co/docs/diffusers"}],
+    can:"Choose samplers and schedulers."},
+  "LoRA & Image Fine-Tuning":{cat:"Latent",level:"Advanced",time:"~1–2 weeks",prereq:["Latent Diffusion & Stable Diffusion"],
+    why:"LoRA, DreamBooth and textual inversion adapt a base model to new styles or subjects cheaply.",
+    learn:["LoRA for diffusion","DreamBooth and textual inversion","Fine-tuning workflows"],
+    tools:["diffusers"],
+    practice:["Fine-tune a subject into a model"],
+    resources:[{t:"Hugging Face: LoRA training",u:"https://huggingface.co/docs/diffusers"}],
+    can:"Fine-tune image models."},
+
+  "Control & Editing":{sub:"Weeks 11–15",cat:"Control",level:"Advanced",time:"~4 weeks",prereq:["Latent & Efficient Diffusion"],
+    why:"Real workflows need control: structure, pose, inpainting and image-to-image editing.",
+    learn:["Structural conditioning","Inpainting and editing","Image-to-image"],
+    tools:["diffusers","ControlNet"],
+    practice:["Edit an image guided by structure"],
+    resources:[{t:"ControlNet docs",u:"https://huggingface.co/docs/diffusers"}],
+    can:"Control and edit generations."},
+  "ControlNet & Conditioning":{cat:"Control",level:"Advanced",time:"~1–2 weeks",prereq:["Conditioning & Guidance"],
+    why:"ControlNet adds precise spatial control from edges, depth or pose.",
+    learn:["ControlNet types","Structural conditioning","Combining controls"],
+    tools:["diffusers"],
+    practice:["Generate from a pose or depth map"],
+    resources:[{t:"ControlNet paper",u:"https://arxiv.org/abs/2302.05543"}],
+    can:"Use ControlNet."},
+  "Inpainting & Editing":{cat:"Control",level:"Advanced",time:"~1 week",prereq:["Latent Diffusion & Stable Diffusion"],
+    why:"Editing existing images — removing, adding or replacing content — is a core product feature.",
+    learn:["Inpainting","Outpainting","Editing guidance"],
+    tools:["diffusers"],
+    practice:["Inpaint an object into a photo"],
+    resources:[{t:"Hugging Face: diffusers",u:"https://huggingface.co/docs/diffusers"}],
+    can:"Inpaint and edit images."},
+  "Image-to-Image":{cat:"Control",level:"Advanced",time:"~1 week",prereq:["Latent Diffusion & Stable Diffusion"],
+    why:"Img2img and strength control let you transform an image while preserving structure.",
+    learn:["Img2img pipeline","Strength and noise","Style transfer"],
+    tools:["diffusers"],
+    practice:["Restyle an image with img2img"],
+    resources:[{t:"Hugging Face: diffusers",u:"https://huggingface.co/docs/diffusers"}],
+    can:"Transform images."},
+
+  "Training & Tooling":{sub:"Weeks 14–18",cat:"Training",level:"Advanced",time:"~4 weeks",prereq:["Control & Editing"],
+    why:"Custom quality means training and evaluating on your own data, with the tooling to do it reliably.",
+    learn:["Training pipelines","Data and captioning","Evaluating generated images"],
+    tools:["diffusers","PyTorch"],
+    practice:["Train a model on a custom dataset"],
+    resources:[{t:"Hugging Face: diffusers training",u:"https://huggingface.co/docs/diffusers"}],
+    can:"Train and evaluate image models."},
+  "Training Pipelines":{cat:"Training",level:"Advanced",time:"~1–2 weeks",prereq:["LoRA & Image Fine-Tuning"],
+    why:"Efficient training needs mixed precision, gradient accumulation and checkpointing.",
+    learn:["Training loops","Mixed precision and memory","Checkpointing and resumes"],
+    tools:["diffusers","accelerate"],
+    practice:["Train a diffusion model efficiently"],
+    resources:[{t:"Hugging Face: accelerate",u:"https://huggingface.co/docs/accelerate"}],
+    can:"Build training pipelines."},
+  "Datasets & Captioning":{cat:"Training",level:"Advanced",time:"~1 week",prereq:["Training Pipelines"],
+    why:"Captions and dataset quality dominate fine-tuning results.",
+    learn:["Image-caption datasets","Auto-captioning","Cleaning and curation"],
+    tools:["BLIP"],
+    practice:["Auto-caption a custom dataset"],
+    resources:[{t:"Hugging Face: datasets",u:"https://huggingface.co/docs/datasets"}],
+    can:"Prepare generation datasets."},
+  "Evaluating Generation":{cat:"Training",level:"Advanced",time:"~1 week",prereq:["Training Pipelines"],
+    why:"FID, CLIP score and human evaluation are how you judge a model honestly.",
+    learn:["FID and Inception score","CLIP score","Human evaluation"],
+    tools:["torchmetrics"],
+    practice:["Evaluate two models against each other"],
+    resources:[{t:"torchmetrics docs",u:"https://lightning.ai/docs/torchmetrics/"}],
+    can:"Evaluate image generation."},
+
+  "Applications & Production":{sub:"Months 8+",cat:"Production",level:"Advanced",time:"ongoing",prereq:["Training & Tooling"],
+    why:"Shipping image generation means apps, cost control, licensing and extending to video and 3D.",
+    learn:["Building apps","Ethics and licensing","Video and 3D"],
+    tools:["diffusers","Gradio"],
+    practice:["Ship an image-generation app"],
+    resources:[{t:"Gradio docs",u:"https://www.gradio.app/docs"}],
+    can:"Ship image-gen products."},
+  "Text-to-Image Apps":{cat:"Production",level:"Advanced",time:"~2 weeks",prereq:["Evaluating Generation"],
+    why:"Prompt UIs, queues and GPU cost management are the engineering around the model.",
+    learn:["App architecture","Queues and GPU use","Cost control"],
+    tools:["Gradio","diffusers"],
+    practice:["Build and deploy a text-to-image app"],
+    resources:[{t:"Gradio docs",u:"https://www.gradio.app/docs"}],
+    can:"Build generation apps."},
+  "Commercial & Ethics":{cat:"Production",level:"Advanced",time:"~1 week",prereq:["Evaluating Generation"],
+    why:"Licensing, provenance, bias and misuse are unavoidable in commercial image generation.",
+    learn:["Model licensing","Provenance and watermarks","Bias and misuse"],
+    tools:["—"],
+    practice:["Write a responsible-use policy"],
+    resources:[{t:"Partnership on AI",u:"https://partnershiponai.org/"}],
+    can:"Handle ethics and licensing."},
+  "Video & 3D Generation":{cat:"Production",level:"Advanced",time:"ongoing",prereq:["Text-to-Image Apps"],
+    why:"The frontier extends generation to motion and geometry — the current research direction.",
+    learn:["Video diffusion","3D and NeRF","Gaussian splatting"],
+    tools:["diffusers"],
+    practice:["Generate a short video or 3D asset"],
+    resources:[{t:"Hugging Face: diffusers",u:"https://huggingface.co/docs/diffusers"}],
+    can:"Extend to video and 3D."}
+};
+
+
+
+/* all learning paths (from catalog), grouped by depth */
+const PATH_CATS = [
+  {icon:"\ud83c\udf0a",label:"Surface",items:[["Web Development","web-dev"],["Data Science / Analysis","data-science"],["Automation / Scripting","automation"],["Machine Learning","machine-learning"],["Web Scraping","web-scraping"],["Game Development","game-dev"],["GUI Applications","gui-apps"],["API Building","api-building"],["Chatbots","chatbots"],["Excel Automation","excel-automation"]]},
+  {icon:"\ud83c\udf0a",label:"Below Surface",items:[["Deep Learning","deep-learning"],["Computer Vision","computer-vision"],["NLP (Natural Language Processing)","nlp"],["Data Visualization","data-viz"],["Cloud Computing","cloud-computing"],["DevOps Scripting","devops-scripting"],["Testing / QA Automation","testing-qa"],["Database Operations","database-ops"],["ETL Pipelines","etl-pipelines"],["Recommendation Systems","recommendation-systems"]]},
+  {icon:"\ud83c\udf0a",label:"Mid-Level",items:[["Reinforcement Learning","reinforcement-learning"],["Generative AI / LLM Fine-tuning","genai-finetuning"],["Time Series Forecasting","time-series"],["Computer Graphics / Animation","cgi-animation"],["Cybersecurity / Pentesting","cybersecurity"],["Network Programming","network-programming"],["Cryptography Implementation","cryptography"],["Blockchain Scripting","blockchain"],["IoT Programming","iot"],["Robotics","robotics"],["Drone Programming","drones"],["Audio Processing","audio-processing"],["Video Processing","video-processing"],["Image Generation","image-generation"],["Speech Recognition / Synthesis","speech"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a",label:"Scientific",items:[["Bioinformatics","bioinformatics"],["Computational Chemistry","comp-chemistry"],["Physics Simulations","physics-sims"],["Astronomy Data","astronomy"],["Geospatial / GIS","gis"],["Climate Modeling","climate-modeling"],["Quantum Computing","quantum-computing"],["Numerical Methods","numerical-methods"],["Finite Element Analysis","fea"],["Fluid Dynamics Simulation","fluid-dynamics"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a",label:"Finance",items:[["Algorithmic Trading","algo-trading"],["Quantitative Finance","quant-finance"],["Risk Modeling","risk-modeling"],["Fraud Detection Systems","fraud-detection"],["Credit Scoring Models","credit-scoring"],["Portfolio Optimization","portfolio-optimization"],["Crypto Trading Bots","crypto-bots"],["Financial Data Pipelines","financial-pipelines"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a",label:"Infra",items:[["Distributed Systems","distributed-systems"],["Microservices Architecture","microservices"],["Container Orchestration","container-orchestration"],["Message Queues","message-queues"],["Load Testing","load-testing"],["Monitoring / Observability","monitoring"],["CI/CD Pipeline Scripting","cicd"],["Package / Library Development","package-dev"],["Compiler / Interpreter Building","compiler-building"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a",label:"AI Frontier",items:[["Multi-Agent Systems","multi-agent"],["AI Agents with Tool-Use","ai-agents"],["RAG Systems","rag"],["Vector Databases","vector-db"],["Fine-tuning LLMs","llm-finetuning"],["Model Quantization / Optimization","quantization"],["MLOps","mlops"],["Federated Learning","federated-learning"],["Explainable AI","xai"],["Synthetic Data Generation","synthetic-data"],["AI Safety / Alignment","ai-safety"],["Prompt Engineering Frameworks","prompt-eng"],["Voice Cloning / Synthesis","voice-cloning"],["Emotion Detection","emotion-detection"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a\ud83c\udf0a",label:"Research",items:[["Genomics / DNA Analysis","genomics"],["Drug Discovery","drug-discovery"],["Neuroscience Data Analysis","neuroscience"],["Medical Imaging","medical-imaging"],["Epidemiology Modeling","epidemiology"],["Materials Science Simulation","materials-science"],["Weather Prediction Models","weather-prediction"],["Autonomous Vehicle Perception","autonomous-driving"],["SLAM / Localization","slam"],["Satellite Image Analysis","satellite-imagery"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a\ud83c\udf0a",label:"Abyss",items:[["Python C-Extensions","c-extensions"],["Build Your Own ML Framework","own-ml-framework"],["GPU Programming","gpu-programming"],["Parallel / Distributed Computing","parallel-computing"],["OS Scripting / Tooling","os-tooling"],["Malware Analysis / Reverse Engineering","malware-analysis"],["Digital Forensics Tooling","forensics"],["Embedded Systems Firmware","embedded-firmware"],["Simulation Engines","simulation-engines"],["Build Your Own Database Engine","own-db-engine"],["Build Your Own Web Framework","own-web-framework"],["Search Engine Building","search-engine"],["Programming Language / DSL","own-language"]]},
+  {icon:"\ud83e\udd16",label:"Frontier",items:[["Python for AI Research","agi-research"]]},
+];
+
+/* ------------- layout ------------- */
+const MAIN_W=196, MAIN_H=52, CH_W=182, CH_H=42, COL=290, YGAP=54, SECGAP=78;
+const nodes=[]; // {title, x,y,w,h,kind,detail}
+let y=0;
+const sectionYs=[];
+SECTIONS.forEach(sec=>{
+  const k=Math.max(sec.left.length, sec.right.length, 1);
+  const spread=(k-1)*YGAP;
+  const secH=Math.max(MAIN_H, spread);
+  const cy=y+secH/2;
+  nodes.push({title:sec.main,x:-MAIN_W/2,y:cy-MAIN_H/2,w:MAIN_W,h:MAIN_H,kind:"main",rec:!!sec.rec});
+  const place=(list,side,dx)=>{ list.forEach((t,i)=>{
+    const cxX = side==="right" ? dx : -dx-CH_W;
+    const cyy = cy - spread/2 + (i*YGAP) + (k-1-list.length)*0; // stack from top-ish
+    const yy = cy - ((list.length-1)*YGAP)/2 + i*YGAP;
+    nodes.push({title:t,x:cxX,y:yy-CH_H/2,w:CH_W,h:CH_H,kind:"child",side});
+  });};
+  place(sec.right,"right",COL);
+  place(sec.left,"left",COL);
+  y += secH + SECGAP;
+  sectionYs.push({main:sec.main, end:y-SECGAP, callout:sec.callout});
+});
+
+/* bounds */
+let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+nodes.forEach(n=>{minX=Math.min(minX,n.x);maxX=Math.max(maxX,n.x+n.w);minY=Math.min(minY,n.y);maxY=Math.max(maxY,n.y+n.h);});
+const PAD=60, W=(maxX-minX)+PAD*2, H=(maxY-minY)+PAD*2;
+const OX=-minX+PAD, OY=-minY+PAD;
+
+const canvas=document.getElementById("canvas");
+canvas.style.width=W+"px"; canvas.style.height=H+"px";
+const svg=document.getElementById("wires");
+svg.setAttribute("width",W); svg.setAttribute("height",H);
+
+function elbow(x1,y1,x2,y2){
+  const mx=(x1+x2)/2;
+  return `M ${x1} ${y1} H ${mx} V ${y2} H ${x2}`;
+}
+
+/* draw nodes + wires */
+const byTitle={};
+nodes.forEach(n=>{ byTitle[n.title]=n; });
+nodes.forEach(n=>{
+  const d=document.createElement("div");
+  d.className="node "+(n.kind==="main"?"main":"child");
+  d.style.left=(n.x+OX)+"px"; d.style.top=(n.y+OY)+"px";
+  d.style.width=n.w+"px";
+  d.innerHTML='<div class="n-t">'+n.title+'</div>'+(DETAIL[n.title]&&DETAIL[n.title].sub?'<div class="n-s">'+DETAIL[n.title].sub+'</div>':'');
+  if(n.rec) d.insertAdjacentHTML("afterbegin",'<span class="rec"></span>');
+  d.insertAdjacentHTML("beforeend",'<span class="chk"></span>');
+  canvas.appendChild(d);
+  n._el=d;
+  // wire from main to children
+});
+SECTIONS.forEach(sec=>{
+  const m=byTitle[sec.main];
+  [...sec.right].forEach(t=>{const c=byTitle[t]; if(c) addWire(m.x+m.w,m.y+m.h/2,c.x,c.y+c.h/2);});
+  [...sec.left].forEach(t=>{const c=byTitle[t]; if(c) addWire(m.x,m.y+m.h/2,c.x+c.w,c.y+c.h/2);});
+});
+// vertical spine connectors between main nodes
+for(let i=0;i<SECTIONS.length-1;i++){
+  const a=byTitle[SECTIONS[i].main], b=byTitle[SECTIONS[i+1].main];
+  addWire(a.x+a.w/2,a.y+a.h,b.x+b.w/2,b.y);
+}
+function addWire(x1,y1,x2,y2){
+  const p=document.createElementNS("http://www.w3.org/2000/svg","path");
+  p.setAttribute("d",elbow(x1+OX,y1+OY,x2+OX,y2+OY));
+  p.setAttribute("class","wire");
+  svg.appendChild(p);
+}
+// callouts
+sectionYs.forEach(s=>{ if(!s.callout) return; const sec=SECTIONS.find(x=>x.main===s.main); const k=Math.max(sec.left.length,sec.right.length,1);
+  const co=document.createElement("div"); co.className="callout"; co.textContent=s.callout;
+  const cw=380; co.style.width=cw+"px";
+  const cnode=byTitle[s.main];
+  co.style.left=(-cw/2+OX)+"px"; co.style.top=(s.end+OY+6)+"px";
+  canvas.appendChild(co);
+});
+
+/* click + check + panel */
+document.querySelectorAll(".node").forEach(el=>{
+  const title=el.querySelector(".n-t").textContent;
+  el.addEventListener("click",(e)=>{
+    if(e.target.classList.contains("chk")){ el.classList.toggle("done"); return; }
+    openPanel(title);
+    document.querySelectorAll(".node").forEach(o=>o.style.outline="");
+    el.style.outline="3px solid rgba(139,92,246,.5)";
+  });
+  if(localStorage.getItem("rm:"+title)==="1") el.classList.add("done");
+  el.addEventListener("click",e=>{ if(e.target.classList.contains("chk")){ localStorage.setItem("rm:"+title, el.classList.contains("done")?"1":"0"); }});
+});
+
+function openPanel(title){
+  const d=DETAIL[title]||{};
+  document.getElementById("p-title").textContent=title;
+  document.getElementById("p-sub").textContent=d.sub||"Topic";
+  const chips=document.getElementById("p-chips"); chips.innerHTML="";
+  [["cat",d.cat],["level",d.level],["time",d.time]].forEach(([k,v])=>{
+    if(!v) return; const c=document.createElement("span"); c.className="chip "+k; c.textContent=v; chips.appendChild(c);
+  });
+  const b=document.getElementById("p-body"); b.innerHTML="";
+  const sec=(h,node)=>{const s=document.createElement("div");s.className="sec";const t=document.createElement("h3");t.textContent=h;s.appendChild(t);s.appendChild(node);b.appendChild(s);};
+  const list=(arr,cls)=>{const ul=document.createElement("ul");ul.className="li "+(cls||"");arr.forEach(x=>{const li=document.createElement("li");li.textContent=x;ul.appendChild(li);});return ul;};
+  const pEl=document.createElement("p");
+  if(d.why){pEl.className="why";pEl.textContent=d.why;sec("Overview",pEl.cloneNode(true));}
+  if(d.prereq) sec("Prerequisites",list(d.prereq,"pr"));
+  if(d.learn) sec("What you'll learn",list(d.learn));
+  if(d.tools){const t=document.createElement("div");t.className="tags";d.tools.forEach(x=>{const sp=document.createElement("span");sp.className="tag";sp.textContent=x;t.appendChild(sp);});sec("Tools & technologies",t);}
+  if(d.practice) sec("Hands-on practice",list(d.practice));
+  if(d.resources){const r=document.createElement("div");r.className="res";d.resources.forEach(x=>{
+    const a=document.createElement("a");a.href=x.u;a.target="_blank";a.rel="noopener";
+    a.innerHTML=x.t+'<span>↗</span>';r.appendChild(a);});sec("Resources",r);}
+  if(d.can){const c=document.createElement("div");c.className="can";c.textContent=d.can;sec("What you can do afterwards",c);}
+  const p=document.getElementById("panel");p.classList.add("open");p.setAttribute("aria-hidden","false");
+}
+document.getElementById("p-close").addEventListener("click",()=>{
+  const p=document.getElementById("panel");p.classList.remove("open");p.setAttribute("aria-hidden","true");});
+
+/* ------------- left sidebar: all learning paths ------------- */
+const CURRENT_SLUG="image-generation";
+const BUILT=new Set(["agi-research", "ai-agents", "ai-safety", "algo-trading", "api-building", "astronomy", "audio-processing", "automation", "autonomous-driving", "bioinformatics", "blockchain", "c-extensions", "cgi-animation", "chatbots", "cicd", "climate-modeling", "cloud-computing", "comp-chemistry", "compiler-building", "computer-vision", "container-orchestration", "credit-scoring", "crypto-bots", "cryptography", "cybersecurity", "data-science", "data-viz", "database-ops", "deep-learning", "devops-scripting", "distributed-systems", "drones", "drug-discovery", "embedded-firmware", "emotion-detection", "epidemiology", "etl-pipelines", "excel-automation", "fea", "federated-learning", "financial-pipelines", "fluid-dynamics", "forensics", "fraud-detection", "game-dev", "genai-finetuning", "genomics", "gis", "gpu-programming", "gui-apps", "image-generation", "iot", "llm-finetuning", "load-testing", "machine-learning", "malware-analysis", "materials-science", "medical-imaging", "message-queues", "microservices", "mlops", "monitoring", "multi-agent", "network-programming", "neuroscience", "nlp", "numerical-methods", "os-tooling", "own-db-engine", "own-language", "own-ml-framework", "own-web-framework", "package-dev", "parallel-computing", "physics-sims", "portfolio-optimization", "prompt-eng", "quant-finance", "quantization", "quantum-computing", "rag", "recommendation-systems", "reinforcement-learning", "risk-modeling", "robotics", "satellite-imagery", "search-engine", "simulation-engines", "slam", "speech", "synthetic-data", "testing-qa", "time-series", "vector-db", "video-processing", "voice-cloning", "weather-prediction", "web-dev", "web-scraping", "xai"]);
+const side=document.getElementById("side");
+const sidebarItems=[];
+{
+  const inp=document.createElement("input"); inp.className="search"; inp.placeholder="Search 100 paths…";
+  side.appendChild(inp);
+  PATH_CATS.forEach(cat=>{
+    const hd=document.createElement("h5"); hd.innerHTML=cat.icon+" "+cat.label; side.appendChild(hd);
+    cat.items.forEach(([name,slug])=>{
+      const isCur=slug===CURRENT_SLUG, built=BUILT.has(slug), navigable=built&&!isCur;
+      const el=document.createElement(navigable?"a":"span");
+      el.className="p-item"+(isCur?" active":built?"":" soon");
+      if(navigable) el.href="./"+slug+"-roadmap.html";
+      const nm=document.createElement("span"); nm.textContent=name;
+      const bd=document.createElement("em"); bd.textContent=isCur?"now":built?"open":"soon";
+      el.appendChild(nm); el.appendChild(bd);
+      el.dataset.q=(name+" "+slug).toLowerCase();
+      el.dataset.cat=cat.label;
+      side.appendChild(el); sidebarItems.push(el);
+    });
+  });
+  inp.addEventListener("input",()=>{
+    const q=inp.value.trim().toLowerCase();
+    sidebarItems.forEach(el=>{ el.style.display = !q || el.dataset.q.includes(q) ? "" : "none"; });
+    side.querySelectorAll("h5").forEach(hd=>{
+      let any=false, n=hd.nextElementSibling;
+      while(n && n.tagName!=="H5"){ if(n.style.display!=="none") any=true; n=n.nextElementSibling; }
+      hd.style.display=any?"":"none";
+    });
+  });
+}
+document.getElementById("sideToggle").addEventListener("click",()=>document.body.classList.toggle("no-side"));
+</script>
+</body>
+</html>

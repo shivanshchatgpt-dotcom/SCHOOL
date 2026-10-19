@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Machine Learning — Roadmap</title>
+<style>
+  :root{
+    --bg:#fafafa; --ink:#18181b; --mut:#71717a; --line:#e4e4e7;
+    --yellow:#fde047; --yellow-bd:#52525b; --yellow-deep:#facc15;
+    --rec:#8b5cf6; --alt:#22c55e; --opt:#a1a1aa;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%;color:var(--ink);
+    font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  /* top nav */
+  .nav{position:sticky;top:0;height:52px;background:#fff;border-bottom:1px solid var(--line);
+    display:flex;align-items:center;gap:12px;padding:0 18px;z-index:50}
+  .nav .brand{font-weight:800;letter-spacing:-.02em}
+  .nav .brand span{color:var(--rec)}
+  .nav .title{color:var(--mut);font-size:14px}
+
+  /* diagram flows with the page; wide trees scroll horizontally */
+  .diagram-wrap{overflow-x:auto;background-color:var(--bg);
+    background-image:radial-gradient(#d4d4d8 1.1px, transparent 1.1px);
+    background-size:22px 22px;padding:26px 30px 70px}
+  .canvas{position:relative;margin:0 auto}
+  svg.wires{position:absolute;top:0;left:0;overflow:visible;pointer-events:none}
+  .wire{fill:none;stroke:#a1a1aa;stroke-width:1.6;stroke-dasharray:5 5}
+
+  .node{position:absolute;background:var(--yellow);border:1.6px solid var(--yellow-bd);
+    border-radius:7px;padding:9px 12px;text-align:center;cursor:pointer;user-select:none;
+    box-shadow:0 2px 0 rgba(0,0,0,.16);transition:box-shadow .1s,transform .1s}
+  .node:hover{box-shadow:0 2px 0 rgba(0,0,0,.16),0 0 0 3px rgba(139,92,246,.25)}
+  .node.main{background:var(--yellow-deep);font-weight:800;font-size:15px}
+  .node .n-t{font-weight:600;font-size:13.5px;line-height:1.25}
+  .node.main .n-t{font-weight:800}
+  .node .n-s{font-size:11px;color:#3f3f46;margin-top:2px;font-weight:500;opacity:.85}
+  .node .rec{position:absolute;top:-7px;left:-7px;width:12px;height:12px;border-radius:50%;
+    background:var(--rec);border:2px solid #fff}
+  .node .chk{position:absolute;top:-8px;right:-8px;width:18px;height:18px;border-radius:50%;
+    background:#fff;border:1.6px solid var(--yellow-bd);display:flex;align-items:center;
+    justify-content:center;font-size:11px;color:#fff;font-weight:800}
+  .node.done .chk{background:var(--alt);border-color:var(--alt);color:#fff}
+  .node.done .chk::after{content:"✓"}
+  .callout{position:absolute;background:#fff;border:1.6px solid var(--yellow-bd);border-radius:8px;
+    padding:11px 16px;text-align:center;font-size:13px;font-weight:600;box-shadow:0 2px 0 rgba(0,0,0,.12)}
+
+  /* legend */
+  .legend{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 16px;
+    max-width:720px;margin:18px auto 0;box-shadow:0 4px 14px rgba(0,0,0,.05);
+    display:flex;flex-wrap:wrap;align-items:center;gap:8px 22px}
+  .legend h4{margin:0;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);width:100%}
+  .legend .row{display:flex;align-items:center;gap:8px;font-size:13px;margin:0;color:#3f3f46}
+  .legend .d{width:11px;height:11px;border-radius:50%}
+  .legend .hint{font-size:11.5px;color:var(--mut);width:100%}
+
+  /* layout + left sidebar */
+  .layout{display:flex;align-items:flex-start}
+  .main{flex:1;min-width:0}
+  .side{width:272px;flex:none;position:sticky;top:52px;height:calc(100vh - 52px);overflow:auto;
+    border-right:1px solid var(--line);background:#fcfcfd;padding:14px 12px 40px}
+  body.no-side .side{display:none}
+  .side .search{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;margin-bottom:8px;outline:none}
+  .side .search:focus{border-color:var(--rec)}
+  .side h5{margin:14px 6px 6px;font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);display:flex;align-items:center;gap:6px}
+  .side a.p-item,.side span.p-item{display:flex;align-items:center;justify-content:space-between;gap:8px;
+    font-size:13px;text-decoration:none;color:#3f3f46;padding:6px 9px;border-radius:7px;cursor:pointer}
+  .side a.p-item:hover{background:#f4f4f5}
+  .side .p-item.active{background:#fef9c3;color:#713f12;font-weight:600;border:1px solid #fde047}
+  .side .p-item.soon{color:#b6b6bd;cursor:default}
+  .side .p-item em{font-style:normal;font-size:9.5px;border:1px solid var(--line);border-radius:999px;padding:1px 6px;color:var(--mut);background:#fff}
+  .side .p-item.active em{border-color:#fde047;background:#fffbeb;color:#92400e}
+  .nav .spacer{flex:1}
+  .nav .btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 11px;font-size:13px;cursor:pointer}
+  .nav .btn:hover{background:#f4f4f5}
+  /* when embedded in the PySchool app iframe, the app provides the chrome */
+  body.embedded .nav{display:none}
+  body.embedded .side{top:0;height:100vh}
+  body.embedded .panel{top:0;height:100%}
+
+  /* panel */
+  .panel{position:fixed;top:52px;right:0;height:calc(100% - 52px);width:min(420px,92vw);background:#fff;
+    border-left:1px solid var(--line);box-shadow:-14px 0 40px rgba(0,0,0,.1);z-index:40;
+    transform:translateX(103%);transition:transform .2s ease;display:flex;flex-direction:column}
+  .panel.open{transform:none}
+  .panel .head{padding:16px 20px 14px;border-bottom:1px solid #f1f1f3;display:flex;justify-content:space-between;gap:12px}
+  .panel h2{margin:0 0 6px;font-size:19px;line-height:1.25}
+  .panel .sub{color:var(--mut);font-size:12.5px;margin-bottom:9px}
+  .panel .close{background:none;border:1px solid var(--line);color:var(--mut);border-radius:8px;width:30px;height:30px;cursor:pointer;flex:none}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{font-size:11px;font-weight:600;border-radius:999px;padding:3px 9px;border:1px solid transparent}
+  .chip.cat{background:#eef2ff;color:#3730a3;border-color:#c7d2fe}
+  .chip.level{background:#ecfdf5;color:#065f46;border-color:#a7f3d0}
+  .chip.time{background:#fffbeb;color:#92400e;border-color:#fde68a}
+  .panel .body{padding:16px 20px 40px;overflow:auto}
+  .sec{margin-bottom:18px}
+  .sec h3{margin:0 0 8px;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--rec)}
+  .why{font-size:13.5px;color:#374151;line-height:1.55;margin:0}
+  ul.li{margin:0;padding-left:18px} ul.li li{font-size:13px;color:#374151;margin:3px 0}
+  ul.li.pr li::marker{color:var(--mut)}
+  .can{background:#faf5ff;border:1px solid #e9d5ff;color:#5b21b6;border-radius:9px;padding:11px 13px;font-size:13px}
+  .tags{display:flex;flex-wrap:wrap;gap:6px}
+  .tag{background:#f4f4f5;border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:12px;color:#3f3f46}
+  .res{display:flex;flex-direction:column;gap:6px}
+  .res a{display:flex;align-items:center;gap:8px;font-size:13px;color:#2563eb;text-decoration:none;
+    border:1px solid #e5e7eb;border-radius:8px;padding:8px 11px;background:#fafafa}
+  .res a:hover{background:#f0f6ff;border-color:#bfdbfe}
+  .res a span{color:var(--mut);margin-left:auto;font-size:11px}
+</style>
+</head>
+<body>
+<div class="nav">
+  <div class="brand">Py<span>School</span></div>
+  <div class="title">/ Machine Learning</div>
+  <div class="spacer"></div>
+  <button class="btn" id="sideToggle">☰ All paths</button>
+</div>
+
+<div class="layout">
+<nav class="side" id="side"></nav>
+<div class="main">
+
+<div class="legend">
+  <h4>Machine Learning</h4>
+  <div class="row"><span class="d" style="background:var(--rec)"></span>Recommended</div>
+  <div class="row"><span class="d" style="background:var(--alt)"></span>Alternative option</div>
+  <div class="row"><span class="d" style="background:var(--opt)"></span>Order not strict</div>
+  <div class="hint">Click a topic for details · click the ✓ to mark it done · Ctrl +/− to zoom the whole page</div>
+</div>
+
+<div class="diagram-wrap">
+  <div class="canvas" id="canvas">
+    <svg class="wires" id="wires"></svg>
+  </div>
+</div>
+
+</div>
+</div>
+
+<aside class="panel" id="panel" aria-hidden="true">
+  <div class="head">
+    <div><h2 id="p-title">Select a topic</h2><div class="sub" id="p-sub"></div><div class="chips" id="p-chips"></div></div>
+    <button class="close" id="p-close">✕</button>
+  </div>
+  <div class="body" id="p-body"></div>
+</aside>
+
+<script>
+/* embedded inside the PySchool app? then let the app own the top bar */
+if(window.self!==window.top) document.body.classList.add("embedded");
+/* ------------- content ------------- */
+const SECTIONS = [
+  {main:"Math & Python Foundations", rec:true, left:[], right:["Linear Algebra","Probability & Statistics"],
+   callout:"At this point you understand the maths that models are built on."},
+  {main:"Data Preparation & Features", left:["Data Cleaning & Splits"], right:["Feature Engineering","Handling Imbalanced Data"],
+   callout:"At this point you can turn raw data into a clean, fair training set."},
+  {main:"Core ML with scikit-learn", rec:true, left:["Model Evaluation"], right:["Supervised Learning","Unsupervised Learning"],
+   callout:"At this point you can train and honestly evaluate classical models."},
+  {main:"Deep Learning Foundations", left:["Neural Network Basics"], right:["Training & Optimisation","PyTorch Essentials"],
+   callout:"At this point you can build and train your own neural networks."},
+  {main:"Specialised Domains", left:["NLP & Transformers"], right:["Computer Vision","Time Series Forecasting"],
+   callout:"At this point you can apply ML to real-world data types."},
+  {main:"MLOps & Deployment", left:["Experiment Tracking"], right:["Model Serving","Monitoring & Retraining"],
+   callout:"At this point you can ship a model to production and keep it healthy."},
+  {main:"Responsible ML & Scaling", left:["Interpretability"], right:["Ethics & Bias","Scaling & Efficiency"],
+   callout:"At this point you can build ML that is trustworthy, explainable and efficient."}
+];
+const DETAIL = {
+  "Math & Python Foundations":{sub:"Start here · weeks 1–6",cat:"Foundations",level:"Beginner",time:"~6 weeks",
+    why:"Machine learning is applied maths. You do not need to be a mathematician, but linear algebra, probability and calculus are the vocabulary every model is written in — and NumPy is how you touch them in code.",
+    learn:["Vectors, matrices and matrix multiplication","Probability, distributions and Bayes","Derivatives and gradients","NumPy arrays and vectorised maths"],
+    tools:["NumPy","Jupyter"],
+    practice:["Implement matrix multiplication from scratch","Compute gradients numerically and check them"],
+    resources:[{t:"3Blue1Brown: Essence of Linear Algebra",u:"https://www.3blue1brown.com/topics/linear-algebra"},{t:"NumPy user guide",u:"https://numpy.org/doc/stable/user/"}],
+    can:"Read a model's maths and implement it in Python."},
+  "Linear Algebra":{cat:"Foundations",level:"Beginner",time:"~3 weeks",prereq:["None — start here"],
+    why:"Nearly every model is a chain of matrix operations. Understanding them makes training and shapes intuitive instead of magical.",
+    learn:["Vectors and matrix operations","Dot products and similarity","Eigenvalues and matrix decompositions"],
+    tools:["NumPy"],
+    practice:["Do PCA from scratch with eigen-decomposition"],
+    resources:[{t:"3Blue1Brown: Linear Algebra",u:"https://www.3blue1brown.com/topics/linear-algebra"}],
+    can:"Reason about data as vectors and matrices."},
+  "Probability & Statistics":{cat:"Foundations",level:"Beginner",time:"~3 weeks",prereq:["Linear Algebra"],
+    why:"ML is probabilistic at heart: uncertainty, likelihood and expectation are everywhere.",
+    learn:["Random variables and distributions","Conditional probability and Bayes","Expectation and variance","Maximum likelihood"],
+    tools:["SciPy"],
+    practice:["Implement Bayes' rule for a real classification example"],
+    resources:[{t:"Think Stats (free book)",u:"https://greenteapress.com/wp/think-stats-2e/"}],
+    can:"Reason about uncertainty and likelihood."},
+
+  "Data Preparation & Features":{sub:"Weeks 5–9",cat:"Data",level:"Intermediate",time:"~4 weeks",prereq:["Math & Python Foundations"],
+    why:"In practice, data quality and features decide model performance far more than the choice of algorithm. This is where most real ML work happens.",
+    learn:["Train/validation/test splits","Leakage and proper pipelines","Feature engineering and encoding","Class imbalance handling"],
+    tools:["pandas","scikit-learn"],
+    practice:["Build a leakage-free preprocessing pipeline","Improve a baseline with better features"],
+    resources:[{t:"scikit-learn: preprocessing",u:"https://scikit-learn.org/stable/modules/preprocessing.html"}],
+    can:"Prepare data so models can actually learn from it."},
+  "Data Cleaning & Splits":{cat:"Data",level:"Intermediate",time:"~1 week",prereq:["Math & Python Foundations"],
+    why:"A model trained on leaked or dirty data looks great and fails in production. Doing splits and cleaning correctly is non-negotiable.",
+    learn:["Train/test/validation strategy","Cross-validation","Detecting leakage"],
+    tools:["scikit-learn","pandas"],
+    practice:["Find and fix leakage in a broken pipeline"],
+    resources:[{t:"scikit-learn: cross-validation",u:"https://scikit-learn.org/stable/modules/cross_validation.html"}],
+    can:"Split and clean data without fooling yourself."},
+  "Feature Engineering":{cat:"Data",level:"Intermediate",time:"~2 weeks",prereq:["Data Cleaning & Splits"],
+    why:"Good features often beat fancy models. This is where domain knowledge becomes predictive power.",
+    learn:["Encoding categorical variables","Scaling and normalisation","Deriving and selecting features"],
+    tools:["pandas","scikit-learn"],
+    practice:["Engineer features that measurably lift a model"],
+    resources:[{t:"scikit-learn: feature selection",u:"https://scikit-learn.org/stable/modules/feature_selection.html"}],
+    can:"Create features that carry real signal."},
+  "Handling Imbalanced Data":{cat:"Data",level:"Advanced",time:"~1 week",prereq:["Feature Engineering"],
+    why:"Fraud, disease and rare events are almost always imbalanced — and naive models just predict the majority class.",
+    learn:["Resampling techniques","Class weights","Choosing the right metric"],
+    tools:["imbalanced-learn"],
+    practice:["Train a model on a 1%-positive dataset and beat the baseline"],
+    resources:[{t:"imbalanced-learn user guide",u:"https://imbalanced-learn.org/stable/user_guide.html"}],
+    can:"Train models on skewed, real-world data."},
+
+  "Core ML with scikit-learn":{sub:"Weeks 8–14",cat:"Core ML",level:"Intermediate",time:"~5 weeks",prereq:["Data Preparation & Features"],
+    why:"Classical ML is still the right answer for most tabular problems — faster, cheaper and often more accurate than deep learning. scikit-learn is the standard toolkit.",
+    learn:["The fit/predict workflow","Linear and tree-based models","Clustering and dimensionality reduction","Model selection and metrics","Pipelines and hyperparameter tuning"],
+    tools:["scikit-learn","pandas"],
+    practice:["Solve a Kaggle tabular competition end to end","Build a reusable pipeline with grid search"],
+    resources:[{t:"scikit-learn user guide",u:"https://scikit-learn.org/stable/user_guide.html"},{t:"Kaggle: Intro to ML",u:"https://www.kaggle.com/learn/intro-to-machine-learning"}],
+    can:"Train, tune and evaluate classical ML models confidently."},
+  "Supervised Learning":{cat:"Core ML",level:"Intermediate",time:"~2 weeks",prereq:["Feature Engineering"],
+    why:"Regression and classification cover the vast majority of business ML problems.",
+    learn:["Linear/logistic regression","Trees, forests, gradient boosting","Bias-variance trade-off"],
+    tools:["scikit-learn","XGBoost"],
+    practice:["Compare linear, tree and boosted models on one dataset"],
+    resources:[{t:"scikit-learn: supervised learning",u:"https://scikit-learn.org/stable/supervised_learning.html"}],
+    can:"Pick and train the right model for a task."},
+  "Unsupervised Learning":{cat:"Core ML",level:"Intermediate",time:"~1 week",prereq:["Supervised Learning"],
+    why:"When there are no labels, clustering and dimensionality reduction find structure anyway.",
+    learn:["K-means and hierarchical clustering","PCA and embeddings","Anomaly detection"],
+    tools:["scikit-learn"],
+    practice:["Segment customers with clustering and interpret the groups"],
+    resources:[{t:"scikit-learn: clustering",u:"https://scikit-learn.org/stable/modules/clustering.html"}],
+    can:"Find patterns in unlabelled data."},
+  "Model Evaluation":{cat:"Core ML",level:"Intermediate",time:"~1 week",prereq:["Supervised Learning"],
+    why:"Choosing the right metric and validating honestly is what separates real results from wishful thinking.",
+    learn:["Accuracy, precision, recall, F1","ROC-AUC and PR curves","Cross-validation and nested CV"],
+    tools:["scikit-learn"],
+    practice:["Explain why accuracy misleads on an imbalanced set"],
+    resources:[{t:"scikit-learn: metrics",u:"https://scikit-learn.org/stable/modules/model_evaluation.html"}],
+    can:"Measure model quality the right way."},
+
+  "Deep Learning Foundations":{sub:"Weeks 12–18",cat:"Deep Learning",level:"Advanced",time:"~6 weeks",prereq:["Core ML with scikit-learn"],
+    why:"Neural networks power vision, language and speech. Understanding how they train — not just calling a library — is what lets you debug and improve them.",
+    learn:["Neurons, layers and activation functions","Loss functions and backpropagation","Optimisers and learning rates","Regularisation and dropout","Training loops in PyTorch"],
+    tools:["PyTorch"],
+    practice:["Build an MLP from scratch, then in PyTorch","Train an image classifier and beat a baseline"],
+    resources:[{t:"PyTorch: Learn the Basics",u:"https://pytorch.org/tutorials/beginner/basics/intro.html"},{t:"Deep Learning Book (free)",u:"https://www.deeplearningbook.org/"}],
+    can:"Design, train and debug neural networks."},
+  "Neural Network Basics":{cat:"Deep Learning",level:"Advanced",time:"~2 weeks",prereq:["Supervised Learning"],
+    why:"Understanding forward and backward passes removes the mystery from deep learning frameworks.",
+    learn:["Forward pass and activations","Loss and gradients","Backpropagation by hand"],
+    tools:["NumPy","PyTorch"],
+    practice:["Implement a tiny network in pure NumPy"],
+    resources:[{t:"Neural Networks (3Blue1Brown)",u:"https://www.3blue1brown.com/topics/neural-networks"}],
+    can:"Explain how a neural network actually learns."},
+  "Training & Optimisation":{cat:"Deep Learning",level:"Advanced",time:"~2 weeks",prereq:["Neural Network Basics"],
+    why:"Most deep learning pain is training pain: bad learning rates, overfitting, unstable loss.",
+    learn:["SGD, Adam and schedules","Regularisation and augmentation","Debugging unstable training"],
+    tools:["PyTorch","TensorBoard"],
+    practice:["Tune a learning-rate schedule to stabilise training"],
+    resources:[{t:"PyTorch: Optimizing Model Parameters",u:"https://pytorch.org/tutorials/beginner/basics/optimization_tutorial.html"}],
+    can:"Get a network to train reliably."},
+  "PyTorch Essentials":{cat:"Deep Learning",level:"Advanced",time:"~2 weeks",prereq:["Neural Network Basics"],
+    why:"PyTorch is the dominant research framework and increasingly standard in industry.",
+    learn:["Tensors and autograd","nn.Module and datasets","GPU training and checkpoints"],
+    tools:["PyTorch"],
+    practice:["Move a training script to GPU and add checkpointing"],
+    resources:[{t:"PyTorch tutorials",u:"https://pytorch.org/tutorials/"}],
+    can:"Work fluently in a modern DL framework."},
+
+  "Specialised Domains":{sub:"Weeks 16–24",cat:"Domains",level:"Advanced",time:"~6 weeks",prereq:["Deep Learning Foundations"],
+    why:"Different data types need different architectures: CNNs for images, transformers for text, sequence models for time. This is where ML becomes applied craft.",
+    learn:["Convolutional networks for vision","Transformers and transfer learning","Sequence models for time series","Using pretrained models"],
+    tools:["PyTorch","Hugging Face","OpenCV"],
+    practice:["Fine-tune a pretrained image or text model","Forecast a real time series"],
+    resources:[{t:"Hugging Face Course",u:"https://huggingface.co/learn/nlp-course/chapter1/1"},{t:"Forecasting: Principles and Practice",u:"https://otexts.com/fpp3/"}],
+    can:"Apply ML to images, text and time-series data."},
+  "NLP & Transformers":{cat:"Domains",level:"Advanced",time:"~3 weeks",prereq:["PyTorch Essentials"],
+    why:"Transformers changed everything about language — and increasingly vision too. Transfer learning means you rarely train from scratch.",
+    learn:["Attention and the transformer block","Tokenisation and embeddings","Fine-tuning and prompting"],
+    tools:["Hugging Face","transformers"],
+    practice:["Fine-tune a small model for text classification"],
+    resources:[{t:"Hugging Face NLP Course",u:"https://huggingface.co/learn/nlp-course/chapter1/1"}],
+    can:"Build modern language applications."},
+  "Computer Vision":{cat:"Domains",level:"Advanced",time:"~3 weeks",prereq:["PyTorch Essentials"],
+    why:"Vision powers everything from medical imaging to autonomy, and CNN/transformer recipes are well-trodden.",
+    learn:["Convolutions and pooling","Augmentation and transfer learning","Object detection and segmentation"],
+    tools:["PyTorch","torchvision","OpenCV"],
+    practice:["Fine-tune a detection model on a custom image set"],
+    resources:[{t:"PyTorch vision tutorials",u:"https://pytorch.org/tutorials/beginner/blitz/cifar10_tutorial.html"}],
+    can:"Build practical computer-vision models."},
+  "Time Series Forecasting":{cat:"Domains",level:"Advanced",time:"~2 weeks",prereq:["Supervised Learning"],
+    why:"Forecasting demand, prices and metrics is one of the most common real business ML tasks.",
+    learn:["Trend, seasonality and stationarity","Classical models (ARIMA, ETS)","ML/DL forecasting and backtesting"],
+    tools:["statsmodels","Prophet"],
+    practice:["Forecast a real series and backtest it properly"],
+    resources:[{t:"Forecasting: Principles and Practice",u:"https://otexts.com/fpp3/"}],
+    can:"Produce trustworthy forecasts."},
+
+  "MLOps & Deployment":{sub:"Weeks 20–28",cat:"MLOps",level:"Advanced",time:"~6 weeks",prereq:["Deep Learning Foundations"],
+    why:"A model in a notebook creates no value. MLOps is how models reach users, stay reproducible, and keep working as the world changes.",
+    learn:["Experiment tracking and versioning","Packaging and serving models","APIs and batch inference","Monitoring drift and retraining"],
+    tools:["MLflow","DVC","FastAPI","Docker"],
+    practice:["Serve a model behind an API and containerise it","Set up monitoring for prediction drift"],
+    resources:[{t:"MLOps: continuous delivery for ML",u:"https://ml-ops.org/"},{t:"MLflow documentation",u:"https://mlflow.org/docs/latest/index.html"}],
+    can:"Deploy and operate ML models in production."},
+  "Experiment Tracking":{cat:"MLOps",level:"Advanced",time:"~1 week",prereq:["Core ML with scikit-learn"],
+    why:"Reproducibility: knowing which data, code and params produced which result.",
+    learn:["Logging runs and metrics","Data and model versioning","Comparing experiments"],
+    tools:["MLflow","DVC"],
+    practice:["Track ten experiments and pick the best reproducibly"],
+    resources:[{t:"DVC documentation",u:"https://dvc.org/doc"}],
+    can:"Reproduce any past experiment."},
+  "Model Serving":{cat:"MLOps",level:"Advanced",time:"~2 weeks",prereq:["Experiment Tracking"],
+    why:"Turning a model file into a reliable service is a distinct engineering skill.",
+    learn:["REST inference APIs","Batch vs real-time","Containers and scaling"],
+    tools:["FastAPI","Docker"],
+    practice:["Deploy a model as a containerised API"],
+    resources:[{t:"FastAPI documentation",u:"https://fastapi.tiangolo.com/"}],
+    can:"Serve predictions to real clients."},
+  "Monitoring & Retraining":{cat:"MLOps",level:"Advanced",time:"~2 weeks",prereq:["Model Serving"],
+    why:"Models silently decay as data drifts. Monitoring and retraining keep them useful.",
+    learn:["Data and concept drift","Performance monitoring","Automated retraining pipelines"],
+    tools:["Evidently","Airflow"],
+    practice:["Detect drift in a live model and trigger a retrain"],
+    resources:[{t:"Evidently AI docs",u:"https://docs.evidentlyai.com/"}],
+    can:"Keep production models accurate over time."},
+
+  "Responsible ML & Scaling":{sub:"Months 7+",cat:"Advanced",level:"Advanced",time:"ongoing",prereq:["MLOps & Deployment"],
+    why:"Senior ML is about trust and efficiency: explaining decisions, avoiding harm, and training larger models without wasting compute.",
+    learn:["Interpretability and explainability","Fairness, bias and governance","Efficiency: mixed precision, distillation, distributed training"],
+    tools:["SHAP","PyTorch"],
+    practice:["Explain a model's decisions to a non-technical stakeholder","Cut training cost with mixed precision"],
+    resources:[{t:"Interpretable ML (free book)",u:"https://christophm.github.io/interpretable-ml-book/"},{t:"SHAP documentation",u:"https://shap.readthedocs.io/"}],
+    can:"Build ML that is trustworthy, explainable and efficient."},
+  "Interpretability":{cat:"Advanced",level:"Advanced",time:"~1–2 weeks",prereq:["Core ML with scikit-learn"],
+    why:"People rarely trust what they cannot understand — and regulated industries require explanations.",
+    learn:["Feature importance and SHAP","Partial dependence","Explaining individual predictions"],
+    tools:["SHAP","LIME"],
+    practice:["Explain one prediction in plain language"],
+    resources:[{t:"Interpretable ML book",u:"https://christophm.github.io/interpretable-ml-book/"}],
+    can:"Explain why a model decided what it did."},
+  "Ethics & Bias":{cat:"Advanced",level:"Advanced",time:"~1 week",prereq:["Model Evaluation"],
+    why:"Models learn and amplify the biases in their data. Responsible ML is now a professional requirement.",
+    learn:["Sources of bias","Fairness metrics","Governance and documentation"],
+    tools:["Fairlearn"],
+    practice:["Audit a model for disparate impact across groups"],
+    resources:[{t:"Fairlearn user guide",u:"https://fairlearn.org/main/user_guide/index.html"}],
+    can:"Spot and reduce harmful bias in models."},
+  "Scaling & Efficiency":{cat:"Advanced",level:"Advanced",time:"~2 weeks",prereq:["PyTorch Essentials"],
+    why:"Bigger models are not free. Efficiency skills decide what is actually trainable and deployable.",
+    learn:["Mixed precision and gradient accumulation","Distillation and pruning","Distributed training basics"],
+    tools:["PyTorch","CUDA"],
+    practice:["Halve training time with mixed precision"],
+    resources:[{t:"PyTorch: performance tuning",u:"https://pytorch.org/tutorials/recipes/recipes/tuning_guide.html"}],
+    can:"Train and run models within real budgets."}
+};
+
+
+
+/* all learning paths (from catalog), grouped by depth */
+const PATH_CATS = [
+  {icon:"\ud83c\udf0a",label:"Surface",items:[["Web Development","web-dev"],["Data Science / Analysis","data-science"],["Automation / Scripting","automation"],["Machine Learning","machine-learning"],["Web Scraping","web-scraping"],["Game Development","game-dev"],["GUI Applications","gui-apps"],["API Building","api-building"],["Chatbots","chatbots"],["Excel Automation","excel-automation"]]},
+  {icon:"\ud83c\udf0a",label:"Below Surface",items:[["Deep Learning","deep-learning"],["Computer Vision","computer-vision"],["NLP (Natural Language Processing)","nlp"],["Data Visualization","data-viz"],["Cloud Computing","cloud-computing"],["DevOps Scripting","devops-scripting"],["Testing / QA Automation","testing-qa"],["Database Operations","database-ops"],["ETL Pipelines","etl-pipelines"],["Recommendation Systems","recommendation-systems"]]},
+  {icon:"\ud83c\udf0a",label:"Mid-Level",items:[["Reinforcement Learning","reinforcement-learning"],["Generative AI / LLM Fine-tuning","genai-finetuning"],["Time Series Forecasting","time-series"],["Computer Graphics / Animation","cgi-animation"],["Cybersecurity / Pentesting","cybersecurity"],["Network Programming","network-programming"],["Cryptography Implementation","cryptography"],["Blockchain Scripting","blockchain"],["IoT Programming","iot"],["Robotics","robotics"],["Drone Programming","drones"],["Audio Processing","audio-processing"],["Video Processing","video-processing"],["Image Generation","image-generation"],["Speech Recognition / Synthesis","speech"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a",label:"Scientific",items:[["Bioinformatics","bioinformatics"],["Computational Chemistry","comp-chemistry"],["Physics Simulations","physics-sims"],["Astronomy Data","astronomy"],["Geospatial / GIS","gis"],["Climate Modeling","climate-modeling"],["Quantum Computing","quantum-computing"],["Numerical Methods","numerical-methods"],["Finite Element Analysis","fea"],["Fluid Dynamics Simulation","fluid-dynamics"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a",label:"Finance",items:[["Algorithmic Trading","algo-trading"],["Quantitative Finance","quant-finance"],["Risk Modeling","risk-modeling"],["Fraud Detection Systems","fraud-detection"],["Credit Scoring Models","credit-scoring"],["Portfolio Optimization","portfolio-optimization"],["Crypto Trading Bots","crypto-bots"],["Financial Data Pipelines","financial-pipelines"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a",label:"Infra",items:[["Distributed Systems","distributed-systems"],["Microservices Architecture","microservices"],["Container Orchestration","container-orchestration"],["Message Queues","message-queues"],["Load Testing","load-testing"],["Monitoring / Observability","monitoring"],["CI/CD Pipeline Scripting","cicd"],["Package / Library Development","package-dev"],["Compiler / Interpreter Building","compiler-building"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a",label:"AI Frontier",items:[["Multi-Agent Systems","multi-agent"],["AI Agents with Tool-Use","ai-agents"],["RAG Systems","rag"],["Vector Databases","vector-db"],["Fine-tuning LLMs","llm-finetuning"],["Model Quantization / Optimization","quantization"],["MLOps","mlops"],["Federated Learning","federated-learning"],["Explainable AI","xai"],["Synthetic Data Generation","synthetic-data"],["AI Safety / Alignment","ai-safety"],["Prompt Engineering Frameworks","prompt-eng"],["Voice Cloning / Synthesis","voice-cloning"],["Emotion Detection","emotion-detection"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a\ud83c\udf0a",label:"Research",items:[["Genomics / DNA Analysis","genomics"],["Drug Discovery","drug-discovery"],["Neuroscience Data Analysis","neuroscience"],["Medical Imaging","medical-imaging"],["Epidemiology Modeling","epidemiology"],["Materials Science Simulation","materials-science"],["Weather Prediction Models","weather-prediction"],["Autonomous Vehicle Perception","autonomous-driving"],["SLAM / Localization","slam"],["Satellite Image Analysis","satellite-imagery"]]},
+  {icon:"\ud83c\udf0a\ud83c\udf0a\ud83c\udf0a",label:"Abyss",items:[["Python C-Extensions","c-extensions"],["Build Your Own ML Framework","own-ml-framework"],["GPU Programming","gpu-programming"],["Parallel / Distributed Computing","parallel-computing"],["OS Scripting / Tooling","os-tooling"],["Malware Analysis / Reverse Engineering","malware-analysis"],["Digital Forensics Tooling","forensics"],["Embedded Systems Firmware","embedded-firmware"],["Simulation Engines","simulation-engines"],["Build Your Own Database Engine","own-db-engine"],["Build Your Own Web Framework","own-web-framework"],["Search Engine Building","search-engine"],["Programming Language / DSL","own-language"]]},
+  {icon:"\ud83e\udd16",label:"Frontier",items:[["Python for AI Research","agi-research"]]},
+];
+
+/* ------------- layout ------------- */
+const MAIN_W=196, MAIN_H=52, CH_W=182, CH_H=42, COL=290, YGAP=54, SECGAP=78;
+const nodes=[]; // {title, x,y,w,h,kind,detail}
+let y=0;
+const sectionYs=[];
+SECTIONS.forEach(sec=>{
+  const k=Math.max(sec.left.length, sec.right.length, 1);
+  const spread=(k-1)*YGAP;
+  const secH=Math.max(MAIN_H, spread);
+  const cy=y+secH/2;
+  nodes.push({title:sec.main,x:-MAIN_W/2,y:cy-MAIN_H/2,w:MAIN_W,h:MAIN_H,kind:"main",rec:!!sec.rec});
+  const place=(list,side,dx)=>{ list.forEach((t,i)=>{
+    const cxX = side==="right" ? dx : -dx-CH_W;
+    const cyy = cy - spread/2 + (i*YGAP) + (k-1-list.length)*0; // stack from top-ish
+    const yy = cy - ((list.length-1)*YGAP)/2 + i*YGAP;
+    nodes.push({title:t,x:cxX,y:yy-CH_H/2,w:CH_W,h:CH_H,kind:"child",side});
+  });};
+  place(sec.right,"right",COL);
+  place(sec.left,"left",COL);
+  y += secH + SECGAP;
+  sectionYs.push({main:sec.main, end:y-SECGAP, callout:sec.callout});
+});
+
+/* bounds */
+let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+nodes.forEach(n=>{minX=Math.min(minX,n.x);maxX=Math.max(maxX,n.x+n.w);minY=Math.min(minY,n.y);maxY=Math.max(maxY,n.y+n.h);});
+const PAD=60, W=(maxX-minX)+PAD*2, H=(maxY-minY)+PAD*2;
+const OX=-minX+PAD, OY=-minY+PAD;
+
+const canvas=document.getElementById("canvas");
+canvas.style.width=W+"px"; canvas.style.height=H+"px";
+const svg=document.getElementById("wires");
+svg.setAttribute("width",W); svg.setAttribute("height",H);
+
+function elbow(x1,y1,x2,y2){
+  const mx=(x1+x2)/2;
+  return `M ${x1} ${y1} H ${mx} V ${y2} H ${x2}`;
+}
+
+/* draw nodes + wires */
+const byTitle={};
+nodes.forEach(n=>{ byTitle[n.title]=n; });
+nodes.forEach(n=>{
+  const d=document.createElement("div");
+  d.className="node "+(n.kind==="main"?"main":"child");
+  d.style.left=(n.x+OX)+"px"; d.style.top=(n.y+OY)+"px";
+  d.style.width=n.w+"px";
+  d.innerHTML='<div class="n-t">'+n.title+'</div>'+(DETAIL[n.title]&&DETAIL[n.title].sub?'<div class="n-s">'+DETAIL[n.title].sub+'</div>':'');
+  if(n.rec) d.insertAdjacentHTML("afterbegin",'<span class="rec"></span>');
+  d.insertAdjacentHTML("beforeend",'<span class="chk"></span>');
+  canvas.appendChild(d);
+  n._el=d;
+  // wire from main to children
+});
+SECTIONS.forEach(sec=>{
+  const m=byTitle[sec.main];
+  [...sec.right].forEach(t=>{const c=byTitle[t]; if(c) addWire(m.x+m.w,m.y+m.h/2,c.x,c.y+c.h/2);});
+  [...sec.left].forEach(t=>{const c=byTitle[t]; if(c) addWire(m.x,m.y+m.h/2,c.x+c.w,c.y+c.h/2);});
+});
+// vertical spine connectors between main nodes
+for(let i=0;i<SECTIONS.length-1;i++){
+  const a=byTitle[SECTIONS[i].main], b=byTitle[SECTIONS[i+1].main];
+  addWire(a.x+a.w/2,a.y+a.h,b.x+b.w/2,b.y);
+}
+function addWire(x1,y1,x2,y2){
+  const p=document.createElementNS("http://www.w3.org/2000/svg","path");
+  p.setAttribute("d",elbow(x1+OX,y1+OY,x2+OX,y2+OY));
+  p.setAttribute("class","wire");
+  svg.appendChild(p);
+}
+// callouts
+sectionYs.forEach(s=>{ if(!s.callout) return; const sec=SECTIONS.find(x=>x.main===s.main); const k=Math.max(sec.left.length,sec.right.length,1);
+  const co=document.createElement("div"); co.className="callout"; co.textContent=s.callout;
+  const cw=380; co.style.width=cw+"px";
+  const cnode=byTitle[s.main];
+  co.style.left=(-cw/2+OX)+"px"; co.style.top=(s.end+OY+6)+"px";
+  canvas.appendChild(co);
+});
+
+/* click + check + panel */
+document.querySelectorAll(".node").forEach(el=>{
+  const title=el.querySelector(".n-t").textContent;
+  el.addEventListener("click",(e)=>{
+    if(e.target.classList.contains("chk")){ el.classList.toggle("done"); return; }
+    openPanel(title);
+    document.querySelectorAll(".node").forEach(o=>o.style.outline="");
+    el.style.outline="3px solid rgba(139,92,246,.5)";
+  });
+  if(localStorage.getItem("rm:"+title)==="1") el.classList.add("done");
+  el.addEventListener("click",e=>{ if(e.target.classList.contains("chk")){ localStorage.setItem("rm:"+title, el.classList.contains("done")?"1":"0"); }});
+});
+
+function openPanel(title){
+  const d=DETAIL[title]||{};
+  document.getElementById("p-title").textContent=title;
+  document.getElementById("p-sub").textContent=d.sub||"Topic";
+  const chips=document.getElementById("p-chips"); chips.innerHTML="";
+  [["cat",d.cat],["level",d.level],["time",d.time]].forEach(([k,v])=>{
+    if(!v) return; const c=document.createElement("span"); c.className="chip "+k; c.textContent=v; chips.appendChild(c);
+  });
+  const b=document.getElementById("p-body"); b.innerHTML="";
+  const sec=(h,node)=>{const s=document.createElement("div");s.className="sec";const t=document.createElement("h3");t.textContent=h;s.appendChild(t);s.appendChild(node);b.appendChild(s);};
+  const list=(arr,cls)=>{const ul=document.createElement("ul");ul.className="li "+(cls||"");arr.forEach(x=>{const li=document.createElement("li");li.textContent=x;ul.appendChild(li);});return ul;};
+  const pEl=document.createElement("p");
+  if(d.why){pEl.className="why";pEl.textContent=d.why;sec("Overview",pEl.cloneNode(true));}
+  if(d.prereq) sec("Prerequisites",list(d.prereq,"pr"));
+  if(d.learn) sec("What you'll learn",list(d.learn));
+  if(d.tools){const t=document.createElement("div");t.className="tags";d.tools.forEach(x=>{const sp=document.createElement("span");sp.className="tag";sp.textContent=x;t.appendChild(sp);});sec("Tools & technologies",t);}
+  if(d.practice) sec("Hands-on practice",list(d.practice));
+  if(d.resources){const r=document.createElement("div");r.className="res";d.resources.forEach(x=>{
+    const a=document.createElement("a");a.href=x.u;a.target="_blank";a.rel="noopener";
+    a.innerHTML=x.t+'<span>↗</span>';r.appendChild(a);});sec("Resources",r);}
+  if(d.can){const c=document.createElement("div");c.className="can";c.textContent=d.can;sec("What you can do afterwards",c);}
+  const p=document.getElementById("panel");p.classList.add("open");p.setAttribute("aria-hidden","false");
+}
+document.getElementById("p-close").addEventListener("click",()=>{
+  const p=document.getElementById("panel");p.classList.remove("open");p.setAttribute("aria-hidden","true");});
+
+/* ------------- left sidebar: all learning paths ------------- */
+const CURRENT_SLUG="machine-learning";
+const BUILT=new Set(["agi-research", "ai-agents", "ai-safety", "algo-trading", "api-building", "astronomy", "audio-processing", "automation", "autonomous-driving", "bioinformatics", "blockchain", "c-extensions", "cgi-animation", "chatbots", "cicd", "climate-modeling", "cloud-computing", "comp-chemistry", "compiler-building", "computer-vision", "container-orchestration", "credit-scoring", "crypto-bots", "cryptography", "cybersecurity", "data-science", "data-viz", "database-ops", "deep-learning", "devops-scripting", "distributed-systems", "drones", "drug-discovery", "embedded-firmware", "emotion-detection", "epidemiology", "etl-pipelines", "excel-automation", "fea", "federated-learning", "financial-pipelines", "fluid-dynamics", "forensics", "fraud-detection", "game-dev", "genai-finetuning", "genomics", "gis", "gpu-programming", "gui-apps", "image-generation", "iot", "llm-finetuning", "load-testing", "machine-learning", "malware-analysis", "materials-science", "medical-imaging", "message-queues", "microservices", "mlops", "monitoring", "multi-agent", "network-programming", "neuroscience", "nlp", "numerical-methods", "os-tooling", "own-db-engine", "own-language", "own-ml-framework", "own-web-framework", "package-dev", "parallel-computing", "physics-sims", "portfolio-optimization", "prompt-eng", "quant-finance", "quantization", "quantum-computing", "rag", "recommendation-systems", "reinforcement-learning", "risk-modeling", "robotics", "satellite-imagery", "search-engine", "simulation-engines", "slam", "speech", "synthetic-data", "testing-qa", "time-series", "vector-db", "video-processing", "voice-cloning", "weather-prediction", "web-dev", "web-scraping", "xai"]);
+const side=document.getElementById("side");
+const sidebarItems=[];
+{
+  const inp=document.createElement("input"); inp.className="search"; inp.placeholder="Search 100 paths…";
+  side.appendChild(inp);
+  PATH_CATS.forEach(cat=>{
+    const hd=document.createElement("h5"); hd.innerHTML=cat.icon+" "+cat.label; side.appendChild(hd);
+    cat.items.forEach(([name,slug])=>{
+      const isCur=slug===CURRENT_SLUG, built=BUILT.has(slug), navigable=built&&!isCur;
+      const el=document.createElement(navigable?"a":"span");
+      el.className="p-item"+(isCur?" active":built?"":" soon");
+      if(navigable) el.href="./"+slug+"-roadmap.html";
+      const nm=document.createElement("span"); nm.textContent=name;
+      const bd=document.createElement("em"); bd.textContent=isCur?"now":built?"open":"soon";
+      el.appendChild(nm); el.appendChild(bd);
+      el.dataset.q=(name+" "+slug).toLowerCase();
+      el.dataset.cat=cat.label;
+      side.appendChild(el); sidebarItems.push(el);
+    });
+  });
+  inp.addEventListener("input",()=>{
+    const q=inp.value.trim().toLowerCase();
+    sidebarItems.forEach(el=>{ el.style.display = !q || el.dataset.q.includes(q) ? "" : "none"; });
+    side.querySelectorAll("h5").forEach(hd=>{
+      let any=false, n=hd.nextElementSibling;
+      while(n && n.tagName!=="H5"){ if(n.style.display!=="none") any=true; n=n.nextElementSibling; }
+      hd.style.display=any?"":"none";
+    });
+  });
+}
+document.getElementById("sideToggle").addEventListener("click",()=>document.body.classList.toggle("no-side"));
+</script>
+</body>
+</html>
