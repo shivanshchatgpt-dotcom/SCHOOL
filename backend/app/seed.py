@@ -1,4 +1,5 @@
 """Seed the PySchool database from seed_data (idempotent)."""
+import importlib
 import json
 import os
 
@@ -67,6 +68,8 @@ def seed() -> None:
             question_added = _seed_assessment_questions(conn)
             _seed_profile_questions(conn)
             _refresh_catalog_content(conn)
+            conn.commit()  # appliers read through their own connection
+            authored = _apply_authored_curricula(conn)
             conn.execute(
                 "UPDATE paths SET duration_days = 180, is_launch_ready = 1 WHERE slug IN ('agi-research', 'data-science', 'web-dev')"
             )
@@ -77,7 +80,7 @@ def seed() -> None:
             conn.commit()
             print(f"[seed] curriculum checked — {added} 180-day lessons added, "
                   f"{canonical_added} canonical lessons added, {catalog_added} catalog lessons added, "
-                  f"{question_added} questions added")
+                  f"{question_added} questions added, {authored} authored lessons applied")
             return
 
         conn.executescript("""
@@ -176,6 +179,8 @@ def seed() -> None:
         _seed_assessment_questions(conn)
         _seed_profile_questions(conn)
         conn.execute("INSERT OR REPLACE INTO meta (key, value) VALUES ('catalog_depth', '3')")
+        conn.commit()  # appliers read through their own connection
+        authored = _apply_authored_curricula(conn)
 
         conn.execute(
             "INSERT OR REPLACE INTO meta (key, value) VALUES ('seed_version', ?)",
@@ -184,7 +189,7 @@ def seed() -> None:
         conn.commit()
         print(f"[seed] OK — {len(CATEGORIES)} categories, {len(PATHS)} paths, "
               f"{conn.execute('SELECT COUNT(*) AS c FROM lessons').fetchone()['c']} lessons seeded, "
-              f"{canonical_added} canonical lessons added.")
+              f"{canonical_added} canonical lessons added, {authored} authored lessons applied.")
     finally:
         conn.close()
 
@@ -629,6 +634,54 @@ def _refresh_catalog_content(conn) -> int:
     updated = _refresh_catalog_rows(conn, only_slugs=None)
     conn.execute("INSERT OR REPLACE INTO meta (key, value) VALUES ('catalog_depth', '3')")
     return updated
+
+
+# Hand-authored tracks shipped as a module + idempotent applier. They are
+# applied once per database, after the catalog fill, so a fresh install serves
+# the authored lessons instead of the generated placeholders.
+AUTHORED_APPLY_VERSION = "1"
+AUTHORED_PACKS = (
+    ("machine-learning", "app.apply_ml"),
+    ("cryptography", "app.apply_cybersecurity"),
+    ("testing-qa", "app.apply_catalog_batch_a"),
+    ("database-ops", "app.apply_catalog_batch_b"),
+    ("web-scraping", "app.apply_web_scraping"),
+    ("api-building", "app.apply_api_building"),
+)
+
+
+def _apply_authored_curricula(conn) -> int:
+    """Apply the hand-authored tracks once, after the catalog fill.
+
+    Each applier rewrites only its own days and never creates rows, so a path
+    the catalog did not fill is skipped rather than half-built. Guarded by a
+    meta key so the ~600 worked examples are not re-executed on every boot.
+    """
+    if os.environ.get("PYSCHOOL_SKIP_CATALOG"):
+        return 0
+    row = conn.execute("SELECT value FROM meta WHERE key = 'authored_apply'").fetchone()
+    if row and row["value"] == AUTHORED_APPLY_VERSION:
+        return 0
+    from . import db as db_module
+
+    applied = 0
+    for slug, module_name in AUTHORED_PACKS:
+        exists = conn.execute(
+            "SELECT 1 FROM lessons WHERE path_id = (SELECT id FROM paths WHERE slug = ?) LIMIT 1",
+            (slug,),
+        ).fetchone()
+        if not exists:
+            continue
+        try:
+            module = importlib.import_module(module_name)
+            applied += module.apply(db_module.DB_PATH, check_only=False).get("updated", 0)
+        except Exception as error:  # a broken pack must not block startup
+            print(f"[seed] authored pack for {slug} skipped: {error}")
+    conn.execute(
+        "INSERT OR REPLACE INTO meta (key, value) VALUES ('authored_apply', ?)",
+        (AUTHORED_APPLY_VERSION,),
+    )
+    return applied
 
 
 # The four genuinely hand-authored automation lessons. Everything else on the

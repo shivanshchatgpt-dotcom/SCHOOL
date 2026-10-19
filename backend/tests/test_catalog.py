@@ -109,3 +109,39 @@ def test_catalog_fill_completes_one_path_idempotently(tmp_path, monkeypatch):
         assert _refresh_catalog_content(conn) == 0
     finally:
         conn.close()
+
+
+def test_authored_packs_apply_once_to_filled_paths(tmp_path, monkeypatch):
+    """A filled path gets its hand-authored days; an unfilled one is untouched."""
+    monkeypatch.setenv("PYSCHOOL_SKIP_CATALOG", "1")
+    from app import db
+    from app.seed import seed, _apply_authored_curricula, _seed_catalog_curricula
+
+    monkeypatch.setattr(db, "DB_PATH", tmp_path / "authored.db")
+    db.init_db()
+    seed()
+    conn = db.get_conn()
+    try:
+        slug = "web-scraping"
+        path_id = conn.execute("SELECT id FROM paths WHERE slug = ?", (slug,)).fetchone()["id"]
+        monkeypatch.delenv("PYSCHOOL_SKIP_CATALOG")
+        _seed_catalog_curricula(conn, only_slugs=[slug])
+        conn.commit()
+        assert _apply_authored_curricula(conn) == 111
+        conn.commit()
+        assert conn.execute(
+            "SELECT value FROM meta WHERE key = 'authored_apply'"
+        ).fetchone()["value"] == "1"
+        assert conn.execute(
+            "SELECT title FROM lessons WHERE path_id = ? AND day_number = 75", (path_id,)
+        ).fetchone()["title"].startswith("Fetching the Web:")
+        # A path the catalog did not fill is not half-built by its authored pack.
+        ml_day75 = conn.execute(
+            "SELECT 1 FROM lessons WHERE day_number = 75 "
+            "AND path_id = (SELECT id FROM paths WHERE slug = 'machine-learning')"
+        ).fetchone()
+        assert ml_day75 is None
+        # The meta guard means the examples are not re-executed on the next call.
+        assert _apply_authored_curricula(conn) == 0
+    finally:
+        conn.close()
