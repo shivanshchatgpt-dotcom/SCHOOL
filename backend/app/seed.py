@@ -639,7 +639,7 @@ def _refresh_catalog_content(conn) -> int:
 # Hand-authored tracks shipped as a module + idempotent applier. They are
 # applied once per database, after the catalog fill, so a fresh install serves
 # the authored lessons instead of the generated placeholders.
-AUTHORED_APPLY_VERSION = "7"
+AUTHORED_APPLY_VERSION = "8"
 AUTHORED_PACKS = (
     ("machine-learning", "app.apply_ml"),
     ("cryptography", "app.apply_cybersecurity"),
@@ -653,6 +653,7 @@ AUTHORED_PACKS = (
     ("excel-automation", "app.apply_excel_automation"),
     ("automation", "app.apply_automation"),
     ("deep-learning", "app.apply_deep_learning"),
+    ("computer-vision", "app.apply_computer_vision"),
 )
 
 
