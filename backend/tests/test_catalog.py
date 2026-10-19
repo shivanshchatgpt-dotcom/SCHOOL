@@ -131,7 +131,7 @@ def test_authored_packs_apply_once_to_filled_paths(tmp_path, monkeypatch):
         conn.commit()
         assert conn.execute(
             "SELECT value FROM meta WHERE key = 'authored_apply'"
-        ).fetchone()["value"] == "2"
+        ).fetchone()["value"] == "3"
         assert conn.execute(
             "SELECT title FROM lessons WHERE path_id = ? AND day_number = 75", (path_id,)
         ).fetchone()["title"].startswith("Fetching the Web:")
